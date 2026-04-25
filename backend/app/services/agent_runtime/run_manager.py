@@ -8,9 +8,10 @@ from app.services.agent_runtime.executor import Executor
 from app.services.agent_runtime.planner import Planner
 from app.services.agent_runtime.prompt_builder import PromptBuilder
 from app.services.artifact.generator import ArtifactGenerator
+from app.services.improvement.metrics import RunMetricsService
 from app.services.inbox.confirmations import ConfirmationService
 from app.services.memory.extraction import MemoryExtractionService
-from app.services.memory.recall import MemoryRecallService
+from app.services.memory.recall import MemoryRecallService, recall_results_to_json
 from app.services.skill.selector import SkillSelector
 from app.services.trace.recorder import TraceRecorder
 
@@ -26,8 +27,16 @@ class RunManager:
         task.status = "running"
         self.db.commit()
 
-        memories = MemoryRecallService(self.db).recall_for_task(task)
-        self.trace.record(run.id, "recall_memory", "Recall memory", f"Recalled {len(memories)} confirmed memories.", {"query": task.input_message}, {"count": len(memories)})
+        recall_results = MemoryRecallService(self.db).recall_for_task_with_scores(task, run_id=run.id)
+        memories = [result.memory for result in recall_results]
+        self.trace.record(
+            run.id,
+            "recall_memory",
+            "Recall memory",
+            f"Recalled {len(memories)} confirmed memories.",
+            {"query": task.input_message},
+            {"count": len(memories), "strategy": "hybrid_v0.2", "scores": recall_results_to_json(recall_results)},
+        )
 
         skills = SkillSelector(self.db).select_for_task(task, agent)
         self.trace.record(run.id, "select_skill", "Select skills", f"Selected {len(skills)} candidate skills.", output_json={"skill_ids": [skill.id for skill in skills]})
@@ -48,6 +57,14 @@ class RunManager:
         run.result_summary = f"Generated {artifact.type} artifact with {len(confirmations)} confirmation item(s)."
         run.completed_at = datetime.utcnow()
         task.status = "completed"
+        RunMetricsService(self.db).record_completed(
+            task=task,
+            run=run,
+            artifact_count=1,
+            confirmation_count=len(confirmations),
+            memory_candidate_count=len(memory_candidates),
+            tool_call_count=len(tool_outputs),
+        )
         self.db.commit()
         self.db.refresh(task)
         self.db.refresh(run)

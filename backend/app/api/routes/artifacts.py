@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,8 @@ from app.api.deps import apply_update, get_one
 from app.core.database import get_db
 from app.models import Artifact
 from app.schemas import ArtifactCreate, ArtifactRead
+from app.services.artifact.persistence import ArtifactPersistenceService
+from app.services.artifact.spec import ArtifactValidationError, ArtifactValidator
 
 router = APIRouter(prefix="/api/artifacts", tags=["artifacts"])
 
@@ -30,7 +32,14 @@ def read_artifact(item_id: str, db: Session = Depends(get_db)) -> Artifact:
 
 @router.patch("/{item_id}", response_model=ArtifactRead)
 def update_artifact(item_id: str, payload: dict[str, Any], db: Session = Depends(get_db)) -> Artifact:
-    item = apply_update(get_one(db, Artifact, item_id), payload)
+    item = get_one(db, Artifact, item_id)
+    if "schema_json" in payload:
+        try:
+            ArtifactPersistenceService(db).update_schema(item, payload["schema_json"])
+        except ArtifactValidationError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        payload = {key: value for key, value in payload.items() if key not in {"schema_json", "type", "title"}}
+    item = apply_update(item, payload)
     db.commit()
     db.refresh(item)
     return item
@@ -39,7 +48,11 @@ def update_artifact(item_id: str, payload: dict[str, Any], db: Session = Depends
 @router.post("/{item_id}/versions", response_model=ArtifactRead)
 def create_artifact_version(item_id: str, payload: ArtifactCreate, db: Session = Depends(get_db)) -> Artifact:
     original = get_one(db, Artifact, item_id)
-    item = Artifact(**payload.model_dump(exclude={"version"}), version=original.version + 1)
+    try:
+        schema_json = ArtifactValidator().normalize_and_validate(payload.schema_json)
+    except ArtifactValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    item = Artifact(**payload.model_dump(exclude={"version", "schema_json"}), schema_json=schema_json, version=original.version + 1)
     db.add(item)
     db.commit()
     db.refresh(item)

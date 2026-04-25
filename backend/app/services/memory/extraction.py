@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Artifact, Memory, Run, Task
 from app.services.trace.recorder import TraceRecorder
+from app.services.memory.writer import MemoryWriter
 
 
 class MemoryExtractionService:
@@ -15,17 +16,17 @@ class MemoryExtractionService:
             "dashboard": "User cares about sales follow-up prioritization and wants approvals before outbound actions.",
             "table": "User is researching competitors and values structured comparison tables.",
         }.get(artifact.type, f"User asked Tilo to process: {task.title}")
-        memory = Memory(
+        memory = MemoryWriter(self.db).create_candidate(
             workspace_id=task.workspace_id,
             project_id=task.project_id,
-            type="task_experience",
+            run_id=run.id,
+            memory_type="task_experience",
             content=content,
-            source_type="run",
-            source_id=run.id,
             confidence=0.72,
-            is_confirmed=False,
+            salience=0.55,
+            source_artifact_id=artifact.id,
+            reason="Extracted from completed run artifact for future task personalization.",
         )
-        self.db.add(memory)
         self.db.commit()
         self.db.refresh(memory)
         self.trace.record(

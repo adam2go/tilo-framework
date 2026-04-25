@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Trash2, X } from "lucide-react";
+import { Check, Pencil, Rocket, Trash2, X } from "lucide-react";
 import { apiFetch, getBootstrap } from "../lib/api";
-import type { Confirmation, Memory, Skill, Workspace } from "../lib/types";
+import type { Confirmation, Memory, Skill, SkillCandidate, Workspace } from "../lib/types";
 
 export function InboxPageContent() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -87,10 +87,34 @@ export function MemoriesPageContent() {
     await load();
   }
 
+  async function reject(id: string) {
+    await apiFetch<Memory>(`/api/memories/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason: "Rejected from memory workbench" })
+    });
+    await load();
+  }
+
+  async function editMemory(memory: Memory) {
+    const content = window.prompt("Memory content", memory.content);
+    if (!content || content === memory.content) {
+      return;
+    }
+    await apiFetch<Memory>(`/api/memories/${memory.id}/edit`, {
+      method: "POST",
+      body: JSON.stringify({ content, status: memory.status, is_confirmed: memory.is_confirmed })
+    });
+    await load();
+  }
+
   async function deleteMemory(id: string) {
     await apiFetch<{ status: string }>(`/api/memories/${id}`, { method: "DELETE" });
     await load();
   }
+
+  const candidates = items.filter((memory) => memory.status === "candidate" || (!memory.is_confirmed && !["rejected", "archived"].includes(memory.status)));
+  const confirmed = items.filter((memory) => memory.status === "confirmed" || memory.is_confirmed);
+  const rejected = items.filter((memory) => memory.status === "rejected" || memory.status === "archived");
 
   return (
     <section className="page-panel">
@@ -100,41 +124,84 @@ export function MemoriesPageContent() {
           <h1>Memories</h1>
         </div>
       </header>
-      <div className="stack-list">
-        {items.length ? (
-          items.map((memory) => (
-            <article className={`list-item ${memory.is_confirmed ? "confirmed" : ""}`} key={memory.id}>
-              <strong>{memory.type}</strong>
-              <span>{memory.content}</span>
-              <small>{memory.is_confirmed ? "Confirmed" : "Candidate"} · confidence {memory.confidence}</small>
-              <div className="action-row">
-                {!memory.is_confirmed ? (
-                  <button className="small-button" onClick={() => void confirm(memory.id)}>
-                    <Check size={14} />
-                    Confirm
-                  </button>
-                ) : null}
-                <button className="small-button" onClick={() => void deleteMemory(memory.id)}>
-                  <Trash2 size={14} />
-                  Delete
-                </button>
-              </div>
-            </article>
-          ))
-        ) : (
-          <div className="empty-state">
-            <strong>No memories yet</strong>
-            <span>Tilo will suggest memories after tasks are completed.</span>
-          </div>
-        )}
-      </div>
+      {items.length ? (
+        <div className="memory-columns">
+          <MemoryGroup title="Candidates" items={candidates} onConfirm={confirm} onReject={reject} onEdit={editMemory} onDelete={deleteMemory} />
+          <MemoryGroup title="Confirmed" items={confirmed} onConfirm={confirm} onReject={reject} onEdit={editMemory} onDelete={deleteMemory} />
+          <MemoryGroup title="Rejected" items={rejected} onConfirm={confirm} onReject={reject} onEdit={editMemory} onDelete={deleteMemory} />
+        </div>
+      ) : (
+        <div className="empty-state">
+          <strong>No memories yet</strong>
+          <span>Tilo will suggest memories after tasks are completed.</span>
+        </div>
+      )}
     </section>
+  );
+}
+
+function MemoryGroup({
+  title,
+  items,
+  onConfirm,
+  onReject,
+  onEdit,
+  onDelete
+}: {
+  title: string;
+  items: Memory[];
+  onConfirm: (id: string) => Promise<void>;
+  onReject: (id: string) => Promise<void>;
+  onEdit: (memory: Memory) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  return (
+    <div className="memory-group">
+      <div className="memory-group-header">
+        <h2>{title}</h2>
+        <span>{items.length}</span>
+      </div>
+      <div className="stack-list">
+        {items.map((memory) => (
+          <article className={`list-item ${memory.is_confirmed ? "confirmed" : ""}`} key={memory.id}>
+            <strong>{memory.type}</strong>
+            <span>{memory.content}</span>
+            <small>
+              {memory.status} · {memory.scope_type} · confidence {memory.confidence} · salience {memory.salience} · recalled {memory.recall_count}
+            </small>
+            <div className="action-row">
+              {!memory.is_confirmed ? (
+                <button className="small-button" onClick={() => void onConfirm(memory.id)}>
+                  <Check size={14} />
+                  Accept
+                </button>
+              ) : null}
+              {memory.status === "candidate" ? (
+                <button className="small-button" onClick={() => void onReject(memory.id)}>
+                  <X size={14} />
+                  Reject
+                </button>
+              ) : null}
+              <button className="small-button" onClick={() => void onEdit(memory)}>
+                <Pencil size={14} />
+                Edit
+              </button>
+              <button className="small-button" onClick={() => void onDelete(memory.id)}>
+                <Trash2 size={14} />
+                Delete
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export function SkillsPageContent() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [items, setItems] = useState<Skill[]>([]);
+  const [candidates, setCandidates] = useState<SkillCandidate[]>([]);
 
   useEffect(() => {
     void load();
@@ -145,7 +212,26 @@ export function SkillsPageContent() {
     setWorkspace(bootstrap.workspace);
     if (bootstrap.workspace) {
       setItems(await apiFetch<Skill[]>(`/api/skills?workspace_id=${bootstrap.workspace.id}`));
+      setCandidates(await apiFetch<SkillCandidate[]>(`/api/skills/candidates?workspace_id=${bootstrap.workspace.id}`));
     }
+  }
+
+  async function approveCandidate(id: string) {
+    await apiFetch<SkillCandidate>(`/api/skills/candidates/${id}/approve`, { method: "POST" });
+    await load();
+  }
+
+  async function rejectCandidate(id: string) {
+    await apiFetch<SkillCandidate>(`/api/skills/candidates/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason: "Rejected from skills review" })
+    });
+    await load();
+  }
+
+  async function promoteCandidate(id: string) {
+    await apiFetch<Skill>(`/api/skills/candidates/${id}/promote`, { method: "POST" });
+    await load();
   }
 
   return (
@@ -156,6 +242,48 @@ export function SkillsPageContent() {
           <h1>Skills</h1>
         </div>
       </header>
+      <section className="review-panel">
+        <div className="memory-group-header">
+          <h2>Review Queue</h2>
+          <span>{candidates.length}</span>
+        </div>
+        <div className="stack-list">
+          {candidates.length ? (
+            candidates.map((candidate) => (
+              <article className="list-item" key={candidate.id}>
+                <strong>{candidate.name}</strong>
+                <span>{candidate.description || candidate.trigger_description}</span>
+                <small>{candidate.status} · source run {candidate.source_run_id}</small>
+                <div className="action-row">
+                  {candidate.status === "pending_review" ? (
+                    <>
+                      <button className="small-button" onClick={() => void approveCandidate(candidate.id)}>
+                        <Check size={14} />
+                        Approve
+                      </button>
+                      <button className="small-button" onClick={() => void rejectCandidate(candidate.id)}>
+                        <X size={14} />
+                        Reject
+                      </button>
+                    </>
+                  ) : null}
+                  {candidate.status === "approved" ? (
+                    <button className="small-button" onClick={() => void promoteCandidate(candidate.id)}>
+                      <Rocket size={14} />
+                      Promote
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="empty-state">
+              <strong>No skill candidates</strong>
+              <span>Positive feedback on completed runs can propose reusable skills for review.</span>
+            </div>
+          )}
+        </div>
+      </section>
       <div className="stack-list">
         {items.length ? (
           items.map((skill) => (

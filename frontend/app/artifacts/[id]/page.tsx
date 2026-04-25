@@ -1,11 +1,11 @@
-import { AppShell, EmptyState } from "../../../components/AppShell";
+import { AppShell } from "../../../components/AppShell";
+import { ArtifactDetail } from "../../../components/artifact/ArtifactDetail";
 
-export default function ArtifactPage() {
+export default function ArtifactPage({ params }: { params: { id: string } }) {
   return (
     <AppShell>
       <main className="artifact-panel">
-        <h1>Artifact</h1>
-        <EmptyState title="Artifact detail" detail="Artifacts are persisted and rendered from schema in the console view." />
+        <ArtifactDetail artifactId={params.id} />
       </main>
     </AppShell>
   );

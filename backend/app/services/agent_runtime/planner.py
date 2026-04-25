@@ -1,12 +1,12 @@
 from typing import Any
 
 from app.models import Memory, Skill, Task
-from app.services.artifact.generator import detect_artifact_type
+from app.services.artifact.spec import ArtifactTypeDetector
 
 
 class Planner:
     def plan(self, task: Task, memories: list[Memory], skills: list[Skill]) -> dict[str, Any]:
-        artifact_type = detect_artifact_type(task.input_message)
+        artifact_type = ArtifactTypeDetector().detect(task.input_message)
         return {
             "goal": task.title,
             "artifact_type": artifact_type,

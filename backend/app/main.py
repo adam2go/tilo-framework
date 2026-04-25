@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import routers
 from app.core.config import get_settings
 from app.core.database import Base, SessionLocal, engine
+from app.core.migrations import ensure_v02_schema
 from app.services.bootstrap import seed_defaults
 
 
@@ -24,5 +25,6 @@ for router in routers:
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_v02_schema(engine)
     with SessionLocal() as db:
         seed_defaults(db)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, JSON, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -82,6 +82,23 @@ class Run(Base, TimestampMixin):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class RunMetrics(Base):
+    __tablename__ = "run_metrics"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), index=True)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    success: Mapped[bool] = mapped_column(Boolean, default=False)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+    artifact_count: Mapped[int] = mapped_column(Integer, default=0)
+    confirmation_count: Mapped[int] = mapped_column(Integer, default=0)
+    memory_candidate_count: Mapped[int] = mapped_column(Integer, default=0)
+    tool_call_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
+    user_feedback_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class Memory(Base, TimestampMixin):
     __tablename__ = "memories"
 
@@ -89,14 +106,62 @@ class Memory(Base, TimestampMixin):
     workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
     project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
     user_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True)
+    scope_type: Mapped[str] = mapped_column(String, default="workspace")
+    scope_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     type: Mapped[str] = mapped_column(String, default="task_experience")
     content: Mapped[str] = mapped_column(Text)
     source_type: Mapped[str] = mapped_column(String, default="run")
     source_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
     confidence: Mapped[float] = mapped_column(Float, default=0.5)
+    salience: Mapped[float] = mapped_column(Float, default=0.5)
+    status: Mapped[str] = mapped_column(String, default="candidate")
     is_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     embedding: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    structured_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    supersedes_id: Mapped[str | None] = mapped_column(String, ForeignKey("memories.id"), nullable=True)
+    last_recalled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    recall_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class MemoryWriteEvent(Base):
+    __tablename__ = "memory_write_events"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    memory_id: Mapped[str | None] = mapped_column(String, ForeignKey("memories.id"), nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String)
+    payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class MemoryRecallEvent(Base):
+    __tablename__ = "memory_recall_events"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
+    query_text: Mapped[str] = mapped_column(Text)
+    retrieved_memory_ids: Mapped[list] = mapped_column(JSON, default=list)
+    scores_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    strategy: Mapped[str] = mapped_column(String, default="hybrid_v0.2")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class MemoryConflict(Base):
+    __tablename__ = "memory_conflicts"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    memory_id: Mapped[str] = mapped_column(String, ForeignKey("memories.id"), index=True)
+    conflicting_memory_id: Mapped[str] = mapped_column(String, ForeignKey("memories.id"), index=True)
+    status: Mapped[str] = mapped_column(String, default="open")
+    reason: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Artifact(Base, TimestampMixin):
@@ -142,6 +207,39 @@ class Skill(Base, TimestampMixin):
     artifact_template_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     required_tool_ids: Mapped[list] = mapped_column(JSON, default=list)
     version: Mapped[int] = mapped_column(default=1)
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
+    artifact_id: Mapped[str | None] = mapped_column(String, ForeignKey("artifacts.id"), nullable=True, index=True)
+    memory_id: Mapped[str | None] = mapped_column(String, ForeignKey("memories.id"), nullable=True, index=True)
+    skill_id: Mapped[str | None] = mapped_column(String, ForeignKey("skills.id"), nullable=True, index=True)
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    feedback_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feedback_type: Mapped[str] = mapped_column(String, default="other")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class SkillCandidate(Base, TimestampMixin):
+    __tablename__ = "skill_candidates"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    source_run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), index=True)
+    name: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(Text, default="")
+    trigger_description: Mapped[str] = mapped_column(Text, default="")
+    instructions_markdown: Mapped[str] = mapped_column(Text, default="")
+    artifact_template_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="pending_review")
+    eval_report_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    promoted_skill_id: Mapped[str | None] = mapped_column(String, ForeignKey("skills.id"), nullable=True)
 
 
 class Tool(Base, TimestampMixin):
