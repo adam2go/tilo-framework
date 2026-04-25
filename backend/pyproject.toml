@@ -1,0 +1,19 @@
+[project]
+name = "tilo-backend"
+version = "0.1.0"
+description = "Tilo Framework backend"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "sqlalchemy>=2.0",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "psycopg[binary]>=3.1"
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
