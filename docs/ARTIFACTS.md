@@ -252,3 +252,41 @@ Artifacts now use `artifact_spec.v1`:
 Supported v0.2 blocks are `markdown`, `rich_text`, `table`, `metric`, `card`, `list`, `timeline`, `kanban`, `risk_item`, `citation`, `form`, `comparison_matrix`, and `confirmation_action`.
 
 Artifact actions may request confirmation, but durable user decisions must be stored as `Confirmation` records. The frontend renderer dispatches by block type through a registry and renders unsupported blocks with a safe fallback.
+
+## 18. ROAM Interaction Blocks
+
+ROAM-compatible blocks may include actions and state bindings:
+
+```json
+{
+  "id": "approval",
+  "type": "approval_card",
+  "data": {},
+  "actions": [
+    {
+      "id": "approve",
+      "label": "Approve",
+      "action_type": "approve",
+      "confirmation_required": true,
+      "payload": {}
+    }
+  ],
+  "state_binding": {
+    "entity_type": "run",
+    "entity_id": "run-id",
+    "field": "status"
+  }
+}
+```
+
+Initial ROAM blocks:
+
+- `approval_card`
+- `risk_review_panel`
+- `comparison_matrix`
+- `metric_dashboard`
+- `memory_candidate_card`
+- `tool_call_preview`
+- `action_queue`
+
+Component actions must write durable `UIInteractionEvent` observations and then call the relevant backend API when the action maps to Confirmation, Memory, SkillCandidate, ToolInvocation, or Task/Run state.

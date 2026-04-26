@@ -130,3 +130,15 @@ v0.2 adds enforcement-oriented safety primitives:
 - High-risk tools create pending confirmations and pending tool invocations instead of executing immediately.
 - Mock tool responses include `mock: true` so demo data is not presented as real external data.
 - Skill candidates require review and must not automatically modify approved skills or prompts.
+
+## 12. ROAM Interaction Safety
+
+ROAM component actions are not local-only UI state. They create durable `UIInteractionEvent` records and then call backend APIs when needed.
+
+Safety rules:
+
+- Interaction payloads must be sanitized before persistence.
+- High-risk component actions must still create or use durable `Confirmation` records.
+- Component actions must not execute external tools directly from the browser.
+- Memory-related component actions should create reviewable memory candidates or call Memory confirmation APIs.
+- UI observations may inform future runs, but they must not become trusted long-term memory without the memory review workflow.

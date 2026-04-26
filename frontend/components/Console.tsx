@@ -5,13 +5,15 @@ import { Play, RefreshCcw, Send } from "lucide-react";
 import { AppShell, EmptyState } from "./AppShell";
 import { ArtifactRenderer } from "./ArtifactRenderer";
 import { apiFetch, getBootstrap, sendMessage } from "../lib/api";
-import type { Agent, Artifact, Confirmation, Memory, Project, Skill, SkillCandidate, TraceStep, Workspace } from "../lib/types";
+import type { Agent, Artifact, Confirmation, Memory, Project, Skill, SkillCandidate, TraceStep, UIInteractionEvent, Workspace } from "../lib/types";
 
 const demoPrompts = [
-  "Review this contract and flag risky clauses around liability, termination, and payment terms.",
-  "Which customers should sales follow up with this week?",
-  "Create a competitive analysis for memory-native AI agent frameworks."
+  "Contract ROAM: review this contract, show risks, request approval, and suggest a memory.",
+  "Sales ROAM: rank follow-ups, show pipeline metrics, queue actions, and ask for approval.",
+  "Competitive ROAM: compare AI agent frameworks, select positioning, and continue next steps."
 ];
+
+const roamStages = ["Render", "Observe", "Act", "Memorize"];
 
 export function Console() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -26,6 +28,7 @@ export function Console() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [skillCandidates, setSkillCandidates] = useState<SkillCandidate[]>([]);
   const [trace, setTrace] = useState<TraceStep[]>([]);
+  const [interactions, setInteractions] = useState<UIInteractionEvent[]>([]);
   const [activeContext, setActiveContext] = useState<"memory" | "trace" | "skills" | "files">("trace");
   const canSend = Boolean(workspace && content.trim() && !busy);
 
@@ -45,6 +48,7 @@ export function Console() {
       setConfirmations(inbox);
       setSkills(await apiFetch<Skill[]>(`/api/skills?workspace_id=${data.workspace.id}`));
       setSkillCandidates(await apiFetch<SkillCandidate[]>(`/api/skills/candidates?workspace_id=${data.workspace.id}`));
+      setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${data.workspace.id}`));
     }
   }
 
@@ -59,13 +63,14 @@ export function Console() {
         agent_id: agent?.id,
         content: nextContent
       });
-      const [artifacts, inbox, updatedMemories, steps, updatedSkills, candidates] = await Promise.all([
+      const [artifacts, inbox, updatedMemories, steps, updatedSkills, candidates, updatedInteractions] = await Promise.all([
         apiFetch<Artifact[]>(`/api/artifacts?workspace_id=${workspace.id}&task_id=${response.task_id}`),
         apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${workspace.id}&status=pending`),
         apiFetch<Memory[]>(`/api/memories?workspace_id=${workspace.id}`),
         apiFetch<TraceStep[]>(`/api/runs/${response.run_id}/trace`),
         apiFetch<Skill[]>(`/api/skills?workspace_id=${workspace.id}`),
-        apiFetch<SkillCandidate[]>(`/api/skills/candidates?workspace_id=${workspace.id}`)
+        apiFetch<SkillCandidate[]>(`/api/skills/candidates?workspace_id=${workspace.id}`),
+        apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${workspace.id}&run_id=${response.run_id}`)
       ]);
       setArtifact(artifacts[0] || null);
       setConfirmations(inbox);
@@ -73,6 +78,7 @@ export function Console() {
       setTrace(steps);
       setSkills(updatedSkills);
       setSkillCandidates(candidates);
+      setInteractions(updatedInteractions);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
     } finally {
@@ -104,15 +110,24 @@ export function Console() {
     <AppShell>
       <div className="console-grid">
         <section className="chat-panel">
-          <header className="section-header">
+          <header className="section-header command-header">
             <div>
-              <span className="eyebrow">{workspace?.name || "Workspace"}</span>
-              <h1>Agent Task</h1>
+              <span className="eyebrow">{workspace?.name || "Workspace"} · ROAM Loop</span>
+              <h1>Command Center</h1>
+              <p>State a goal. Tilo renders an interaction surface, observes your actions, acts safely, and memorizes confirmed learning.</p>
             </div>
             <button className="icon-button" title="Refresh context" onClick={() => void boot()}>
               <RefreshCcw size={16} />
             </button>
           </header>
+          <div className="roam-stage-strip">
+            {roamStages.map((stage, index) => (
+              <div className="roam-stage" key={stage}>
+                <span>{index + 1}</span>
+                <strong>{stage}</strong>
+              </div>
+            ))}
+          </div>
           <div className="demo-row">
             {demoPrompts.map((prompt) => (
               <button
@@ -124,7 +139,7 @@ export function Console() {
                 }}
               >
                 <Play size={14} />
-                {prompt.split(" ").slice(0, 3).join(" ")}
+                {prompt.split(":")[0]}
               </button>
             ))}
           </div>
@@ -136,11 +151,15 @@ export function Console() {
           {error ? <div className="error-box">{error}</div> : null}
           <div className="run-strip">
             <strong>{project?.name || "No project"}</strong>
-            <span>{agent?.name || "No agent"}</span>
+            <span>{agent?.name || "No agent"} · observations {interactions.length}</span>
           </div>
         </section>
 
         <section className="artifact-panel">
+          <div className="surface-kicker">
+            <span>Generated interaction surface</span>
+            <strong>{artifact ? "Ready for human action" : "Waiting for a goal"}</strong>
+          </div>
           <ArtifactRenderer artifact={artifact} />
         </section>
 
@@ -156,9 +175,19 @@ export function Console() {
           {activeContext === "trace" ? (
             <section>
               <header className="mini-header">
-                <strong>Trace</strong>
+                <strong>Trace / Observations</strong>
                 <span>{trace.length}</span>
               </header>
+              {interactions.length ? (
+                <div className="stack-list">
+                  {interactions.slice(0, 3).map((event) => (
+                    <div className="list-item confirmed" key={event.id}>
+                      <strong>{event.event_type}</strong>
+                      <span>{event.block_id || event.action_id || "artifact interaction"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {trace.length ? (
                 <ol className="trace-list">
                   {trace.map((step) => (

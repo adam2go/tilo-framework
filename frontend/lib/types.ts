@@ -18,20 +18,42 @@ export type RunMetrics = {
 };
 export type Task = { id: string; title: string; input_message: string; status: string };
 
+export type ArtifactActionType =
+  | "approve"
+  | "reject"
+  | "edit"
+  | "select"
+  | "continue_task"
+  | "regenerate"
+  | "invoke_tool"
+  | "create_memory"
+  | "promote_skill"
+  | "export"
+  | "confirm";
+
+export type StateBinding = {
+  entity_type: "artifact" | "confirmation" | "memory" | "skill_candidate" | "tool_invocation" | "task" | "run";
+  entity_id: string;
+  field?: string | null;
+};
+
 export type ArtifactBlock = {
   id: string;
   type: string;
   title?: string | null;
   data: Record<string, unknown>;
+  actions?: ArtifactAction[];
+  state_binding?: StateBinding | null;
 };
 
 export type ArtifactAction = {
   id: string;
   label: string;
-  action_type: "confirm" | "edit" | "regenerate" | "export" | "continue_task";
+  action_type: ArtifactActionType;
   confirmation_required: boolean;
   confirmation_id?: string | null;
   payload?: Record<string, unknown>;
+  state_binding?: StateBinding | null;
 };
 
 export type ProvenanceRef = {
@@ -148,4 +170,18 @@ export type SkillCandidate = {
   promoted_skill_id?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type UIInteractionEvent = {
+  id: string;
+  workspace_id: string;
+  project_id?: string | null;
+  user_id?: string | null;
+  artifact_id?: string | null;
+  block_id?: string | null;
+  action_id?: string | null;
+  run_id?: string | null;
+  event_type: string;
+  payload_json: Record<string, unknown>;
+  created_at: string;
 };

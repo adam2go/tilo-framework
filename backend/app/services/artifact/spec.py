@@ -40,41 +40,99 @@ class ArtifactSpecBuilder:
                 blocks=[
                     {
                         "id": "summary",
-                        "type": "card",
+                        "type": "approval_card",
                         "title": "Summary",
                         "data": {
                             "title": "Summary",
                             "content": "The contract needs review around payment timing, liability, termination, and data handling.",
-                        },
-                    },
-                    {
-                        "id": "risk_1",
-                        "type": "risk_item",
-                        "title": "Liability",
-                        "data": {
-                            "clause": "Liability",
                             "risk_level": "high",
-                            "issue": "Liability may be uncapped or one-sided.",
-                            "suggested_revision": "Add a mutual liability cap tied to fees paid in the prior 12 months.",
                         },
+                        "state_binding": {"entity_type": "run", "entity_id": run.id},
+                        "actions": [
+                            {
+                                "id": "approve_summary",
+                                "label": "Approve review direction",
+                                "action_type": "approve",
+                                "confirmation_required": True,
+                                "payload": {"operation": "approve_contract_review", "risk_level": "high"},
+                            },
+                            {
+                                "id": "reject_summary",
+                                "label": "Reject direction",
+                                "action_type": "reject",
+                                "confirmation_required": False,
+                                "payload": {"operation": "reject_contract_review"},
+                            },
+                        ],
                     },
                     {
-                        "id": "risk_2",
-                        "type": "risk_item",
-                        "title": "Termination",
+                        "id": "risk_review",
+                        "type": "risk_review_panel",
+                        "title": "Risk Review",
                         "data": {
-                            "clause": "Termination",
-                            "risk_level": "medium",
-                            "issue": "Termination rights are not explicit enough for material breach.",
-                            "suggested_revision": "Add a cure period and immediate termination for uncured material breach.",
+                            "risks": [
+                                {
+                                    "id": "risk_1",
+                                    "clause": "Liability",
+                                    "risk_level": "high",
+                                    "issue": "Liability may be uncapped or one-sided.",
+                                    "suggested_revision": "Add a mutual liability cap tied to fees paid in the prior 12 months.",
+                                },
+                                {
+                                    "id": "risk_2",
+                                    "clause": "Termination",
+                                    "risk_level": "medium",
+                                    "issue": "Termination rights are not explicit enough for material breach.",
+                                    "suggested_revision": "Add a cure period and immediate termination for uncured material breach.",
+                                },
+                            ]
                         },
+                        "state_binding": {"entity_type": "run", "entity_id": run.id, "field": "risk_review"},
+                        "actions": [
+                            {
+                                "id": "accept_risks",
+                                "label": "Accept risk review",
+                                "action_type": "approve",
+                                "confirmation_required": False,
+                                "payload": {"operation": "accept_risk_review"},
+                            },
+                            {
+                                "id": "revise_risks",
+                                "label": "Request revision",
+                                "action_type": "regenerate",
+                                "confirmation_required": False,
+                                "payload": {"operation": "regenerate_risk_review"},
+                            },
+                        ],
+                    },
+                    {
+                        "id": "memory_candidate",
+                        "type": "memory_candidate_card",
+                        "title": "Potential memory",
+                        "data": {
+                            "content": "User prefers conservative contract risk review with explicit liability caps.",
+                            "memory_type": "preference",
+                            "confidence": 0.74,
+                        },
+                        "actions": [
+                            {
+                                "id": "create_contract_memory",
+                                "label": "Save as memory candidate",
+                                "action_type": "create_memory",
+                                "confirmation_required": False,
+                                "payload": {
+                                    "content": "User prefers conservative contract risk review with explicit liability caps.",
+                                    "type": "preference",
+                                },
+                            }
+                        ],
                     },
                 ],
                 actions=[
                     {
                         "id": "approve_liability_revision",
                         "label": "Approve liability revision",
-                        "action_type": "confirm",
+                        "action_type": "approve",
                         "confirmation_required": True,
                         "payload": {
                             "risk_level": "high",
@@ -94,18 +152,52 @@ class ArtifactSpecBuilder:
                 artifact_type="dashboard",
                 title="Sales Follow-up Dashboard",
                 blocks=[
-                    {"id": "metric_1", "type": "metric", "data": {"label": "Hot accounts", "value": 3}},
-                    {"id": "metric_2", "type": "metric", "data": {"label": "Projected pipeline", "value": "$84k"}},
                     {
-                        "id": "recommendations",
-                        "type": "list",
+                        "id": "pipeline_dashboard",
+                        "type": "metric_dashboard",
+                        "title": "Pipeline Snapshot",
+                        "data": {
+                            "metrics": [
+                                {"label": "Hot accounts", "value": 3, "delta": "+1"},
+                                {"label": "Projected pipeline", "value": "$84k", "delta": "+12%"},
+                                {"label": "Pending decisions", "value": 2, "delta": "needs review"},
+                            ],
+                            "insights": [
+                                "Acme has the strongest near-term procurement signal.",
+                                "Northstar needs a renewal summary before legal review.",
+                            ]
+                        },
+                        "state_binding": {"entity_type": "run", "entity_id": run.id, "field": "metrics"},
+                    },
+                    {
+                        "id": "sales_actions",
+                        "type": "action_queue",
                         "title": "Recommended next actions",
                         "data": {
                             "items": [
-                                "Follow up with Acme about procurement timeline.",
-                                "Send renewal summary to Northstar.",
-                                "Ask Finch Labs to confirm security review owner.",
+                                {"id": "acme", "title": "Follow up with Acme", "detail": "Ask about procurement timeline.", "status": "ready"},
+                                {"id": "northstar", "title": "Send renewal summary", "detail": "Summarize renewal value before legal review.", "status": "waiting"},
+                                {"id": "finch", "title": "Confirm security owner", "detail": "Ask Finch Labs to name the review owner.", "status": "ready"},
                             ]
+                        },
+                        "actions": [
+                            {
+                                "id": "select_acme_followup",
+                                "label": "Select Acme follow-up",
+                                "action_type": "select",
+                                "confirmation_required": False,
+                                "payload": {"customer": "Acme", "operation": "select_followup"},
+                            }
+                        ],
+                    },
+                    {
+                        "id": "sales_tool_preview",
+                        "type": "tool_call_preview",
+                        "title": "Outbound action preview",
+                        "data": {
+                            "tool_name": "Mock Search",
+                            "permission_level": "medium",
+                            "summary": "Prepare a follow-up draft. External sending remains confirmation-gated.",
                         },
                     },
                 ],
@@ -113,7 +205,7 @@ class ArtifactSpecBuilder:
                     {
                         "id": "approve_sales_followup",
                         "label": "Approve sales follow-up",
-                        "action_type": "confirm",
+                        "action_type": "approve",
                         "confirmation_required": True,
                         "payload": {"customer": "Acme", "operation": "send_followup", "risk_level": "medium"},
                     }
@@ -131,7 +223,7 @@ class ArtifactSpecBuilder:
                 blocks=[
                     {
                         "id": "comparison",
-                        "type": "table",
+                        "type": "comparison_matrix",
                         "title": "Comparison",
                         "data": {
                             "columns": [
@@ -161,11 +253,31 @@ class ArtifactSpecBuilder:
                                 },
                             ],
                         },
+                        "actions": [
+                            {
+                                "id": "select_tilo_positioning",
+                                "label": "Select Tilo positioning",
+                                "action_type": "select",
+                                "confirmation_required": False,
+                                "payload": {"option": "Tilo", "criterion": "artifact-first delivery"},
+                            }
+                        ],
                     },
                     {
                         "id": "summary",
                         "type": "markdown",
                         "data": {"content": "Tilo should differentiate through artifact-first delivery and confirmed memory loops."},
+                    },
+                    {
+                        "id": "competitive_next_steps",
+                        "type": "action_queue",
+                        "title": "Next steps",
+                        "data": {
+                            "items": [
+                                {"id": "positioning", "title": "Refine public positioning", "detail": "Emphasize ROAM over static agent chat.", "status": "ready"},
+                                {"id": "demo", "title": "Prepare screenshot demo", "detail": "Use ComparisonMatrix and ActionQueue.", "status": "ready"},
+                            ]
+                        },
                     },
                 ],
                 provenance=[{"type": "task", "id": task.id, "label": task.title}],

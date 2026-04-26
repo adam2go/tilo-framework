@@ -16,6 +16,7 @@ from app.models import Run, Task, TraceStep  # noqa: E402
 from app.services.agent_runtime.run_manager import RunManager  # noqa: E402
 from app.services.agent_runtime.state_machine import InvalidStateTransition, RunStateMachine  # noqa: E402
 from app.services.artifact.generator import ArtifactGenerator  # noqa: E402
+from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
 from app.services.trace.recorder import TraceRecorder  # noqa: E402
 
 
@@ -86,6 +87,8 @@ def test_message_creates_core_loop_records() -> None:
     assert message["status"] == "completed"
     assert artifacts and artifacts[0]["schema_json"]["version"] == "artifact_spec.v1"
     assert artifacts[0]["schema_json"]["artifact_type"] == "contract_review"
+    assert any(block["type"] == "risk_review_panel" for block in artifacts[0]["schema_json"]["blocks"])
+    assert any(block.get("actions") for block in artifacts[0]["schema_json"]["blocks"])
     assert artifacts[0]["schema_json"]["actions"]
     assert artifacts[0]["schema_json"]["actions"][0]["confirmation_required"] is True
     assert artifacts[0]["schema_json"]["actions"][0]["confirmation_id"]
@@ -99,7 +102,7 @@ def test_message_creates_core_loop_records() -> None:
     assert any(memory["status"] == "candidate" and memory["is_confirmed"] is False for memory in memories)
     assert metrics["success"] is True
     assert metrics["artifact_count"] == 1
-    assert metrics["confirmation_count"] == 1
+    assert metrics["confirmation_count"] >= 1
     assert metrics["memory_candidate_count"] == 1
     assert feedback_response.status_code == 200
     assert candidates and candidates[0]["status"] == "pending_review"
@@ -107,6 +110,67 @@ def test_message_creates_core_loop_records() -> None:
     assert "confirmation_id" not in candidates[0]["artifact_template_json"]["actions"][0]
     assert approved_candidate["status"] == "approved"
     assert promoted_skill["name"] == approved_candidate["name"]
+
+
+def test_ui_interaction_event_api_persists_sanitized_observations() -> None:
+    with TestClient(app) as client:
+        bootstrap = client.get("/api/bootstrap").json()
+        workspace = bootstrap["workspace"]
+        project = bootstrap["projects"][0]
+
+        event_response = client.post(
+            "/api/interactions",
+            json={
+                "workspace_id": workspace["id"],
+                "project_id": project["id"],
+                "artifact_id": "artifact-1",
+                "block_id": "approval",
+                "action_id": "approve",
+                "run_id": "run-1",
+                "event_type": "artifact.action.approved",
+                "payload": {"token": "secret-value", "choice": "approve"},
+            },
+        )
+        events = client.get(
+            "/api/interactions",
+            params={"workspace_id": workspace["id"], "artifact_id": "artifact-1", "run_id": "run-1"},
+        ).json()
+
+    assert event_response.status_code == 200
+    event = event_response.json()
+    assert event["event_type"] == "artifact.action.approved"
+    assert event["payload_json"]["token"] == "[REDACTED]"
+    assert events and events[0]["block_id"] == "approval"
+
+
+def test_artifact_schema_accepts_roam_actions_and_state_binding() -> None:
+    spec = ArtifactSpecV1.model_validate(
+        {
+            "artifact_type": "demo",
+            "title": "ROAM Demo",
+            "blocks": [
+                {
+                    "id": "approval",
+                    "type": "approval_card",
+                    "data": {"title": "Approve"},
+                    "state_binding": {"entity_type": "run", "entity_id": "run-1"},
+                    "actions": [
+                        {
+                            "id": "approve",
+                            "label": "Approve",
+                            "action_type": "approve",
+                            "confirmation_required": True,
+                            "state_binding": {"entity_type": "confirmation", "entity_id": "confirmation-1"},
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+
+    assert spec.blocks[0].type == "approval_card"
+    assert spec.blocks[0].actions[0].action_type == "approve"
+    assert spec.blocks[0].state_binding.entity_type == "run"
 
 
 def test_state_machine_rejects_invalid_transitions() -> None:

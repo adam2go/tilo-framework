@@ -274,6 +274,32 @@ class FeedbackRead(FeedbackCreate, ORMModel):
     created_at: datetime
 
 
+class UIInteractionEventCreate(BaseModel):
+    workspace_id: str
+    project_id: str | None = None
+    user_id: str | None = None
+    artifact_id: str | None = None
+    block_id: str | None = None
+    action_id: str | None = None
+    run_id: str | None = None
+    event_type: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class UIInteractionEventRead(ORMModel):
+    id: str
+    workspace_id: str
+    project_id: str | None
+    user_id: str | None
+    artifact_id: str | None
+    block_id: str | None
+    action_id: str | None
+    run_id: str | None
+    event_type: str
+    payload_json: dict[str, Any]
+    created_at: datetime
+
+
 class SkillCandidateCreate(BaseModel):
     workspace_id: str
     project_id: str | None = None

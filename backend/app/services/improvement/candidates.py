@@ -133,6 +133,11 @@ class SkillCandidateService:
             {key: value for key, value in action.items() if key != "confirmation_id"}
             for action in template.get("actions", [])
         ]
+        for block in template.get("blocks", []):
+            block["actions"] = [
+                {key: value for key, value in action.items() if key != "confirmation_id"}
+                for action in block.get("actions", [])
+            ]
         template["provenance"] = []
         template["memory_refs"] = []
         template["run_id"] = None

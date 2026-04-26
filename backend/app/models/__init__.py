@@ -16,6 +16,7 @@ from app.models.domain import (
     Tool,
     ToolInvocation,
     TraceStep,
+    UIInteractionEvent,
     User,
     Workspace,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "Tool",
     "ToolInvocation",
     "TraceStep",
+    "UIInteractionEvent",
     "User",
     "Workspace",
 ]

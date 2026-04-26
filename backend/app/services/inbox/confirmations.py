@@ -12,8 +12,8 @@ class ConfirmationService:
 
     def create_for_artifact(self, task: Task, run: Run, artifact: Artifact) -> list[Confirmation]:
         confirmations: list[Confirmation] = []
-        actions = artifact.schema_json.get("actions", [])
-        for action in actions:
+        action_refs = self._collect_action_refs(artifact.schema_json)
+        for block_id, action in action_refs:
             if not action.get("confirmation_required"):
                 continue
             confirmation = Confirmation(
@@ -25,6 +25,7 @@ class ConfirmationService:
                 description=f"Review action from artifact {artifact.title}.",
                 payload_json={
                     "artifact_id": artifact.id,
+                    "artifact_block_id": block_id,
                     "artifact_action_id": action.get("id"),
                     **(action.get("payload") or {}),
                 },
@@ -33,16 +34,12 @@ class ConfirmationService:
 
         self.db.add_all(confirmations)
         self.db.flush()
-        confirmation_by_action_id = {
-            confirmation.payload_json.get("artifact_action_id"): confirmation.id
+        confirmation_by_action_ref = {
+            (confirmation.payload_json.get("artifact_block_id"), confirmation.payload_json.get("artifact_action_id")): confirmation.id
             for confirmation in confirmations
         }
-        for action in actions:
-            confirmation_id = confirmation_by_action_id.get(action.get("id"))
-            if confirmation_id:
-                action["confirmation_id"] = confirmation_id
+        self._attach_confirmation_ids(artifact.schema_json, confirmation_by_action_ref)
         if confirmations:
-            artifact.schema_json = {**artifact.schema_json, "actions": actions}
             flag_modified(artifact, "schema_json")
         self.db.commit()
         for confirmation in confirmations:
@@ -54,6 +51,27 @@ class ConfirmationService:
             "ask_confirmation",
             "Create confirmations",
             f"Created {len(confirmations)} confirmation item(s).",
-            output_json={"count": len(confirmations), "artifact_action_ids": [action.get("id") for action in actions if action.get("confirmation_required")]},
+            output_json={
+                "count": len(confirmations),
+                "artifact_action_ids": [action.get("id") for _, action in action_refs if action.get("confirmation_required")],
+            },
         )
         return confirmations
+
+    def _collect_action_refs(self, schema_json: dict) -> list[tuple[str | None, dict]]:
+        refs: list[tuple[str | None, dict]] = [(None, action) for action in schema_json.get("actions", [])]
+        for block in schema_json.get("blocks", []):
+            for action in block.get("actions", []):
+                refs.append((block.get("id"), action))
+        return refs
+
+    def _attach_confirmation_ids(self, schema_json: dict, confirmation_by_action_ref: dict[tuple[str | None, str | None], str]) -> None:
+        for action in schema_json.get("actions", []):
+            confirmation_id = confirmation_by_action_ref.get((None, action.get("id")))
+            if confirmation_id:
+                action["confirmation_id"] = confirmation_id
+        for block in schema_json.get("blocks", []):
+            for action in block.get("actions", []):
+                confirmation_id = confirmation_by_action_ref.get((block.get("id"), action.get("id")))
+                if confirmation_id:
+                    action["confirmation_id"] = confirmation_id

@@ -9,6 +9,12 @@ SUPPORTED_BLOCK_TYPES = {
     "table",
     "metric",
     "card",
+    "approval_card",
+    "risk_review_panel",
+    "metric_dashboard",
+    "memory_candidate_card",
+    "tool_call_preview",
+    "action_queue",
     "list",
     "timeline",
     "kanban",
@@ -19,7 +25,59 @@ SUPPORTED_BLOCK_TYPES = {
     "confirmation_action",
 }
 
-SUPPORTED_ACTION_TYPES = {"confirm", "edit", "regenerate", "export", "continue_task"}
+SUPPORTED_ACTION_TYPES = {
+    "approve",
+    "reject",
+    "edit",
+    "select",
+    "continue_task",
+    "regenerate",
+    "invoke_tool",
+    "create_memory",
+    "promote_skill",
+    "export",
+    "confirm",
+}
+
+SUPPORTED_STATE_ENTITIES = {
+    "artifact",
+    "confirmation",
+    "memory",
+    "skill_candidate",
+    "tool_invocation",
+    "task",
+    "run",
+}
+
+
+class StateBinding(BaseModel):
+    entity_type: str
+    entity_id: str
+    field: str | None = None
+
+    @field_validator("entity_type")
+    @classmethod
+    def validate_entity_type(cls, value: str) -> str:
+        if value not in SUPPORTED_STATE_ENTITIES:
+            raise ValueError(f"Unsupported state binding entity type: {value}")
+        return value
+
+
+class ArtifactAction(BaseModel):
+    id: str
+    label: str
+    action_type: str
+    confirmation_required: bool = False
+    confirmation_id: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    state_binding: StateBinding | None = None
+
+    @field_validator("action_type")
+    @classmethod
+    def validate_action_type(cls, value: str) -> str:
+        if value not in SUPPORTED_ACTION_TYPES:
+            raise ValueError(f"Unsupported artifact action type: {value}")
+        return value
 
 
 class ArtifactBlock(BaseModel):
@@ -27,6 +85,8 @@ class ArtifactBlock(BaseModel):
     type: str
     title: str | None = None
     data: dict[str, Any] = Field(default_factory=dict)
+    actions: list[ArtifactAction] = Field(default_factory=list)
+    state_binding: StateBinding | None = None
 
     @field_validator("type")
     @classmethod
@@ -34,15 +94,6 @@ class ArtifactBlock(BaseModel):
         if value not in SUPPORTED_BLOCK_TYPES:
             raise ValueError(f"Unsupported artifact block type: {value}")
         return value
-
-
-class ArtifactAction(BaseModel):
-    id: str
-    label: str
-    action_type: Literal["confirm", "edit", "regenerate", "export", "continue_task"]
-    confirmation_required: bool = False
-    confirmation_id: str | None = None
-    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProvenanceRef(BaseModel):

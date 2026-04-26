@@ -123,7 +123,7 @@ textarea {
 
 .console-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(420px, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(320px, 420px) minmax(520px, 1fr) minmax(280px, 360px);
   min-height: 100vh;
 }
 
@@ -172,6 +172,58 @@ h2 {
 
 .demo-row {
   margin: 18px 0;
+}
+
+.command-header {
+  align-items: flex-start;
+}
+
+.command-header p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  max-width: 34rem;
+}
+
+.roam-stage-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.roam-stage {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px;
+}
+
+.roam-stage span,
+.surface-kicker span,
+.interaction-title-row span,
+.interaction-status,
+.action-queue-item small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.roam-stage span {
+  color: var(--accent-strong);
+}
+
+.surface-kicker {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -20px -20px 18px;
+  padding: 14px 20px;
 }
 
 textarea {
@@ -248,6 +300,7 @@ textarea {
 .metric-block,
 .confirmation-block,
 .card-block,
+.interaction-card,
 .unsupported-block,
 .artifact-placeholder,
 .empty-state,
@@ -309,6 +362,11 @@ textarea {
 
 .metric-block strong {
   font-size: 24px;
+}
+
+.metric-block small {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .card-block {
@@ -407,7 +465,9 @@ th {
 
 .trace-list li,
 .list-item,
-.empty-state {
+.empty-state,
+.interaction-card,
+.action-queue-item {
   display: grid;
   gap: 6px;
 }
@@ -420,6 +480,52 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.interaction-title-row,
+.interaction-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.interaction-title-row div {
+  display: grid;
+  gap: 3px;
+}
+
+.interaction-card p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.interaction-actions {
+  margin-top: 6px;
+}
+
+.risk-review-grid,
+.metric-dashboard,
+.action-queue {
+  display: grid;
+  gap: 10px;
+}
+
+.metric-dashboard {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.action-queue-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 10px;
+}
+
+.action-queue-item span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .artifact-actions,

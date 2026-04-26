@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Artifact, ArtifactSpecV1 } from "../lib/types";
 import { renderArtifactBlock } from "./artifact/blockRenderers";
+import { renderInteractionComponent } from "./interaction/registry";
 
 export function ArtifactRenderer({ artifact }: { artifact: Artifact | null }) {
   if (!artifact) {
@@ -12,7 +13,7 @@ export function ArtifactRenderer({ artifact }: { artifact: Artifact | null }) {
   return (
     <article className="artifact">
       <ArtifactHeader artifact={artifact} schema={schema} />
-      <ArtifactSchemaRenderer schema={schema} />
+      <ArtifactSchemaRenderer artifact={artifact} schema={schema} />
       <ArtifactActions schema={schema} />
     </article>
   );
@@ -35,11 +36,11 @@ function ArtifactHeader({ artifact, schema }: { artifact: Artifact; schema: Arti
   );
 }
 
-export function ArtifactSchemaRenderer({ schema }: { schema: ArtifactSpecV1 }) {
+export function ArtifactSchemaRenderer({ artifact, schema }: { artifact: Artifact; schema: ArtifactSpecV1 }) {
   return (
     <div className="artifact-blocks">
       {schema.blocks.map((block) => (
-        <div key={block.id}>{renderArtifactBlock(block)}</div>
+        <div key={block.id}>{renderInteractionComponent(artifact, block) || renderArtifactBlock(block)}</div>
       ))}
     </div>
   );

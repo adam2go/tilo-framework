@@ -254,3 +254,25 @@ Self-improvement:
 - `POST /api/skills/candidates/{id}/promote`
 
 Confirmation list endpoints accept an empty `status` query value to return all statuses for the Inbox review page.
+
+ROAM interactions:
+
+- `POST /api/interactions`
+- `GET /api/interactions?workspace_id=...&artifact_id=...&run_id=...&event_type=...`
+
+Create interaction input:
+
+```json
+{
+  "workspace_id": "string",
+  "project_id": "string|null",
+  "artifact_id": "string|null",
+  "block_id": "string|null",
+  "action_id": "string|null",
+  "run_id": "string|null",
+  "event_type": "artifact.action.approved",
+  "payload": {}
+}
+```
+
+Interaction events are durable observations for the ROAM loop. Payloads must be sanitized before persistence.

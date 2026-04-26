@@ -225,6 +225,22 @@ class Feedback(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class UIInteractionEvent(Base):
+    __tablename__ = "ui_interaction_events"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id"), nullable=True, index=True)
+    artifact_id: Mapped[str | None] = mapped_column(String, ForeignKey("artifacts.id"), nullable=True, index=True)
+    block_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    action_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String, index=True)
+    payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class SkillCandidate(Base, TimestampMixin):
     __tablename__ = "skill_candidates"
 

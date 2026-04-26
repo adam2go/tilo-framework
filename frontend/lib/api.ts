@@ -1,6 +1,6 @@
-import type { Agent, Artifact, Confirmation, Feedback, Memory, Project, Run, RunMetrics, SkillCandidate, Task, TraceStep, Workspace } from "./types";
+import type { Agent, Artifact, Confirmation, Feedback, Memory, Project, Run, RunMetrics, SkillCandidate, Task, TraceStep, UIInteractionEvent, Workspace } from "./types";
 
-export type { Agent, Artifact, Confirmation, Feedback, Memory, Project, Run, RunMetrics, SkillCandidate, Task, TraceStep, Workspace };
+export type { Agent, Artifact, Confirmation, Feedback, Memory, Project, Run, RunMetrics, SkillCandidate, Task, TraceStep, UIInteractionEvent, Workspace };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
