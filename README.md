@@ -1,149 +1,378 @@
 # Tilo Framework
 
-**Build agents that remember, act, and deliver AI-native apps.**
+<p align="center">
+  <strong>Build agents that remember, improve, and deliver AI-native apps.</strong>
+</p>
 
-Tilo Framework is an open-source framework for building memory-native, self-improving AI agents that can execute real work and deliver SaaS-like interactive artifacts.
+<p align="center">
+  <a href="./README.zh-CN.md">中文</a> ·
+  <a href="./docs/USER_GUIDE.md">User Guide</a> ·
+  <a href="./docs/V0_2_RELEASE_NOTES.md">v0.2 Notes</a> ·
+  <a href="./docs/V0_2_CODEX_PLAN.md">v0.2 Plan</a> ·
+  <a href="./evals/README.md">Evals</a>
+</p>
 
-> Stop building chatbots. Start building AI-native agents that remember context, act through tools, and present outcomes as usable products.
+<p align="center">
+  <img alt="License" src="https://img.shields.io/github/license/adam2go/tilo-framework" />
+  <img alt="Stars" src="https://img.shields.io/github/stars/adam2go/tilo-framework?style=social" />
+  <img alt="Forks" src="https://img.shields.io/github/forks/adam2go/tilo-framework?style=social" />
+  <img alt="Issues" src="https://img.shields.io/github/issues/adam2go/tilo-framework" />
+  <img alt="Last Commit" src="https://img.shields.io/github/last-commit/adam2go/tilo-framework" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-blue" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-frontend-black" />
+</p>
 
-## Why Tilo
+---
 
-Most Agent frameworks focus on tool calling, workflows, or multi-agent orchestration. Tilo focuses on a different question:
+## What is Tilo?
 
-**How can an agent continuously understand a user or project, execute work over time, and deliver results through product-like interfaces instead of plain chat messages?**
+**Tilo is an open-source framework for building memory-native, self-improving AI agents that can execute real work and deliver SaaS-like interactive result pages.**
 
-Tilo is designed around six core concepts:
+Most agent frameworks focus on tool calling, orchestration, or multi-agent workflows. Tilo focuses on a different question:
 
-| Concept | Description |
-|---|---|
-| Agent | Understands goals, plans tasks, invokes tools, and coordinates execution. |
-| Memory | Stores long-term user, project, task, and procedural knowledge. |
-| Skill | Encapsulates reusable methods, templates, instructions, and optional executable code. |
-| Tool | Connects agents to external systems such as files, APIs, browsers, MCP servers, and databases. |
-| Artifact | Turns agent outputs into editable documents, tables, dashboards, kanban boards, review panels, and lightweight SaaS-like interfaces. |
-| Inbox | Collects human decisions, confirmations, approvals, and follow-up actions. |
+> What if an agent could remember long-term context, improve through feedback, execute real tasks, and deliver the final result as an interactive product page instead of a chat message?
 
-## Core Philosophy
-
-### Conversation as Command
-
-Users should be able to describe goals naturally. The framework turns those goals into structured agent tasks.
-
-### Artifact as Product
-
-Agent outputs should not stop at Markdown. They should become interactive, editable, shareable artifacts.
-
-### Human as Decision Maker
-
-Humans should not operate every step of a SaaS workflow. They should confirm key decisions, approve risky actions, and refine outcomes.
-
-### Memory-first Agents
-
-Long-term memory is a first-class capability. Agents should remember users, projects, decisions, preferences, and reusable patterns.
-
-### Self-improving Loop
-
-After each task, the system should extract useful memories, propose skill improvements, and make future runs better.
-
-## v0.2 Scope
-
-Tilo v0.2 implements a complete but lightweight framework loop:
+Tilo is not a chatbot wrapper. It is an **AI-native SaaS agent framework**.
 
 ```text
-User message
-  -> Create task
-  -> Recall memory
-  -> Plan execution
-  -> Invoke tools
-  -> Generate artifact
-  -> Ask for confirmation when needed
-  -> Complete task
-  -> Extract memory candidates
-  -> Update memory after approval
+Conversation
+  -> Task
+  -> Run
+  -> Memory Recall
+  -> Skill Selection
+  -> Tool Execution
+  -> Artifact Generation
+  -> Human Confirmation
+  -> Memory Update
+  -> Future Improvement
 ```
 
-Current v0.2 foundations include:
+---
 
-- Structured memory candidates, recall events, write events, confirmation, rejection, editing, and deletion.
-- `artifact_spec.v1` with schema validation, renderer registry, durable artifact detail pages, actions, provenance, and memory refs.
-- Safe self-improvement primitives: run metrics, feedback, skill candidates, approval, rejection, and promotion.
-- Run state transitions, trace sanitization, failed-run handling, and a persisted tool invocation ledger.
-- High-risk tool invocations create durable Confirmation records instead of executing silently.
-- Local eval scaffolding for memory recall, artifact schema validity, and the end-to-end runtime loop.
+## Why Tilo?
 
-## Recommended Tech Stack
+Traditional SaaS asks users to operate software:
 
-| Layer | Recommendation |
-|---|---|
-| Backend | Python + FastAPI |
-| Frontend | Next.js + React + TypeScript + Tailwind CSS + shadcn/ui |
-| Database | PostgreSQL + pgvector |
-| Cache / Queue | Redis |
-| Model API | OpenAI-compatible API |
-| Deployment | Docker Compose for v0.1 |
+```text
+Open app -> find feature -> fill form -> click buttons -> inspect result -> decide next step
+```
 
-## Planned Modules
+Tilo is designed for AI-native software:
 
-- Tilo Runtime
-- Tilo Memory
-- Tilo Skills
-- Tilo Tools
-- Tilo Artifacts
-- Tilo Inbox
-- Tilo Gateway
-- Tilo Console
+```text
+Describe goal -> agent executes -> result page appears -> human confirms key decisions
+```
 
-## Killer Demos
+The UI does not disappear. It changes role:
 
-The first version should prioritize three high-signal demos:
+- Chat becomes the command layer.
+- Agent runtime becomes the execution layer.
+- Memory becomes the continuity layer.
+- Artifact pages become the product delivery layer.
+- Inbox becomes the human decision layer.
 
-1. **Contract Review Agent**  
-   Upload a contract, detect risks, highlight clauses, generate suggestions, and create a review artifact.
+---
 
-2. **Sales Follow-up Agent**  
-   Analyze customer records, generate follow-up recommendations, and ask the user to confirm the next action.
+## Core Features
 
-3. **Competitive Analysis Agent**  
-   Generate a structured competitor report with summary cards, comparison tables, and recommendations.
+### 1. Long-term Memory
 
-## Documentation
+Tilo treats memory as a first-class system, not raw chat history.
 
-See [`docs/CODEX_SPEC.md`](docs/CODEX_SPEC.md) for the initial development specification.
+- Structured memory records
+- Memory candidates
+- User confirmation before long-term persistence
+- Workspace/project scoped recall
+- Memory recall events
+- Memory write events
+- Future-ready embedding and rerank support
 
-For v0.2 implementation details, see:
+### 2. Agent Self-improvement
 
-- [`docs/V0_2_AUDIT.md`](docs/V0_2_AUDIT.md)
-- [`docs/V0_2_CODEX_PLAN.md`](docs/V0_2_CODEX_PLAN.md)
-- [`docs/V0_2_RELEASE_NOTES.md`](docs/V0_2_RELEASE_NOTES.md)
-- [`evals/README.md`](evals/README.md)
+Tilo introduces safe self-improvement primitives.
 
-## Local Development
+- Run metrics
+- Feedback records
+- Skill candidates
+- Human review before skill promotion
+- Eval scaffolding
+- No unsafe self-modification by default
 
-Run the full stack with Docker Compose:
+### 3. AI-native Artifact Delivery
+
+Agent outputs should become usable products.
+
+- `artifact_spec.v1`
+- Schema-driven artifact rendering
+- Durable artifact pages
+- Renderer registry
+- Artifact actions
+- Confirmation-aware actions
+- Provenance and memory references
+
+### 4. Human Decision Inbox
+
+Humans should approve important decisions, not operate every workflow step.
+
+- Durable confirmations
+- Approve / reject / edit flows
+- High-risk tool gates
+- Pending decision queue
+
+### 5. Traceable Runtime
+
+Every run produces visible, safe execution traces.
+
+- Task and Run lifecycle
+- Trace steps
+- Sanitized trace output
+- Failed-run handling
+- Tool invocation ledger
+
+### 6. Local-first Developer Experience
+
+Tilo is built to run locally first.
+
+- Docker Compose stack
+- FastAPI backend
+- Next.js frontend
+- PostgreSQL + pgvector
+- Redis
+- Local eval runners
+
+---
+
+## Architecture
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    Tilo Console                         │
+│  Chat / Artifact / Memory / Trace / Skills / Inbox      │
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│                      API Layer                          │
+│ Workspaces / Projects / Agents / Messages / Runs        │
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│                    Agent Runtime                        │
+│ RunManager / StateMachine / Planner / Executor          │
+└──────────────┬─────────────┬───────────────┬────────────┘
+               │             │               │
+┌──────────────▼───┐ ┌───────▼───────┐ ┌────▼─────────────┐
+│ Memory Engine    │ │ Skill System  │ │ Tool Registry    │
+│ Recall / Events  │ │ Candidates    │ │ Permission Gate  │
+└──────────────┬───┘ └───────┬───────┘ └────┬─────────────┘
+               │             │              │
+┌──────────────▼─────────────▼──────────────▼─────────────┐
+│                  Artifact + Inbox Layer                  │
+│ ArtifactSpec v1 / Renderer Registry / Confirmations      │
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│              PostgreSQL + pgvector + Redis              │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Quick Start
+
+### Requirements
+
+- Docker and Docker Compose
+- Node.js 18+ if running frontend manually
+- Python 3.11+ if running backend manually
+
+### Run with Docker Compose
 
 ```bash
+git clone https://github.com/adam2go/tilo-framework.git
+cd tilo-framework
+cp .env.example .env
+
 docker compose up --build
 ```
 
-Backend health:
+Backend health check:
 
 ```bash
 curl http://localhost:8000/api/health
 ```
 
-Frontend console:
+Open the console:
 
 ```text
 http://localhost:3000
 ```
 
-Run local evals:
+### Run local evals
 
 ```bash
 python3 evals/runners/run_memory_recall_eval.py
 python3 evals/runners/run_artifact_schema_eval.py
 python3 evals/runners/run_runtime_loop_eval.py
 ```
+
+---
+
+## How to Use the Console
+
+The current UI is a single AI-native console page.
+
+1. Open `http://localhost:3000`.
+2. Pick one of the demo prompts or type your own task.
+3. Click **Send Message**.
+4. Tilo creates a Task and Run.
+5. The center panel renders the generated Artifact.
+6. The right panel shows Trace, Memory, Skills, Files, and Inbox.
+7. Open **Memory** to confirm useful memory candidates.
+8. Open **Inbox** to approve pending confirmations.
+9. Run a new task and confirmed memories can be recalled.
+
+Current demo prompts include:
+
+- Contract review
+- Sales follow-up
+- Competitive analysis
+
+See [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) for a more detailed walkthrough.
+
+---
+
+## Example Use Cases
+
+### Contract Review Agent
+
+```text
+Review this contract and flag risky clauses around liability, termination, and payment terms.
+```
+
+Tilo generates a contract review artifact with risk items, suggested revisions, and confirmation actions.
+
+### Sales Follow-up Agent
+
+```text
+Which customers should sales follow up with this week?
+```
+
+Tilo generates a dashboard-style artifact and creates human confirmation items for recommended actions.
+
+### Competitive Analysis Agent
+
+```text
+Create a competitive analysis for memory-native AI agent frameworks.
+```
+
+Tilo generates a structured comparison artifact instead of a plain text answer.
+
+---
+
+## Project Status
+
+Tilo is currently in early v0.2 development.
+
+| Area | Status |
+|---|---|
+| Runtime loop | Working foundation |
+| Memory candidates | Working foundation |
+| Recall / write events | Working foundation |
+| Artifact spec v1 | Working foundation |
+| Renderer registry | Working foundation |
+| Human confirmation | Working foundation |
+| Tool permission gate | Working foundation |
+| Self-improvement primitives | Early foundation |
+| Evals | Local scaffolding |
+| UI polish | Needs major improvement |
+
+The current UI is functional but intentionally early. See [`docs/UI_IMPROVEMENT_PLAN.md`](./docs/UI_IMPROVEMENT_PLAN.md).
+
+---
+
+## Roadmap
+
+### v0.2
+
+- Stronger memory governance
+- Better artifact result pages
+- Skill candidate review flow
+- Run metrics and feedback loop
+- Tool invocation ledger
+- Local eval baseline
+- UI onboarding and visual polish
+
+### v0.3
+
+- Hybrid semantic memory recall
+- Artifact version history and patching
+- Better skill packaging
+- MCP tool integration
+- File-backed contract review
+- More realistic vertical demos
+
+### v0.4+
+
+- Message gateways: Telegram, Slack, Discord, WeChat-style adapters
+- Browser and GUI automation
+- Artifact sharing and publishing
+- Multi-user workspace permissions
+- Skill marketplace primitives
+
+---
+
+## Star History
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=adam2go/tilo-framework&type=Date&theme=dark" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=adam2go/tilo-framework&type=Date" />
+  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=adam2go/tilo-framework&type=Date" />
+</picture>
+
+---
+
+## Repository Map
+
+```text
+backend/       FastAPI backend, domain models, runtime services, memory, tools, artifacts
+frontend/      Next.js console, artifact renderer, memory/trace/inbox panels
+docs/          Product principles, architecture, v0.2 plan, user guide, implementation rules
+evals/         Local benchmark scaffolding for memory, artifact, and runtime loop
+```
+
+---
+
+## Documentation
+
+- [`docs/PROJECT_CONSTITUTION.md`](./docs/PROJECT_CONSTITUTION.md) — project constitution
+- [`docs/PRODUCT_PRINCIPLES.md`](./docs/PRODUCT_PRINCIPLES.md) — product philosophy
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — system architecture
+- [`docs/MEMORY.md`](./docs/MEMORY.md) — memory system design
+- [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md) — artifact protocol
+- [`docs/SKILLS.md`](./docs/SKILLS.md) — skill system
+- [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md) — API contracts
+- [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) — user guide
+- [`docs/UI_IMPROVEMENT_PLAN.md`](./docs/UI_IMPROVEMENT_PLAN.md) — UI improvement plan
+
+---
+
+## Contributing
+
+Tilo is still early, but contributions are welcome.
+
+Before contributing, please read:
+
+- [`AGENTS.md`](./AGENTS.md)
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- [`docs/PROJECT_CONSTITUTION.md`](./docs/PROJECT_CONSTITUTION.md)
+- [`docs/QUALITY_BAR.md`](./docs/QUALITY_BAR.md)
+
+The most important rule:
+
+> Do not turn Tilo into a simple chatbot. Preserve the loop: memory + execution + artifact + confirmation + improvement.
+
+---
 
 ## License
 
