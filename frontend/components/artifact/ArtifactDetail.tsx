@@ -5,7 +5,7 @@ import { ArtifactRenderer, normalizeArtifactSpec } from "../ArtifactRenderer";
 import { apiFetch } from "../../lib/api";
 import type { Artifact } from "../../lib/types";
 
-export function ArtifactDetail({ artifactId }: { artifactId: string }) {
+export function ArtifactDetail({ artifactId, channel }: { artifactId: string; channel?: string }) {
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +35,7 @@ export function ArtifactDetail({ artifactId }: { artifactId: string }) {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   return (
     <div className="artifact-result-page">
+      {channel ? <div className="channel-origin-banner">Opened from {channel}</div> : null}
       <header className="artifact-result-header">
         <div>
           <span className="eyebrow">Artifact Result · {schema.artifact_type}</span>

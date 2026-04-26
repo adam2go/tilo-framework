@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     default_model: str = "gpt-4.1-mini"
     default_embedding_model: str = "text-embedding-3-small"
     jwt_secret: str = "change-me"
+    telegram_bot_token: str = ""
+    telegram_webhook_secret: str = ""
+    telegram_webhook_url: str = ""
+    public_app_url: str = "http://localhost:3000"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

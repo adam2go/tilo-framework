@@ -1232,6 +1232,17 @@ th {
   max-width: 1280px;
 }
 
+.channel-origin-banner {
+  justify-self: start;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
 .artifact-result-header {
   align-items: end;
   border: 1px solid var(--line);
