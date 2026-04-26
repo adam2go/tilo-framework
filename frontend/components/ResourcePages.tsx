@@ -17,7 +17,7 @@ export function InboxPageContent() {
     const bootstrap = await getBootstrap();
     setWorkspace(bootstrap.workspace);
     if (bootstrap.workspace) {
-      setItems(await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${bootstrap.workspace.id}&status=pending`));
+      setItems(await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${bootstrap.workspace.id}&status=`));
     }
   }
 
@@ -29,6 +29,21 @@ export function InboxPageContent() {
     await load();
   }
 
+  async function edit(id: string) {
+    await apiFetch<Confirmation>(`/api/confirmations/${id}/edit`, {
+      method: "POST",
+      body: JSON.stringify({
+        decision: { source: "inbox", edited: true },
+        edited_payload: { reviewed_from_inbox: true }
+      })
+    });
+    await load();
+  }
+
+  const pending = items.filter((item) => item.status === "pending");
+  const approved = items.filter((item) => item.status === "approved");
+  const resolved = items.filter((item) => item.status === "rejected" || item.status === "edited");
+
   return (
     <section className="page-panel">
       <header className="section-header">
@@ -37,32 +52,72 @@ export function InboxPageContent() {
           <h1>Inbox</h1>
         </div>
       </header>
+      <div className="memory-columns">
+        <ConfirmationGroup title="Pending" items={pending} onApprove={decide} onReject={decide} onEdit={edit} />
+        <ConfirmationGroup title="Approved" items={approved} onApprove={decide} onReject={decide} onEdit={edit} />
+        <ConfirmationGroup title="Rejected / Edited" items={resolved} onApprove={decide} onReject={decide} onEdit={edit} />
+      </div>
+    </section>
+  );
+}
+
+function ConfirmationGroup({
+  title,
+  items,
+  onApprove,
+  onReject,
+  onEdit
+}: {
+  title: string;
+  items: Confirmation[];
+  onApprove: (id: string, action: "approve") => Promise<void>;
+  onReject: (id: string, action: "reject") => Promise<void>;
+  onEdit: (id: string) => Promise<void>;
+}) {
+  return (
+    <div className="memory-group">
+      <div className="memory-group-header">
+        <h2>{title}</h2>
+        <span>{items.length}</span>
+      </div>
       <div className="stack-list">
         {items.length ? (
-          items.map((item) => (
-            <article className="list-item" key={item.id}>
-              <strong>{item.title}</strong>
-              <span>{item.description}</span>
-              <div className="action-row">
-                <button className="small-button" onClick={() => void decide(item.id, "approve")}>
-                  <Check size={14} />
-                  Approve
-                </button>
-                <button className="small-button" onClick={() => void decide(item.id, "reject")}>
-                  <X size={14} />
-                  Reject
-                </button>
-              </div>
-            </article>
-          ))
+          items.map((item) => {
+            const riskLevel = String(item.payload_json.risk_level || item.payload_json.permission_level || item.payload_json.operation || "review");
+            return (
+              <article className="list-item" key={item.id}>
+                <strong>{item.title}</strong>
+                <span>{item.description}</span>
+                <small>
+                  {item.status} · risk {riskLevel} · task {item.task_id || "none"} · run {item.run_id || "none"}
+                </small>
+                {item.status === "pending" ? (
+                  <div className="action-row">
+                    <button className="small-button" onClick={() => void onApprove(item.id, "approve")}>
+                      <Check size={14} />
+                      Approve
+                    </button>
+                    <button className="small-button" onClick={() => void onReject(item.id, "reject")}>
+                      <X size={14} />
+                      Reject
+                    </button>
+                    <button className="small-button" onClick={() => void onEdit(item.id)}>
+                      <Pencil size={14} />
+                      Edit
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })
         ) : (
           <div className="empty-state">
-            <strong>No decisions pending</strong>
+            <strong>No items</strong>
             <span>Confirmation cards created by runs will appear here.</span>
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 

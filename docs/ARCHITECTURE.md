@@ -246,3 +246,27 @@ Avoid:
 - real destructive external actions
 
 The architecture should be extensible, but v0.1 must stay buildable.
+
+## 13. v0.2 Runtime Architecture
+
+v0.2 keeps route handlers thin and moves behavior into services:
+
+```text
+Message API
+  -> Task / Run records
+  -> RunManager
+      -> RunStateMachine
+      -> MemoryRecallPipeline
+      -> SkillSelector
+      -> PromptBuilder
+      -> Planner
+      -> Executor
+      -> ToolInvocationService
+      -> ArtifactSpecBuilder / ArtifactValidator / ArtifactPersistenceService
+      -> ConfirmationService
+      -> MemoryCandidateExtractor
+      -> ImprovementCandidateService
+      -> RunMetricsRecorder
+```
+
+The runtime is still synchronous in v0.2, but state transitions, trace events, persisted tool invocations, metrics, and evals prepare the codebase for resumable workers.

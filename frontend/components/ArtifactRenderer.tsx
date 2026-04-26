@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Artifact, ArtifactSpecV1 } from "../lib/types";
 import { renderArtifactBlock } from "./artifact/blockRenderers";
 
@@ -24,7 +25,12 @@ function ArtifactHeader({ artifact, schema }: { artifact: Artifact; schema: Arti
         <span className="eyebrow">{schema.artifact_type}</span>
         <h2>{artifact.title}</h2>
       </div>
-      <span className="status-pill">{schema.status}</span>
+      <div className="artifact-header-actions">
+        <Link className="small-link" href={`/artifacts/${artifact.id}`}>
+          Open
+        </Link>
+        <span className="status-pill">{schema.status}</span>
+      </div>
     </header>
   );
 }

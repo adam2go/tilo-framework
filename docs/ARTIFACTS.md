@@ -230,3 +230,25 @@ Do not:
 - hide artifact data in chat messages
 - make artifacts impossible to retrieve later
 - mix confirmation state only inside artifact JSON
+
+## 17. v0.2 Artifact Contract
+
+Artifacts now use `artifact_spec.v1`:
+
+```json
+{
+  "version": "artifact_spec.v1",
+  "artifact_type": "contract_review",
+  "title": "Contract Review",
+  "status": "ready",
+  "blocks": [],
+  "actions": [],
+  "provenance": [],
+  "memory_refs": [],
+  "run_id": "run-id"
+}
+```
+
+Supported v0.2 blocks are `markdown`, `rich_text`, `table`, `metric`, `card`, `list`, `timeline`, `kanban`, `risk_item`, `citation`, `form`, `comparison_matrix`, and `confirmation_action`.
+
+Artifact actions may request confirmation, but durable user decisions must be stored as `Confirmation` records. The frontend renderer dispatches by block type through a registry and renders unsupported blocks with a safe fallback.

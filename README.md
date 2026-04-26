@@ -45,9 +45,9 @@ Long-term memory is a first-class capability. Agents should remember users, proj
 
 After each task, the system should extract useful memories, propose skill improvements, and make future runs better.
 
-## MVP Scope
+## v0.2 Scope
 
-The first version of Tilo aims to implement a complete but lightweight loop:
+Tilo v0.2 implements a complete but lightweight framework loop:
 
 ```text
 User message
@@ -61,6 +61,15 @@ User message
   -> Extract memory candidates
   -> Update memory after approval
 ```
+
+Current v0.2 foundations include:
+
+- Structured memory candidates, recall events, write events, confirmation, rejection, editing, and deletion.
+- `artifact_spec.v1` with schema validation, renderer registry, durable artifact detail pages, actions, provenance, and memory refs.
+- Safe self-improvement primitives: run metrics, feedback, skill candidates, approval, rejection, and promotion.
+- Run state transitions, trace sanitization, failed-run handling, and a persisted tool invocation ledger.
+- High-risk tool invocations create durable Confirmation records instead of executing silently.
+- Local eval scaffolding for memory recall, artifact schema validity, and the end-to-end runtime loop.
 
 ## Recommended Tech Stack
 
@@ -100,6 +109,41 @@ The first version should prioritize three high-signal demos:
 ## Documentation
 
 See [`docs/CODEX_SPEC.md`](docs/CODEX_SPEC.md) for the initial development specification.
+
+For v0.2 implementation details, see:
+
+- [`docs/V0_2_AUDIT.md`](docs/V0_2_AUDIT.md)
+- [`docs/V0_2_CODEX_PLAN.md`](docs/V0_2_CODEX_PLAN.md)
+- [`docs/V0_2_RELEASE_NOTES.md`](docs/V0_2_RELEASE_NOTES.md)
+- [`evals/README.md`](evals/README.md)
+
+## Local Development
+
+Run the full stack with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Backend health:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+Frontend console:
+
+```text
+http://localhost:3000
+```
+
+Run local evals:
+
+```bash
+python3 evals/runners/run_memory_recall_eval.py
+python3 evals/runners/run_artifact_schema_eval.py
+python3 evals/runners/run_runtime_loop_eval.py
+```
 
 ## License
 

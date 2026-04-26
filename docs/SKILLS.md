@@ -135,3 +135,15 @@ Do not:
 - auto-install untrusted skills
 - auto-update skills without user visibility
 - duplicate demo logic outside skills and runtime
+
+## 11. v0.2 Self-Improvement Contract
+
+v0.2 introduces safe skill improvement primitives:
+
+- `RunMetrics` records success, latency, artifact count, confirmation count, memory candidate count, tool calls, and errors.
+- `Feedback` stores user feedback against runs, artifacts, memories, or skills.
+- `SkillCandidate` stores proposed reusable skills in `pending_review`, `approved`, `rejected`, or `promoted` states.
+- Skill candidates can be approved, rejected, edited, and promoted, but they must not automatically mutate existing skills.
+- Promotion requires user approval and schema-safe candidate data.
+
+Self-improvement remains human-governed. A useful run may propose a skill, but only review actions can promote it.

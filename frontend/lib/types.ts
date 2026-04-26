@@ -68,10 +68,17 @@ export type Artifact = {
 
 export type Confirmation = {
   id: string;
+  workspace_id: string;
+  task_id?: string | null;
+  run_id?: string | null;
+  type: string;
   title: string;
   description: string;
   status: string;
   payload_json: Record<string, unknown>;
+  decision_json?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Memory = {

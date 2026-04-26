@@ -217,3 +217,40 @@ Edit input:
 v0.1 may use unversioned routes under `/api`.
 
 Future public APIs may use `/api/v1`.
+
+## 10. v0.2 API Additions
+
+Memory:
+
+- `GET /api/memories?workspace_id=...&status=...`
+- `POST /api/memories/{id}/confirm`
+- `POST /api/memories/{id}/reject`
+- `POST /api/memories/{id}/edit`
+- `DELETE /api/memories/{id}`
+- `GET /api/memories/recall-events?workspace_id=...`
+- `GET /api/memories/write-events?workspace_id=...`
+
+Artifacts:
+
+- `GET /api/artifacts?workspace_id=...&task_id=...`
+- `GET /api/artifacts/{id}`
+- `PATCH /api/artifacts/{id}`
+- `POST /api/artifacts/{id}/versions`
+
+Tools:
+
+- `POST /api/tools/{id}/invoke`
+- `GET /api/tools/invocations?workspace_id=...&run_id=...&status=...`
+- `GET /api/tools/invocations/{id}`
+
+Self-improvement:
+
+- `GET /api/runs/{id}/metrics`
+- `POST /api/feedback`
+- `GET /api/skills/candidates?workspace_id=...`
+- `POST /api/skills/candidates/{id}/approve`
+- `POST /api/skills/candidates/{id}/reject`
+- `PATCH /api/skills/candidates/{id}`
+- `POST /api/skills/candidates/{id}/promote`
+
+Confirmation list endpoints accept an empty `status` query value to return all statuses for the Inbox review page.

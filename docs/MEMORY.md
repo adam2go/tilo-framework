@@ -158,3 +158,15 @@ Do not:
 - make memory impossible to edit
 - store hidden chain-of-thought
 - store secrets
+
+## 13. v0.2 Memory Contract
+
+v0.2 memory is structured and auditable:
+
+- `Memory.status` tracks `candidate`, `confirmed`, `rejected`, or `archived`.
+- `scope_type`, `scope_id`, `salience`, `source_run_id`, `structured_payload`, `last_recalled_at`, and `recall_count` prepare memory for long-term ranking.
+- `MemoryWriteEvent` records candidate creation, confirmation, rejection, editing, archiving, and supersession.
+- `MemoryRecallEvent` records query text, retrieved memory IDs, scores, and strategy for each recall.
+- `MemoryRecallPipeline` ranks confirmed memories by keyword overlap, salience, recency, and scope fit. Embeddings remain optional.
+
+Candidates must remain unconfirmed until a user accepts or edits them. Rejected or archived memories must not be recalled by default.

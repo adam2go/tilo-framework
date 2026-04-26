@@ -5,7 +5,7 @@ import { Play, RefreshCcw, Send } from "lucide-react";
 import { AppShell, EmptyState } from "./AppShell";
 import { ArtifactRenderer } from "./ArtifactRenderer";
 import { apiFetch, getBootstrap, sendMessage } from "../lib/api";
-import type { Agent, Artifact, Confirmation, Memory, Project, TraceStep, Workspace } from "../lib/types";
+import type { Agent, Artifact, Confirmation, Memory, Project, Skill, SkillCandidate, TraceStep, Workspace } from "../lib/types";
 
 const demoPrompts = [
   "Review this contract and flag risky clauses around liability, termination, and payment terms.",
@@ -23,7 +23,10 @@ export function Console() {
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [skillCandidates, setSkillCandidates] = useState<SkillCandidate[]>([]);
   const [trace, setTrace] = useState<TraceStep[]>([]);
+  const [activeContext, setActiveContext] = useState<"memory" | "trace" | "skills" | "files">("trace");
   const canSend = Boolean(workspace && content.trim() && !busy);
 
   useEffect(() => {
@@ -40,6 +43,8 @@ export function Console() {
       setMemories(existing);
       const inbox = await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${data.workspace.id}&status=pending`);
       setConfirmations(inbox);
+      setSkills(await apiFetch<Skill[]>(`/api/skills?workspace_id=${data.workspace.id}`));
+      setSkillCandidates(await apiFetch<SkillCandidate[]>(`/api/skills/candidates?workspace_id=${data.workspace.id}`));
     }
   }
 
@@ -54,16 +59,20 @@ export function Console() {
         agent_id: agent?.id,
         content: nextContent
       });
-      const [artifacts, inbox, updatedMemories, steps] = await Promise.all([
+      const [artifacts, inbox, updatedMemories, steps, updatedSkills, candidates] = await Promise.all([
         apiFetch<Artifact[]>(`/api/artifacts?workspace_id=${workspace.id}&task_id=${response.task_id}`),
         apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${workspace.id}&status=pending`),
         apiFetch<Memory[]>(`/api/memories?workspace_id=${workspace.id}`),
-        apiFetch<TraceStep[]>(`/api/runs/${response.run_id}/trace`)
+        apiFetch<TraceStep[]>(`/api/runs/${response.run_id}/trace`),
+        apiFetch<Skill[]>(`/api/skills?workspace_id=${workspace.id}`),
+        apiFetch<SkillCandidate[]>(`/api/skills/candidates?workspace_id=${workspace.id}`)
       ]);
       setArtifact(artifacts[0] || null);
       setConfirmations(inbox);
       setMemories(updatedMemories);
       setTrace(steps);
+      setSkills(updatedSkills);
+      setSkillCandidates(candidates);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
     } finally {
@@ -136,24 +145,34 @@ export function Console() {
         </section>
 
         <aside className="context-panel">
-          <section>
-            <header className="mini-header">
-              <strong>Trace</strong>
-              <span>{trace.length}</span>
-            </header>
-            {trace.length ? (
-              <ol className="trace-list">
-                {trace.map((step) => (
-                  <li key={step.id}>
-                    <strong>{step.title}</strong>
-                    <span>{step.summary}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <EmptyState title="No trace yet" detail="Run a task to see visible execution steps." />
-            )}
-          </section>
+          <div className="context-tabs">
+            {(["memory", "trace", "skills", "files"] as const).map((tab) => (
+              <button className={activeContext === tab ? "context-tab active" : "context-tab"} key={tab} onClick={() => setActiveContext(tab)}>
+                {tab[0].toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {activeContext === "trace" ? (
+            <section>
+              <header className="mini-header">
+                <strong>Trace</strong>
+                <span>{trace.length}</span>
+              </header>
+              {trace.length ? (
+                <ol className="trace-list">
+                  {trace.map((step) => (
+                    <li key={step.id}>
+                      <strong>{step.title}</strong>
+                      <span>{step.summary}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <EmptyState title="No trace yet" detail="Run a task to see visible execution steps." />
+              )}
+            </section>
+          ) : null}
 
           <section>
             <header className="mini-header">
@@ -173,29 +192,66 @@ export function Console() {
             </div>
           </section>
 
-          <section>
-            <header className="mini-header">
-              <strong>Memory</strong>
-              <span>{memoryGroups.confirmed.length}/{memories.length}</span>
-            </header>
-            <div className="stack-list">
-              {memoryGroups.candidates.slice(0, 3).map((memory) => (
-                <div className="list-item" key={memory.id}>
-                  <strong>{memory.type}</strong>
-                  <span>{memory.content}</span>
-                  <button className="small-button" onClick={() => void confirmMemory(memory.id)}>
-                    Confirm
-                  </button>
-                </div>
-              ))}
-              {memoryGroups.confirmed.slice(0, 2).map((memory) => (
-                <div className="list-item confirmed" key={memory.id}>
-                  <strong>{memory.type}</strong>
-                  <span>{memory.content}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+          {activeContext === "memory" ? (
+            <section>
+              <header className="mini-header">
+                <strong>Memory</strong>
+                <span>
+                  {memoryGroups.confirmed.length}/{memories.length}
+                </span>
+              </header>
+              <div className="stack-list">
+                {memoryGroups.candidates.slice(0, 3).map((memory) => (
+                  <div className="list-item" key={memory.id}>
+                    <strong>{memory.type}</strong>
+                    <span>{memory.content}</span>
+                    <button className="small-button" onClick={() => void confirmMemory(memory.id)}>
+                      Confirm
+                    </button>
+                  </div>
+                ))}
+                {memoryGroups.confirmed.slice(0, 2).map((memory) => (
+                  <div className="list-item confirmed" key={memory.id}>
+                    <strong>{memory.type}</strong>
+                    <span>{memory.content}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {activeContext === "skills" ? (
+            <section>
+              <header className="mini-header">
+                <strong>Skills</strong>
+                <span>{skills.length}/{skillCandidates.length}</span>
+              </header>
+              <div className="stack-list">
+                {skillCandidates.slice(0, 3).map((candidate) => (
+                  <div className="list-item" key={candidate.id}>
+                    <strong>{candidate.name}</strong>
+                    <span>{candidate.status}</span>
+                  </div>
+                ))}
+                {skills.slice(0, 3).map((skill) => (
+                  <div className="list-item confirmed" key={skill.id}>
+                    <strong>{skill.name}</strong>
+                    <span>{skill.description || skill.trigger_description}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {activeContext === "files" ? (
+            <section>
+              <header className="mini-header">
+                <strong>Files</strong>
+                <span>0</span>
+              </header>
+              <EmptyState title="No files" detail="File context is reserved for upload-backed runs." />
+            </section>
+          ) : null}
         </aside>
       </div>
     </AppShell>

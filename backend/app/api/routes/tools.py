@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import apply_update, get_one
 from app.core.database import get_db
-from app.models import Tool
-from app.schemas import ToolCreate, ToolInvokeRequest, ToolRead
+from app.models import Tool, ToolInvocation
+from app.schemas import ToolCreate, ToolInvocationRead, ToolInvokeRequest, ToolRead
 from app.services.tools.invocation import ToolInvocationService
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
@@ -26,6 +26,26 @@ def create_tool(payload: ToolCreate, db: Session = Depends(get_db)) -> Tool:
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.get("/invocations", response_model=list[ToolInvocationRead])
+def list_tool_invocations(
+    workspace_id: str,
+    run_id: str | None = None,
+    status: str | None = None,
+    db: Session = Depends(get_db),
+) -> Sequence[ToolInvocation]:
+    stmt = select(ToolInvocation).where(ToolInvocation.workspace_id == workspace_id)
+    if run_id:
+        stmt = stmt.where(ToolInvocation.run_id == run_id)
+    if status:
+        stmt = stmt.where(ToolInvocation.status == status)
+    return db.scalars(stmt.order_by(ToolInvocation.created_at.desc())).all()
+
+
+@router.get("/invocations/{item_id}", response_model=ToolInvocationRead)
+def read_tool_invocation(item_id: str, db: Session = Depends(get_db)) -> ToolInvocation:
+    return get_one(db, ToolInvocation, item_id)
 
 
 @router.get("/{item_id}", response_model=ToolRead)

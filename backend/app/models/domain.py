@@ -254,6 +254,25 @@ class Tool(Base, TimestampMixin):
     permission_level: Mapped[str] = mapped_column(String, default="low")
 
 
+class ToolInvocation(Base):
+    __tablename__ = "tool_invocations"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), index=True)
+    tool_id: Mapped[str | None] = mapped_column(String, ForeignKey("tools.id"), nullable=True, index=True)
+    tool_name: Mapped[str] = mapped_column(String)
+    tool_type: Mapped[str] = mapped_column(String)
+    permission_level: Mapped[str] = mapped_column(String, default="low")
+    input_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    output_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="running")
+    confirmation_id: Mapped[str | None] = mapped_column(String, ForeignKey("confirmations.id"), nullable=True, index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class TraceStep(Base):
     __tablename__ = "trace_steps"
 

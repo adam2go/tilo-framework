@@ -1,0 +1,1 @@
+{"id":"contract_loop","message":"Review this contract and flag risky liability clauses.","expect_artifact_type":"contract_review","expect_confirmation":true,"expect_memory_candidate":true}

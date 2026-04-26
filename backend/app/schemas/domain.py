@@ -326,6 +326,23 @@ class ToolInvokeRequest(BaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
 
 
+class ToolInvocationRead(ORMModel):
+    id: str
+    workspace_id: str
+    run_id: str
+    tool_id: str | None
+    tool_name: str
+    tool_type: str
+    permission_level: str
+    input_json: dict[str, Any]
+    output_json: dict[str, Any] | None
+    status: str
+    confirmation_id: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+
+
 class TraceStepRead(ORMModel):
     id: str
     run_id: str

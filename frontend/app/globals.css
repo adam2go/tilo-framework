@@ -90,7 +90,8 @@ textarea {
 .text-button,
 .primary-button,
 .icon-button,
-.small-button {
+.small-button,
+.context-tab {
   align-items: center;
   border: 1px solid transparent;
   display: inline-flex;
@@ -163,7 +164,8 @@ h2 {
 .demo-row,
 .stack-list,
 .context-panel,
-.artifact-blocks {
+.artifact-blocks,
+.context-tabs {
   display: grid;
   gap: 12px;
 }
@@ -208,12 +210,30 @@ textarea {
 
 .text-button,
 .small-button,
+.context-tab,
 .icon-button {
   border-radius: 8px;
   background: white;
   border-color: var(--line);
   color: var(--text);
   padding: 8px 10px;
+}
+
+.context-tabs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.context-tab {
+  border: 1px solid var(--line);
+  cursor: pointer;
+  justify-content: center;
+}
+
+.context-tab.active {
+  background: #e8f4f5;
+  border-color: #9ccbd1;
+  color: var(--accent-strong);
 }
 
 .small-button {
@@ -299,6 +319,7 @@ textarea {
 .card-block span,
 .artifact-action span,
 .artifact-meta span,
+.small-link,
 .unsupported-block span {
   color: var(--muted);
 }
@@ -402,10 +423,25 @@ th {
 }
 
 .artifact-actions,
+.artifact-header-actions,
 .artifact-meta,
 .review-panel {
   display: grid;
   gap: 10px;
+}
+
+.artifact-header-actions {
+  align-items: center;
+  display: flex;
+}
+
+.small-link {
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.small-link:hover {
+  color: var(--accent-strong);
 }
 
 .artifact-action,

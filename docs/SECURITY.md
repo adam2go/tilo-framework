@@ -119,3 +119,14 @@ Do not:
 - store hidden chain-of-thought
 - silently execute external actions
 - auto-install untrusted skills
+
+## 11. v0.2 Safety Additions
+
+v0.2 adds enforcement-oriented safety primitives:
+
+- `TraceSanitizer` redacts common secret keys, credential markers, and hidden reasoning markers before trace persistence.
+- `RunStateMachine` prevents arbitrary status strings and avoids runs stuck in `running` after failures.
+- `ToolInvocation` persists every tool call with input, output, status, permission level, and optional `confirmation_id`.
+- High-risk tools create pending confirmations and pending tool invocations instead of executing immediately.
+- Mock tool responses include `mock: true` so demo data is not presented as real external data.
+- Skill candidates require review and must not automatically modify approved skills or prompts.
