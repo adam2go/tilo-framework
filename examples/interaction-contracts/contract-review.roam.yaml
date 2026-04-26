@@ -1,0 +1,74 @@
+id: contract-review.roam
+version: 0.1
+name: Contract Review Interaction Contract
+description: Defines human interaction points for AI-native contract review workflows.
+
+triggers:
+  - id: high-risk-clause-detected
+    when:
+      event: risk.detected
+      condition:
+        risk_level: high
+
+    render:
+      component: RiskReviewPanel
+      title: High-risk clause review
+      props:
+        show_original_clause: true
+        show_suggested_revision: true
+        show_evidence: true
+        max_items: 3
+
+    observe:
+      events:
+        - approve_revision
+        - edit_revision
+        - reject_revision
+
+    act:
+      approve_revision:
+        type: agent_action
+        name: generate_revised_clause
+      edit_revision:
+        type: agent_action
+        name: update_revision_instruction
+      reject_revision:
+        type: agent_action
+        name: ask_for_review_direction
+
+    memorize:
+      approve_revision:
+        candidate:
+          type: user_preference
+          content_template: User prefers conservative contract risk handling with actionable revision suggestions.
+          requires_confirmation: true
+
+  - id: revision-draft-ready
+    when:
+      event: artifact.generated
+      condition:
+        artifact_type: contract_revision
+
+    render:
+      component: EditableDocumentPreview
+      title: Review generated revision draft
+      props:
+        show_diff: true
+        allow_inline_comments: false
+
+    observe:
+      events:
+        - approve_draft
+        - request_changes
+        - continue_task
+
+    act:
+      approve_draft:
+        type: confirmation
+        name: approve_revision_draft
+      request_changes:
+        type: agent_action
+        name: regenerate_with_user_direction
+      continue_task:
+        type: agent_action
+        name: draft_negotiation_email
