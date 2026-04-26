@@ -2,14 +2,19 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 db_path = Path(tempfile.gettempdir()) / "tilo_smoke_test.db"
 if db_path.exists():
     db_path.unlink()
 
 os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+os.environ["LLM_ENABLED"] = "false"
+os.environ["OPENAI_API_KEY"] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.core.config import Settings  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Confirmation, Memory, Run, Task, TraceStep, UIInteractionEvent  # noqa: E402
@@ -18,6 +23,9 @@ from app.services.agent_runtime.state_machine import InvalidStateTransition, Run
 from app.services.artifact.generator import ArtifactGenerator  # noqa: E402
 from app.services.channels.telegram.adapter import TelegramAdapter  # noqa: E402
 from app.services.channels.telegram.types import parse_telegram_callback_data  # noqa: E402
+from app.services.artifact.contract_llm import ContractReviewLLMGenerator  # noqa: E402
+from app.services.models.client import ModelClient  # noqa: E402
+from app.services.models.errors import ModelDisabledError, ModelInvalidJSONError  # noqa: E402
 from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
 from app.services.trace.recorder import TraceRecorder  # noqa: E402
 
@@ -28,6 +36,77 @@ def test_health_endpoint() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_runtime_capabilities_hide_model_secrets() -> None:
+    with TestClient(app) as client:
+        response = client.get("/api/runtime/capabilities")
+
+    assert response.status_code == 200
+    capabilities = response.json()
+    assert capabilities["llm_enabled"] is False
+    assert capabilities["llm_runtime_mode"] == "deterministic"
+    assert capabilities["llm_provider"] == "openai"
+    assert "anthropic" in capabilities["llm_supported_providers"]
+    assert "deepseek" in capabilities["llm_supported_providers"]
+    assert "tencent" in capabilities["llm_supported_providers"]
+    assert "custom" in capabilities["llm_supported_providers"]
+    assert "openai_api_key" not in capabilities
+    assert "api_key" not in capabilities
+
+
+def test_model_client_disabled_mode_is_explicit() -> None:
+    client = ModelClient(Settings(llm_enabled=False, openai_api_key=""))
+
+    assert client.enabled is False
+    with pytest.raises(ModelDisabledError):
+        client.chat_text_sync(system="system", user="user")
+
+
+def test_model_client_resolves_mainstream_provider_presets() -> None:
+    deepseek = ModelClient(Settings(llm_enabled=True, llm_provider="deepseek", deepseek_api_key="test-key"))
+    anthropic = ModelClient(Settings(llm_enabled=True, llm_provider="anthropic", anthropic_api_key="test-key", default_model="claude-3-5-sonnet-latest"))
+    tencent = ModelClient(Settings(llm_enabled=True, llm_provider="tencent", tencent_api_key="test-key", default_model="deepseek-v4-pro"))
+    custom = ModelClient(Settings(llm_enabled=True, llm_provider="custom", llm_api_key="test-key", llm_base_url="https://models.example.com/v1"))
+
+    assert deepseek.enabled is True
+    assert deepseek.provider_family == "openai_compatible"
+    assert deepseek.base_url == "https://api.deepseek.com"
+    assert anthropic.enabled is True
+    assert anthropic.provider_family == "anthropic"
+    assert anthropic.base_url == "https://api.anthropic.com/v1"
+    assert tencent.enabled is True
+    assert tencent.provider_family == "openai_compatible"
+    assert tencent.base_url == "https://tokenhub.tencentmaas.com/v1"
+    assert custom.enabled is True
+    assert custom.base_url == "https://models.example.com/v1"
+
+
+def test_contract_review_llm_generator_falls_back_when_disabled() -> None:
+    settings = Settings(llm_enabled=False, openai_api_key="")
+    task = Task(workspace_id="workspace", title="Contract", input_message="Review payment and liability clauses.")
+    result = ContractReviewLLMGenerator(settings).generate(task, [], [])
+
+    assert result.status == "fallback"
+    assert result.mode == "deterministic"
+    assert result.data is None
+    assert result.fallback_reason == "disabled"
+
+
+def test_contract_review_llm_generator_falls_back_on_invalid_json() -> None:
+    class InvalidJSONClient:
+        enabled = True
+
+        def chat_json_sync(self, **kwargs):
+            raise ModelInvalidJSONError("invalid")
+
+    settings = Settings(llm_enabled=True, openai_api_key="test-key")
+    task = Task(workspace_id="workspace", title="Contract", input_message="Review payment and liability clauses.")
+    result = ContractReviewLLMGenerator(settings, client=InvalidJSONClient()).generate(task, [], [])
+
+    assert result.status == "fallback"
+    assert result.mode == "deterministic"
+    assert result.fallback_reason == "ModelInvalidJSONError"
 
 
 def test_message_creates_core_loop_records() -> None:

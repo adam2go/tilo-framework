@@ -4,6 +4,7 @@ from pydantic import ValidationError
 
 from app.models import Memory, Run, Task
 from app.schemas.artifact import ArtifactSpecV1
+from app.services.models.schemas import ContractReviewLLMData
 
 
 class ArtifactValidationError(ValueError):
@@ -30,10 +31,100 @@ class ArtifactSpecBuilder:
         run: Run,
         memories: list[Memory],
         tool_outputs: list[dict[str, Any]],
+        contract_llm_data: ContractReviewLLMData | None = None,
+        generation_mode: str = "deterministic",
     ) -> dict[str, Any]:
         memory_refs = [memory.id for memory in memories]
         memory_contents = [memory.content for memory in memories]
         if artifact_type == "contract_review":
+            risk_summary_data = {
+                "high_count": 2,
+                "medium_count": 2,
+                "low_count": 1,
+                "confidence": "0.82",
+                "status": "review_ready",
+                "summary": "The agreement is negotiable, but liability, payment timing, termination, confidentiality, and IP ownership need targeted revisions before signing.",
+                "generation_mode": generation_mode,
+            }
+            risks = [
+                {
+                    "id": "risk_1",
+                    "clause": "Payment terms",
+                    "risk_level": "medium",
+                    "issue": "Payment timing is tied to invoice receipt without a clear dispute window.",
+                    "suggested_revision": "Add a 10 business day dispute period and require undisputed amounts to be paid within 30 days.",
+                    "evidence": "Payment due within 30 days of receipt unless otherwise agreed.",
+                },
+                {
+                    "id": "risk_2",
+                    "clause": "Liability",
+                    "risk_level": "high",
+                    "issue": "Liability may be uncapped or one-sided.",
+                    "suggested_revision": "Add a mutual liability cap tied to fees paid in the prior 12 months.",
+                    "evidence": "Vendor liability exclusions do not clearly apply mutually.",
+                },
+                {
+                    "id": "risk_3",
+                    "clause": "Termination",
+                    "risk_level": "medium",
+                    "issue": "Termination rights are not explicit enough for material breach.",
+                    "suggested_revision": "Add a cure period and immediate termination for uncured material breach.",
+                    "evidence": "The clause allows termination for convenience but not material breach.",
+                },
+                {
+                    "id": "risk_4",
+                    "clause": "Confidentiality",
+                    "risk_level": "low",
+                    "issue": "Confidentiality survival period is not stated.",
+                    "suggested_revision": "Add a three-year survival period and indefinite protection for trade secrets.",
+                    "evidence": "Confidentiality obligations survive only as required by law.",
+                },
+                {
+                    "id": "risk_5",
+                    "clause": "IP ownership",
+                    "risk_level": "high",
+                    "issue": "Work product ownership is broad and could capture pre-existing IP.",
+                    "suggested_revision": "Separate customer-owned deliverables from vendor background IP and reusable know-how.",
+                    "evidence": "All materials created or used under the agreement transfer to customer.",
+                },
+            ]
+            revision_draft = {
+                "heading": "Conservative revision draft",
+                "content": "Each party's aggregate liability is capped at fees paid or payable in the twelve months preceding the claim, except for confidentiality, data misuse, and payment obligations.",
+                "status": "draft",
+                "highlights": [
+                    "Mutual liability cap",
+                    "Material breach cure period",
+                    "Background IP carve-out",
+                ],
+            }
+            memory_candidate = {
+                "content": "User prefers conservative contract risk review with explicit liability caps.",
+                "memory_type": "preference",
+                "confidence": 0.74,
+            }
+            if contract_llm_data:
+                risk_summary_data.update(
+                    {
+                        "high_count": contract_llm_data.risk_summary.high_count,
+                        "medium_count": contract_llm_data.risk_summary.medium_count,
+                        "low_count": contract_llm_data.risk_summary.low_count,
+                        "summary": contract_llm_data.risk_summary.summary,
+                        "confidence": "0.86",
+                    }
+                )
+                risks = [risk.model_dump(mode="json") for risk in contract_llm_data.risks]
+                revision_draft = {
+                    "heading": contract_llm_data.revision_draft.heading,
+                    "content": contract_llm_data.revision_draft.content,
+                    "status": "draft",
+                    "highlights": contract_llm_data.revision_draft.highlights,
+                }
+                memory_candidate = {
+                    "content": contract_llm_data.memory_candidate.content,
+                    "memory_type": contract_llm_data.memory_candidate.type,
+                    "confidence": contract_llm_data.memory_candidate.confidence,
+                }
             spec = ArtifactSpecV1(
                 artifact_type="contract_review",
                 title="Contract Review",
@@ -42,14 +133,7 @@ class ArtifactSpecBuilder:
                         "id": "risk_summary",
                         "type": "risk_summary",
                         "title": "Risk Summary",
-                        "data": {
-                            "high_count": 2,
-                            "medium_count": 2,
-                            "low_count": 1,
-                            "confidence": "0.82",
-                            "status": "review_ready",
-                            "summary": "The agreement is negotiable, but liability, payment timing, termination, confidentiality, and IP ownership need targeted revisions before signing.",
-                        },
+                        "data": risk_summary_data,
                         "state_binding": {"entity_type": "run", "entity_id": run.id, "field": "risk_summary"},
                     },
                     {
@@ -58,7 +142,7 @@ class ArtifactSpecBuilder:
                         "title": "Summary",
                         "data": {
                             "title": "Summary",
-                            "content": "The contract needs review around payment timing, liability, termination, and data handling.",
+                            "content": risk_summary_data["summary"],
                             "risk_level": "high",
                         },
                         "state_binding": {"entity_type": "run", "entity_id": run.id},
@@ -83,50 +167,7 @@ class ArtifactSpecBuilder:
                         "id": "risk_review",
                         "type": "risk_review_panel",
                         "title": "Risk Review",
-                        "data": {
-                            "risks": [
-                                {
-                                    "id": "risk_1",
-                                    "clause": "Payment terms",
-                                    "risk_level": "medium",
-                                    "issue": "Payment timing is tied to invoice receipt without a clear dispute window.",
-                                    "suggested_revision": "Add a 10 business day dispute period and require undisputed amounts to be paid within 30 days.",
-                                    "evidence": "Payment due within 30 days of receipt unless otherwise agreed.",
-                                },
-                                {
-                                    "id": "risk_2",
-                                    "clause": "Liability",
-                                    "risk_level": "high",
-                                    "issue": "Liability may be uncapped or one-sided.",
-                                    "suggested_revision": "Add a mutual liability cap tied to fees paid in the prior 12 months.",
-                                    "evidence": "Vendor liability exclusions do not clearly apply mutually.",
-                                },
-                                {
-                                    "id": "risk_3",
-                                    "clause": "Termination",
-                                    "risk_level": "medium",
-                                    "issue": "Termination rights are not explicit enough for material breach.",
-                                    "suggested_revision": "Add a cure period and immediate termination for uncured material breach.",
-                                    "evidence": "The clause allows termination for convenience but not material breach.",
-                                },
-                                {
-                                    "id": "risk_4",
-                                    "clause": "Confidentiality",
-                                    "risk_level": "low",
-                                    "issue": "Confidentiality survival period is not stated.",
-                                    "suggested_revision": "Add a three-year survival period and indefinite protection for trade secrets.",
-                                    "evidence": "Confidentiality obligations survive only as required by law.",
-                                },
-                                {
-                                    "id": "risk_5",
-                                    "clause": "IP ownership",
-                                    "risk_level": "high",
-                                    "issue": "Work product ownership is broad and could capture pre-existing IP.",
-                                    "suggested_revision": "Separate customer-owned deliverables from vendor background IP and reusable know-how.",
-                                    "evidence": "All materials created or used under the agreement transfer to customer.",
-                                },
-                            ]
-                        },
+                        "data": {"risks": risks},
                         "state_binding": {"entity_type": "run", "entity_id": run.id, "field": "risk_review"},
                         "actions": [
                             {
@@ -149,16 +190,7 @@ class ArtifactSpecBuilder:
                         "id": "editable_revision",
                         "type": "editable_document_preview",
                         "title": "Editable revision draft",
-                        "data": {
-                            "heading": "Conservative revision draft",
-                            "content": "Each party's aggregate liability is capped at fees paid or payable in the twelve months preceding the claim, except for confidentiality, data misuse, and payment obligations.",
-                            "status": "draft",
-                            "highlights": [
-                                "Mutual liability cap",
-                                "Material breach cure period",
-                                "Background IP carve-out",
-                            ],
-                        },
+                        "data": revision_draft,
                         "actions": [
                             {
                                 "id": "edit_liability_clause",
@@ -173,11 +205,7 @@ class ArtifactSpecBuilder:
                         "id": "memory_candidate",
                         "type": "memory_candidate_card",
                         "title": "Potential memory",
-                        "data": {
-                            "content": "User prefers conservative contract risk review with explicit liability caps.",
-                            "memory_type": "preference",
-                            "confidence": 0.74,
-                        },
+                        "data": memory_candidate,
                         "actions": [
                             {
                                 "id": "create_contract_memory",
@@ -185,8 +213,8 @@ class ArtifactSpecBuilder:
                                 "action_type": "create_memory",
                                 "confirmation_required": False,
                                 "payload": {
-                                    "content": "User prefers conservative contract risk review with explicit liability caps.",
-                                    "type": "preference",
+                                    "content": memory_candidate["content"],
+                                    "type": memory_candidate["memory_type"],
                                 },
                             }
                         ],

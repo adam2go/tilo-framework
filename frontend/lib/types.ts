@@ -185,3 +185,15 @@ export type UIInteractionEvent = {
   payload_json: Record<string, unknown>;
   created_at: string;
 };
+
+export type RuntimeCapabilities = {
+  llm_enabled: boolean;
+  llm_configured: boolean;
+  llm_runtime_mode: "llm" | "deterministic" | string;
+  llm_provider: string;
+  llm_provider_family: string;
+  llm_supported_providers: string[];
+  default_model: string;
+  telegram_enabled: boolean;
+  public_app_url: string;
+};
