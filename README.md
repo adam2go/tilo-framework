@@ -1,13 +1,14 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>Build agents that remember, improve, and deliver AI-native apps.</strong>
+  <strong>Build AI-native SaaS agents with the ROAM Loop: Render, Observe, Act, Memorize.</strong>
 </p>
 
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
+  <a href="./docs/ROAM_LOOP.md">ROAM Loop</a> ·
+  <a href="./docs/AI_NATIVE_INTERACTION_COMPONENTS.md">AI-native Components</a> ·
   <a href="./docs/USER_GUIDE.md">User Guide</a> ·
-  <a href="./docs/V0_2_RELEASE_NOTES.md">v0.2 Notes</a> ·
   <a href="./docs/V0_2_CODEX_PLAN.md">v0.2 Plan</a> ·
   <a href="./evals/README.md">Evals</a>
 </p>
@@ -27,26 +28,57 @@
 
 ## What is Tilo?
 
-**Tilo is an open-source framework for building memory-native, self-improving AI agents that can execute real work and deliver SaaS-like interactive result pages.**
+**Tilo is an open-source framework for building AI-native SaaS agents that can render interactive product surfaces, observe human interaction, act through tools, and memorize confirmed learning.**
 
-Most agent frameworks focus on tool calling, orchestration, or multi-agent workflows. Tilo focuses on a different question:
-
-> What if an agent could remember long-term context, improve through feedback, execute real tasks, and deliver the final result as an interactive product page instead of a chat message?
-
-Tilo is not a chatbot wrapper. It is an **AI-native SaaS agent framework**.
+Tilo introduces the **ROAM Loop**:
 
 ```text
-Conversation
-  -> Task
-  -> Run
-  -> Memory Recall
-  -> Skill Selection
-  -> Tool Execution
-  -> Artifact Generation
-  -> Human Confirmation
-  -> Memory Update
-  -> Future Improvement
+Render -> Observe -> Act -> Memorize
 ```
+
+Most agent frameworks focus on reasoning, tool calling, workflow orchestration, or multi-agent coordination. Tilo focuses on a different question:
+
+> What if the user interface itself became part of the agent loop?
+
+In Tilo, an agent does not only produce text or call tools. It can render interactive SaaS-like artifacts, observe how users approve, edit, select, reject, and refine those artifacts, act on those observations, and turn confirmed learning into long-term memory.
+
+Tilo is not a chatbot wrapper. It is an **AI-native SaaS interaction framework**.
+
+---
+
+## The ROAM Loop
+
+Traditional agent loops such as ReAct usually treat observation as tool output or environmental feedback.
+
+Tilo extends this idea:
+
+> Human interaction with generated UI is also observation.
+
+```text
+Render
+  The agent renders an interactive artifact or component surface.
+
+Observe
+  The system captures user actions, edits, approvals, selections, feedback, and tool results as structured observations.
+
+Act
+  The agent continues work: update artifacts, invoke tools, create confirmations, ask clarifying questions, or start follow-up tasks.
+
+Memorize
+  Confirmed decisions, preferences, project facts, and reusable procedures become inspectable long-term memory.
+```
+
+ROAM turns UI from a passive display layer into an active part of the agent runtime.
+
+| Traditional Agent Loop | Tilo ROAM Loop |
+|---|---|
+| Observation is mostly tool output | Observation includes human UI interaction |
+| Output is often text or tool result | Output is an interactive artifact page |
+| UI is outside the loop | UI is part of the loop |
+| Human-in-the-loop is mostly approval | Human interaction becomes structured observation |
+| Memory is optional | Memory closes the loop |
+
+Read more: [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
 
 ---
 
@@ -58,25 +90,59 @@ Traditional SaaS asks users to operate software:
 Open app -> find feature -> fill form -> click buttons -> inspect result -> decide next step
 ```
 
-Tilo is designed for AI-native software:
+Tilo explores AI-native SaaS delivery:
 
 ```text
-Describe goal -> agent executes -> result page appears -> human confirms key decisions
+Describe goal -> Agent renders artifact -> User interacts -> Agent acts -> Memory improves next run
 ```
 
-The UI does not disappear. It changes role:
+This means common SaaS components can become agent-generated interaction components:
 
-- Chat becomes the command layer.
-- Agent runtime becomes the execution layer.
-- Memory becomes the continuity layer.
-- Artifact pages become the product delivery layer.
-- Inbox becomes the human decision layer.
+| Traditional SaaS | Tilo AI-native Replacement |
+|---|---|
+| Form | Conversational goal + clarification component |
+| Table | DecisionTable / ComparisonMatrix |
+| Dashboard | MetricDashboard with next actions |
+| Modal confirm | Durable Confirmation / ApprovalCard |
+| Workflow stepper | Agent Run Progress + ActionQueue |
+| Settings page | Memory / Tool / Skill review components |
+| Report page | Interactive Artifact page |
+| Notification center | Inbox with pending decisions |
+| CRUD editor | EditableArtifact with version history |
+
+Read more: [`docs/AI_NATIVE_INTERACTION_COMPONENTS.md`](./docs/AI_NATIVE_INTERACTION_COMPONENTS.md)
 
 ---
 
 ## Core Features
 
-### 1. Long-term Memory
+### 1. ROAM-native Interaction Layer
+
+Tilo treats interaction components as runtime primitives.
+
+- ApprovalCard
+- RiskReviewPanel
+- ComparisonMatrix
+- MetricDashboard
+- MemoryCandidateCard
+- ToolCallPreview
+- ActionQueue
+- EditableDocument placeholder
+- Durable UIInteractionEvent model direction
+
+### 2. AI-native Artifact Delivery
+
+Agent outputs should become usable product surfaces, not plain Markdown.
+
+- `artifact_spec.v1`
+- Schema-driven rendering
+- Renderer registry
+- Artifact actions
+- State bindings
+- Confirmation-aware actions
+- Durable artifact pages
+
+### 3. Long-term Memory
 
 Tilo treats memory as a first-class system, not raw chat history.
 
@@ -88,7 +154,7 @@ Tilo treats memory as a first-class system, not raw chat history.
 - Memory write events
 - Future-ready embedding and rerank support
 
-### 2. Agent Self-improvement
+### 4. Agent Self-improvement
 
 Tilo introduces safe self-improvement primitives.
 
@@ -99,19 +165,7 @@ Tilo introduces safe self-improvement primitives.
 - Eval scaffolding
 - No unsafe self-modification by default
 
-### 3. AI-native Artifact Delivery
-
-Agent outputs should become usable products.
-
-- `artifact_spec.v1`
-- Schema-driven artifact rendering
-- Durable artifact pages
-- Renderer registry
-- Artifact actions
-- Confirmation-aware actions
-- Provenance and memory references
-
-### 4. Human Decision Inbox
+### 5. Human Decision Inbox
 
 Humans should approve important decisions, not operate every workflow step.
 
@@ -120,7 +174,7 @@ Humans should approve important decisions, not operate every workflow step.
 - High-risk tool gates
 - Pending decision queue
 
-### 5. Traceable Runtime
+### 6. Traceable Runtime
 
 Every run produces visible, safe execution traces.
 
@@ -130,17 +184,6 @@ Every run produces visible, safe execution traces.
 - Failed-run handling
 - Tool invocation ledger
 
-### 6. Local-first Developer Experience
-
-Tilo is built to run locally first.
-
-- Docker Compose stack
-- FastAPI backend
-- Next.js frontend
-- PostgreSQL + pgvector
-- Redis
-- Local eval runners
-
 ---
 
 ## Architecture
@@ -148,27 +191,22 @@ Tilo is built to run locally first.
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Tilo Console                         │
-│  Chat / Artifact / Memory / Trace / Skills / Inbox      │
+│ Conversation / Artifact Surface / Context / Inbox       │
 └────────────────────────────┬────────────────────────────┘
                              │
-┌────────────────────────────▼────────────────────────────┐
-│                      API Layer                          │
-│ Workspaces / Projects / Agents / Messages / Runs        │
-└────────────────────────────┬────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────┐
-│                    Agent Runtime                        │
-│ RunManager / StateMachine / Planner / Executor          │
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│                    ROAM Runtime                         │
+│      Render -> Observe -> Act -> Memorize               │
 └──────────────┬─────────────┬───────────────┬────────────┘
                │             │               │
 ┌──────────────▼───┐ ┌───────▼───────┐ ┌────▼─────────────┐
-│ Memory Engine    │ │ Skill System  │ │ Tool Registry    │
-│ Recall / Events  │ │ Candidates    │ │ Permission Gate  │
+│ Artifact Engine  │ │ Observation   │ │ Agent Runtime    │
+│ Spec / Registry  │ │ UI Events     │ │ Planner/Executor │
 └──────────────┬───┘ └───────┬───────┘ └────┬─────────────┘
                │             │              │
 ┌──────────────▼─────────────▼──────────────▼─────────────┐
-│                  Artifact + Inbox Layer                  │
-│ ArtifactSpec v1 / Renderer Registry / Confirmations      │
+│ Memory Engine / Skill System / Tool Registry / Inbox    │
 └────────────────────────────┬────────────────────────────┘
                              │
 ┌────────────────────────────▼────────────────────────────┐
@@ -220,17 +258,17 @@ python3 evals/runners/run_runtime_loop_eval.py
 
 ## How to Use the Console
 
-The current UI is a single AI-native console page.
+The current UI is an early single-page ROAM console.
 
 1. Open `http://localhost:3000`.
 2. Pick one of the demo prompts or type your own task.
 3. Click **Send Message**.
 4. Tilo creates a Task and Run.
-5. The center panel renders the generated Artifact.
+5. The agent renders an Artifact in the center panel.
 6. The right panel shows Trace, Memory, Skills, Files, and Inbox.
-7. Open **Memory** to confirm useful memory candidates.
-8. Open **Inbox** to approve pending confirmations.
-9. Run a new task and confirmed memories can be recalled.
+7. Interact with generated components: approve actions, confirm memory, review suggestions.
+8. Those interactions become observations for future runs.
+9. Confirmed memories can be recalled next time.
 
 Current demo prompts include:
 
@@ -250,7 +288,7 @@ See [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) for a more detailed walkthrough
 Review this contract and flag risky clauses around liability, termination, and payment terms.
 ```
 
-Tilo generates a contract review artifact with risk items, suggested revisions, and confirmation actions.
+Tilo should render a contract review surface with risk panels, suggested revisions, approval cards, and memory candidates.
 
 ### Sales Follow-up Agent
 
@@ -258,7 +296,7 @@ Tilo generates a contract review artifact with risk items, suggested revisions, 
 Which customers should sales follow up with this week?
 ```
 
-Tilo generates a dashboard-style artifact and creates human confirmation items for recommended actions.
+Tilo should render a dashboard and decision table with recommended actions and pending approvals.
 
 ### Competitive Analysis Agent
 
@@ -266,57 +304,59 @@ Tilo generates a dashboard-style artifact and creates human confirmation items f
 Create a competitive analysis for memory-native AI agent frameworks.
 ```
 
-Tilo generates a structured comparison artifact instead of a plain text answer.
+Tilo should render a comparison matrix with option picking, evidence cards, and follow-up actions.
 
 ---
 
 ## Project Status
 
-Tilo is currently in early v0.2 development.
+Tilo is currently in early v0.2/v0.3 design and implementation.
 
 | Area | Status |
 |---|---|
 | Runtime loop | Working foundation |
-| Memory candidates | Working foundation |
-| Recall / write events | Working foundation |
+| ROAM Loop concept | Documented |
+| AI-native interaction components | Designed, implementation needed |
 | Artifact spec v1 | Working foundation |
 | Renderer registry | Working foundation |
+| Memory candidates | Working foundation |
+| Recall / write events | Working foundation |
 | Human confirmation | Working foundation |
 | Tool permission gate | Working foundation |
 | Self-improvement primitives | Early foundation |
 | Evals | Local scaffolding |
 | UI polish | Needs major improvement |
 
-The current UI is functional but intentionally early. See [`docs/UI_IMPROVEMENT_PLAN.md`](./docs/UI_IMPROVEMENT_PLAN.md).
+The current UI is functional but not yet impressive enough for a public showcase. The next priority is implementing ROAM-native interaction components.
 
 ---
 
 ## Roadmap
 
-### v0.2
+### v0.3: ROAM Interaction Layer
 
-- Stronger memory governance
-- Better artifact result pages
-- Skill candidate review flow
-- Run metrics and feedback loop
-- Tool invocation ledger
-- Local eval baseline
-- UI onboarding and visual polish
+- Add ROAM to README and product docs
+- Add UIInteractionEvent model
+- Extend Artifact actions and state bindings
+- Build interaction component registry
+- Implement ApprovalCard, RiskReviewPanel, ComparisonMatrix, MetricDashboard, MemoryCandidateCard, ToolCallPreview, ActionQueue
+- Redesign Console around conversation + generated interaction surface
+- Make component actions write durable backend state
 
-### v0.3
+### v0.4: Memory and Self-improvement
 
 - Hybrid semantic memory recall
-- Artifact version history and patching
-- Better skill packaging
-- MCP tool integration
-- File-backed contract review
-- More realistic vertical demos
+- Memory conflict resolver
+- Skill candidate review and promotion
+- Feedback-driven improvement loop
+- Stronger eval benchmarks
 
-### v0.4+
+### v0.5+
 
-- Message gateways: Telegram, Slack, Discord, WeChat-style adapters
+- MCP integration
 - Browser and GUI automation
 - Artifact sharing and publishing
+- Message gateways: Telegram, Slack, Discord, WeChat-style adapters
 - Multi-user workspace permissions
 - Skill marketplace primitives
 
@@ -337,7 +377,7 @@ The current UI is functional but intentionally early. See [`docs/UI_IMPROVEMENT_
 ```text
 backend/       FastAPI backend, domain models, runtime services, memory, tools, artifacts
 frontend/      Next.js console, artifact renderer, memory/trace/inbox panels
-docs/          Product principles, architecture, v0.2 plan, user guide, implementation rules
+docs/          Product principles, ROAM Loop, architecture, user guide, implementation plans
 evals/         Local benchmark scaffolding for memory, artifact, and runtime loop
 ```
 
@@ -345,6 +385,9 @@ evals/         Local benchmark scaffolding for memory, artifact, and runtime loo
 
 ## Documentation
 
+- [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md) — Tilo's core interaction loop
+- [`docs/AI_NATIVE_INTERACTION_COMPONENTS.md`](./docs/AI_NATIVE_INTERACTION_COMPONENTS.md) — AI-native SaaS component system
+- [`docs/ROAM_CODEX_IMPLEMENTATION_PLAN.md`](./docs/ROAM_CODEX_IMPLEMENTATION_PLAN.md) — Codex execution plan for ROAM
 - [`docs/PROJECT_CONSTITUTION.md`](./docs/PROJECT_CONSTITUTION.md) — project constitution
 - [`docs/PRODUCT_PRINCIPLES.md`](./docs/PRODUCT_PRINCIPLES.md) — product philosophy
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — system architecture
@@ -353,7 +396,6 @@ evals/         Local benchmark scaffolding for memory, artifact, and runtime loo
 - [`docs/SKILLS.md`](./docs/SKILLS.md) — skill system
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md) — API contracts
 - [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) — user guide
-- [`docs/UI_IMPROVEMENT_PLAN.md`](./docs/UI_IMPROVEMENT_PLAN.md) — UI improvement plan
 
 ---
 
@@ -370,7 +412,7 @@ Before contributing, please read:
 
 The most important rule:
 
-> Do not turn Tilo into a simple chatbot. Preserve the loop: memory + execution + artifact + confirmation + improvement.
+> Do not turn Tilo into a simple chatbot. Preserve the ROAM Loop: Render, Observe, Act, Memorize.
 
 ---
 
