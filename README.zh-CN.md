@@ -7,6 +7,8 @@
 <p align="center">
   <a href="./README.md">English</a> ·
   <a href="./docs/ROAM_LOOP.md">ROAM Loop</a> ·
+  <a href="./docs/ROAM_INTERACTION_CONTRACT.md">Interaction Contract</a> ·
+  <a href="./docs/INTEROPERABILITY.md">互操作性</a> ·
   <a href="./docs/AI_NATIVE_INTERACTION_COMPONENTS.md">AI 原生交互组件</a> ·
   <a href="./docs/USER_GUIDE.md">使用指南</a> ·
   <a href="./docs/V0_2_CODEX_PLAN.md">v0.2 开发计划</a> ·
@@ -112,6 +114,31 @@ Tilo 探索的是 AI 原生 SaaS 交付：
 | CRUD 编辑器 | 带版本历史的 EditableArtifact |
 
 更多说明见：[`docs/AI_NATIVE_INTERACTION_COMPONENTS.md`](./docs/AI_NATIVE_INTERACTION_COMPONENTS.md)
+
+---
+
+## ROAM Interaction Contract
+
+Tilo 提供一个轻量的声明式 interaction contract 层，用来连接 AI 原生 SaaS Agent、界面、人类操作、结构化观察和长期记忆。Contract 描述 Agent 应该渲染什么、哪些用户动作需要被观察、哪些动作需要确认，以及哪些结果可以进入记忆候选。
+
+它是 Tilo 内部可落地的连接层，不把自己包装成通用标准，也不替代现有 Agent 协议。
+
+- Contract 设计：[`docs/ROAM_INTERACTION_CONTRACT.md`](./docs/ROAM_INTERACTION_CONTRACT.md)
+- 具体示例：[`examples/interaction-contracts/contract-review.roam.yaml`](./examples/interaction-contracts/contract-review.roam.yaml)
+
+---
+
+## 互操作性
+
+Tilo 设计上应该兼容更大的 Agent 生态，而不是把自己做成孤岛：
+
+- MCP 连接工具和资源。
+- A2A 风格协议可以连接 Agent 之间的交接与协作。
+- Skills 封装可复用能力。
+- LangGraph、LlamaIndex、CrewAI、AutoGen 或自定义 Runtime 仍然可以负责编排与检索。
+- Tilo 通过 ROAM 连接 Agent、UI、人类、观察和记忆。
+
+更多说明见：[`docs/INTEROPERABILITY.md`](./docs/INTEROPERABILITY.md)
 
 ---
 

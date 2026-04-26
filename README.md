@@ -7,6 +7,8 @@
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
   <a href="./docs/ROAM_LOOP.md">ROAM Loop</a> ·
+  <a href="./docs/ROAM_INTERACTION_CONTRACT.md">Interaction Contract</a> ·
+  <a href="./docs/INTEROPERABILITY.md">Interoperability</a> ·
   <a href="./docs/AI_NATIVE_INTERACTION_COMPONENTS.md">AI-native Components</a> ·
   <a href="./docs/USER_GUIDE.md">User Guide</a> ·
   <a href="./docs/V0_2_CODEX_PLAN.md">v0.2 Plan</a> ·
@@ -111,6 +113,31 @@ This means common SaaS components can become agent-generated interaction compone
 | CRUD editor | EditableArtifact with version history |
 
 Read more: [`docs/AI_NATIVE_INTERACTION_COMPONENTS.md`](./docs/AI_NATIVE_INTERACTION_COMPONENTS.md)
+
+---
+
+## ROAM Interaction Contract
+
+Tilo provides a lightweight declarative interaction contract layer for AI-native SaaS agents. A contract describes what the agent should render, what user actions should be observed, which actions need confirmation, and what can become memory.
+
+The contract is practical glue between agents, UI, humans, observations, and memory. It is not positioned as a universal standard or replacement for existing agent protocols.
+
+- Contract design: [`docs/ROAM_INTERACTION_CONTRACT.md`](./docs/ROAM_INTERACTION_CONTRACT.md)
+- Concrete example: [`examples/interaction-contracts/contract-review.roam.yaml`](./examples/interaction-contracts/contract-review.roam.yaml)
+
+---
+
+## Interoperability
+
+Tilo is designed to work with the broader agent ecosystem instead of replacing it:
+
+- MCP connects tools and resources.
+- A2A-style protocols can connect agents for handoff or collaboration.
+- Skills package reusable capabilities.
+- LangGraph, LlamaIndex, CrewAI, AutoGen, or custom runtimes can still handle orchestration and retrieval.
+- Tilo connects agents, UI, humans, observations, and memory through ROAM.
+
+Read more: [`docs/INTEROPERABILITY.md`](./docs/INTEROPERABILITY.md)
 
 ---
 
