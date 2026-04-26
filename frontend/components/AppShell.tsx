@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Bot, Boxes, CheckSquare, Database, FileText, FolderKanban, Home, Layers, Users } from "lucide-react";
 
 const nav = [
-  { href: "/", label: "Console", icon: Home },
+  { href: "/", label: "Demo Entry", icon: Home },
+  { href: "/workspace?mode=developer", label: "Developer Console", icon: FolderKanban },
   { href: "/workspaces", label: "Workspaces", icon: Boxes },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/inbox", label: "Inbox", icon: CheckSquare },

@@ -34,30 +34,40 @@ export function ArtifactDetail({ artifactId }: { artifactId: string }) {
   const runId = schema.run_id || artifact.run_id;
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   return (
-    <div className="artifact-detail">
-      <ArtifactRenderer artifact={artifact} />
-      <aside className="artifact-meta">
-        <h2>Status</h2>
-        <span>{schema.status}</span>
-        <h2>Version</h2>
-        <span>v{artifact.version}</span>
-        <h2>Task</h2>
-        <span>{artifact.task_id || "No linked task"}</span>
-        <h2>Run</h2>
-        <span>{runId || "No linked run"}</span>
-        <h2>Trace</h2>
-        {runId ? (
-          <a className="small-link" href={`${apiBase}/api/runs/${runId}/trace`} target="_blank" rel="noreferrer">
-            Open trace
-          </a>
-        ) : (
-          <span>No trace link</span>
-        )}
-        <h2>Memory refs</h2>
-        <span>{schema.memory_refs.length ? schema.memory_refs.join(", ") : "None"}</span>
-        <h2>Provenance</h2>
-        <span>{schema.provenance.length ? schema.provenance.map((item) => item.label || item.id).join(", ") : "None"}</span>
-      </aside>
+    <div className="artifact-result-page">
+      <header className="artifact-result-header">
+        <div>
+          <span className="eyebrow">Artifact Result · {schema.artifact_type}</span>
+          <h1>{artifact.title}</h1>
+          <p>Standalone ROAM result page with generated components, durable actions, linked run context, and memory references.</p>
+        </div>
+        <span className="status-pill">{schema.status}</span>
+      </header>
+      <div className="artifact-detail">
+        <ArtifactRenderer artifact={artifact} />
+        <aside className="artifact-meta">
+          <h2>Version</h2>
+          <span>v{artifact.version}</span>
+          <h2>Actions</h2>
+          <span>{schema.actions.length + schema.blocks.reduce((count, block) => count + (block.actions?.length || 0), 0)} available</span>
+          <h2>Task</h2>
+          <span>{artifact.task_id || "No linked task"}</span>
+          <h2>Run</h2>
+          <span>{runId || "No linked run"}</span>
+          <h2>Trace</h2>
+          {runId ? (
+            <a className="small-link" href={`${apiBase}/api/runs/${runId}/trace`} target="_blank" rel="noreferrer">
+              Open trace
+            </a>
+          ) : (
+            <span>No trace link</span>
+          )}
+          <h2>Memory refs</h2>
+          <span>{schema.memory_refs.length ? schema.memory_refs.join(", ") : "None"}</span>
+          <h2>Provenance</h2>
+          <span>{schema.provenance.length ? schema.provenance.map((item) => item.label || item.id).join(", ") : "None"}</span>
+        </aside>
+      </div>
     </div>
   );
 }

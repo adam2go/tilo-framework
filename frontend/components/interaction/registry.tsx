@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Clock, Database, Gauge, Play, ShieldAlert, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Check, Clock, Database, FilePenLine, Gauge, Play, ShieldAlert, Sparkles, X } from "lucide-react";
 import { apiFetch } from "../../lib/api";
 import type { Artifact, ArtifactAction, ArtifactBlock, Memory, UIInteractionEvent } from "../../lib/types";
 
@@ -151,8 +151,61 @@ export function ApprovalCard({ artifact, block }: InteractionProps) {
   );
 }
 
+export function RiskSummary({ artifact, block }: InteractionProps) {
+  const high = Number(block.data.high_count || 0);
+  const medium = Number(block.data.medium_count || 0);
+  const low = Number(block.data.low_count || 0);
+  return (
+    <section className="interaction-card risk-summary-card">
+      <div className="interaction-title-row">
+        <AlertTriangle size={18} />
+        <div>
+          <strong>{block.title || "Risk Summary"}</strong>
+          <span>{String(block.data.status || "review_ready")} · confidence {String(block.data.confidence || "0.8")}</span>
+        </div>
+      </div>
+      <div className="risk-summary-grid">
+        <div className="risk-summary-metric high">
+          <strong>{high}</strong>
+          <span>High</span>
+        </div>
+        <div className="risk-summary-metric medium">
+          <strong>{medium}</strong>
+          <span>Medium</span>
+        </div>
+        <div className="risk-summary-metric low">
+          <strong>{low}</strong>
+          <span>Low</span>
+        </div>
+      </div>
+      <p>{String(block.data.summary || "")}</p>
+      <ActionButtons artifact={artifact} block={block} />
+    </section>
+  );
+}
+
 export function RiskReviewPanel({ artifact, block }: InteractionProps) {
+  const [riskStatus, setRiskStatus] = useState<Record<string, string>>({});
   const risks = (block.data.risks as Array<Record<string, unknown>>) || [];
+
+  async function decideRisk(risk: Record<string, unknown>, actionType: "approve" | "edit" | "reject") {
+    const riskId = String(risk.id || risk.clause || "risk");
+    setRiskStatus((current) => ({ ...current, [riskId]: "Saving observation" }));
+    try {
+      const action = {
+        id: `${actionType}_${riskId}`,
+        label: actionType,
+        action_type: actionType,
+        confirmation_required: false,
+        payload: { risk_id: riskId, clause: risk.clause, risk_level: risk.risk_level },
+      } satisfies ArtifactAction;
+      await recordInteraction(artifact, block, action);
+      setRiskStatus((current) => ({ ...current, [riskId]: "Observation saved" }));
+    } catch (err) {
+      setRiskStatus((current) => ({ ...current, [riskId]: err instanceof Error ? err.message : "Action failed" }));
+    }
+  }
+
   return (
     <section className="interaction-card">
       <div className="interaction-title-row">
@@ -161,13 +214,22 @@ export function RiskReviewPanel({ artifact, block }: InteractionProps) {
       </div>
       <div className="risk-review-grid">
         {risks.map((risk, index) => (
-          <article className="risk-block" key={String(risk.id || index)}>
+          <article className="risk-block risk-review-item" key={String(risk.id || index)}>
             <div>
               <strong>{String(risk.clause || "Risk")}</strong>
               <span className={`risk-level ${String(risk.risk_level || "medium")}`}>{String(risk.risk_level || "medium")}</span>
             </div>
             <p>{String(risk.issue || "")}</p>
             <small>{String(risk.suggested_revision || "")}</small>
+            {risk.evidence ? <small>Evidence: {String(risk.evidence)}</small> : null}
+            <div className="risk-item-actions">
+              <button className="small-button" onClick={() => void decideRisk(risk, "approve")}>Approve</button>
+              <button className="small-button" onClick={() => void decideRisk(risk, "edit")}>Edit</button>
+              <button className="small-button" onClick={() => void decideRisk(risk, "reject")}>Reject</button>
+            </div>
+            {riskStatus[String(risk.id || risk.clause || "risk")] ? (
+              <small>{riskStatus[String(risk.id || risk.clause || "risk")]}</small>
+            ) : null}
           </article>
         ))}
       </div>
@@ -284,14 +346,41 @@ export function ActionQueue({ artifact, block }: InteractionProps) {
   );
 }
 
+export function EditableDocumentPreview({ artifact, block }: InteractionProps) {
+  const highlights = (block.data.highlights as string[]) || [];
+  return (
+    <section className="interaction-card editable-document-placeholder">
+      <div className="interaction-title-row">
+        <FilePenLine size={18} />
+        <div>
+          <strong>{String(block.data.heading || block.title || "Editable draft")}</strong>
+          <span>{String(block.data.status || "draft")}</span>
+        </div>
+      </div>
+      <div className="editable-preview">{String(block.data.content || "")}</div>
+      {highlights.length ? (
+        <div className="revision-highlights">
+          {highlights.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      ) : null}
+      <ActionButtons artifact={artifact} block={block} />
+    </section>
+  );
+}
+
 export const interactionComponentRegistry: Record<string, InteractionComponent> = {
+  risk_summary: RiskSummary,
   approval_card: ApprovalCard,
   risk_review_panel: RiskReviewPanel,
   comparison_matrix: ComparisonMatrix,
   metric_dashboard: MetricDashboard,
   memory_candidate_card: MemoryCandidateCard,
   tool_call_preview: ToolCallPreview,
-  action_queue: ActionQueue
+  action_queue: ActionQueue,
+  editable_document_preview: EditableDocumentPreview,
+  editable_document_placeholder: EditableDocumentPreview
 };
 
 export function renderInteractionComponent(artifact: Artifact, block: ArtifactBlock) {

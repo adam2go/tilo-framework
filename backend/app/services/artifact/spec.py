@@ -39,6 +39,20 @@ class ArtifactSpecBuilder:
                 title="Contract Review",
                 blocks=[
                     {
+                        "id": "risk_summary",
+                        "type": "risk_summary",
+                        "title": "Risk Summary",
+                        "data": {
+                            "high_count": 2,
+                            "medium_count": 2,
+                            "low_count": 1,
+                            "confidence": "0.82",
+                            "status": "review_ready",
+                            "summary": "The agreement is negotiable, but liability, payment timing, termination, confidentiality, and IP ownership need targeted revisions before signing.",
+                        },
+                        "state_binding": {"entity_type": "run", "entity_id": run.id, "field": "risk_summary"},
+                    },
+                    {
                         "id": "summary",
                         "type": "approval_card",
                         "title": "Summary",
@@ -73,17 +87,43 @@ class ArtifactSpecBuilder:
                             "risks": [
                                 {
                                     "id": "risk_1",
+                                    "clause": "Payment terms",
+                                    "risk_level": "medium",
+                                    "issue": "Payment timing is tied to invoice receipt without a clear dispute window.",
+                                    "suggested_revision": "Add a 10 business day dispute period and require undisputed amounts to be paid within 30 days.",
+                                    "evidence": "Payment due within 30 days of receipt unless otherwise agreed.",
+                                },
+                                {
+                                    "id": "risk_2",
                                     "clause": "Liability",
                                     "risk_level": "high",
                                     "issue": "Liability may be uncapped or one-sided.",
                                     "suggested_revision": "Add a mutual liability cap tied to fees paid in the prior 12 months.",
+                                    "evidence": "Vendor liability exclusions do not clearly apply mutually.",
                                 },
                                 {
-                                    "id": "risk_2",
+                                    "id": "risk_3",
                                     "clause": "Termination",
                                     "risk_level": "medium",
                                     "issue": "Termination rights are not explicit enough for material breach.",
                                     "suggested_revision": "Add a cure period and immediate termination for uncured material breach.",
+                                    "evidence": "The clause allows termination for convenience but not material breach.",
+                                },
+                                {
+                                    "id": "risk_4",
+                                    "clause": "Confidentiality",
+                                    "risk_level": "low",
+                                    "issue": "Confidentiality survival period is not stated.",
+                                    "suggested_revision": "Add a three-year survival period and indefinite protection for trade secrets.",
+                                    "evidence": "Confidentiality obligations survive only as required by law.",
+                                },
+                                {
+                                    "id": "risk_5",
+                                    "clause": "IP ownership",
+                                    "risk_level": "high",
+                                    "issue": "Work product ownership is broad and could capture pre-existing IP.",
+                                    "suggested_revision": "Separate customer-owned deliverables from vendor background IP and reusable know-how.",
+                                    "evidence": "All materials created or used under the agreement transfer to customer.",
                                 },
                             ]
                         },
@@ -103,6 +143,30 @@ class ArtifactSpecBuilder:
                                 "confirmation_required": False,
                                 "payload": {"operation": "regenerate_risk_review"},
                             },
+                        ],
+                    },
+                    {
+                        "id": "editable_revision",
+                        "type": "editable_document_preview",
+                        "title": "Editable revision draft",
+                        "data": {
+                            "heading": "Conservative revision draft",
+                            "content": "Each party's aggregate liability is capped at fees paid or payable in the twelve months preceding the claim, except for confidentiality, data misuse, and payment obligations.",
+                            "status": "draft",
+                            "highlights": [
+                                "Mutual liability cap",
+                                "Material breach cure period",
+                                "Background IP carve-out",
+                            ],
+                        },
+                        "actions": [
+                            {
+                                "id": "edit_liability_clause",
+                                "label": "Mark for editing",
+                                "action_type": "edit",
+                                "confirmation_required": False,
+                                "payload": {"operation": "edit_clause", "target": "liability"},
+                            }
                         ],
                     },
                     {
