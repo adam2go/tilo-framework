@@ -1,238 +1,217 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Bot, Check, Code2, Database, FileText, GitBranch, Languages, MessageCircle, Play, RadioTower, RotateCcw, Send, ShieldCheck } from "lucide-react";
-import { renderInteractionComponent } from "../interaction/registry";
+import { useEffect, useState } from "react";
+import { ArrowUpRight, Bot, Check, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import { apiFetch, getBootstrap, sendMessage } from "../../lib/api";
-import type { Agent, Artifact, ArtifactAction, ArtifactBlock, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
+import { PROBLEMATIC_AI_SERVICE_AGREEMENT, SAMPLE_CONTRACT_FILE_NAME } from "../../lib/demoContracts";
+import type { Agent, Artifact, ArtifactAction, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
 
 type Locale = "en" | "zh";
-type ChatMessage = { id: string; role: "bot" | "user"; text: string; status?: string };
-type DemoStage = "Intent" | "Risk Review" | "Approval" | "Revision Draft" | "Memory";
+type InputMode = "sample" | "paste";
+type DemoStage = "Intent" | "Risk Review" | "Revision Draft" | "Memory";
+type SurfaceKind = "contract_review" | "revision_draft" | "memory_candidate";
+type ChatTurn =
+  | { id: string; type: "user_message" | "bot_message" | "observation" | "system_event"; content: string; status?: "typing" | "rendering" }
+  | { id: string; type: "attachment"; fileName: string; detail: string }
+  | { id: string; type: "mini_surface"; surface: SurfaceKind };
 type LiveEvent = { id: string; label: string; detail: string; status?: "done" | "active" | "pending" };
+
+function isPendingTurn(turn: ChatTurn) {
+  return turn.type !== "mini_surface" && turn.type !== "attachment" && (turn.status === "typing" || turn.status === "rendering");
+}
 
 const demoCopy = {
   en: {
-    localeLabel: "English",
     otherLocaleLabel: "中文",
-    demoGoal: "Review this contract for payment, liability, and termination risks.",
+    demoGoal: "Review this AI service agreement, focusing on payment, acceptance, data compliance, IP, liability, and termination risks.",
     languageInstruction: "Return the Contract Review artifact in English.",
-    headerEyebrow: "Tilo Telegram-like Demo · ROAM Loop",
-    headline: "Chat is the entry. Surface is the workspace. Interaction becomes memory.",
-    subhead: "Chat starts the task. Tilo renders the surface. User actions become durable observations.",
-    developerConsole: "Developer Console",
-    github: "GitHub",
+    title: "Tilo Conversational Surface Demo",
+    subtitle: "A Telegram-like agent session where UI cards appear inside the conversation and user actions become observations.",
+    thesis: "Conversation is the main interface. Mini surfaces appear when chat is not enough.",
     botName: "Tilo Bot",
     online: "online",
-    renderingWorkflow: "rendering workflow",
-    welcome: "Welcome to Tilo. Send me a goal, or run a demo.",
-    runDemo: "Run Contract Review Demo",
-    replayDemo: "Replay Demo",
-    openSurface: "Open Review Surface",
+    thinking: "working",
+    welcome: "Welcome to Tilo. Send a contract review goal, or run the sample demo.",
+    sampleMode: "Use sample contract",
+    pasteMode: "Paste contract",
+    pastePlaceholder: "Paste contract text here. Press send to start the same Task -> Run -> Artifact loop.",
+    sampleAttachmentDetail: "Problematic AI service agreement · 12 sections · realistic fixture",
+    pastedAttachmentName: "Pasted contract text",
+    pastedAttachmentDetail: (chars: number) => `${chars.toLocaleString()} characters · user-provided contract`,
+    runSample: "Run sample",
+    replay: "Replay",
+    reset: "Reset",
+    inspector: "Inspector",
+    stagePrefix: "Stage",
+    stageIntent: "Intent",
+    stageRiskReview: "Risk Review",
+    stageRevisionDraft: "Revision Draft",
+    stageMemory: "Memory",
+    openArtifact: "Open Artifact",
+    openFullReview: "Open Full Review",
     approveRevision: "Approve Revision",
+    editDirection: "Edit Direction",
     remember: "Remember",
-    openArtifactPage: "Open artifact page",
-    received: "Received. Creating Task and Run from the chat entry.",
-    recalling: "Recalling memory and selecting the Contract Review surface.",
-    renderingSurface: "Rendering the Rich ROAM Surface now.",
-    ready: (count: number) => `Contract Review is ready. ${count} high-risk clause${count === 1 ? "" : "s"} found. I opened the rich review surface.`,
-    replayStarted: "Replay started. I will run the same contract review loop again.",
-    userOpenSurface: "Open Review Surface",
-    userApproved: "Approve Revision",
-    approved: "Approved. Tilo is generating a conservative revision draft.",
-    memoryReady: "Memory candidate ready. Should Tilo remember this review preference?",
-    userRemember: "Remember this preference",
-    remembered: "Remembered. Future contract reviews will use this preference.",
-    runtimeDeterministic: "Demo mode: deterministic artifact generation",
-    runtimeLlm: (provider: string, model: string) => `LLM mode: ${provider} · ${model}`,
-    surfaceEyebrow: "Dynamic ROAM Surface",
-    surfaceTitle: "Contract Review Surface",
-    modeExplanation: "Deterministic mode runs locally with a safe artifact generator. LLM mode uses backend-only OpenAI-compatible config; API keys never reach the browser.",
-    loadingEyebrow: "Render in progress",
-    loadingTitle: "Generating the Contract Review surface",
-    loadingBody: "Tilo is creating Task, Run, TraceStep, Artifact, Confirmation, and Memory candidates.",
-    roamPhases: ["Render", "Observe", "Act", "Memorize"],
-    stageRail: ["Intent", "Contract Intake", "Risk Review", "Approval", "Revision Draft", "Memory"],
-    previewEyebrow: "Preview Flow",
-    previewTitle: "Chat starts the task. Tilo renders the workspace.",
-    previewBody: "A lightweight message launches a full ROAM surface for review, approval, revision, and memory.",
-    previewSteps: [
-      { title: "Chat entry", detail: "User sends a contract review goal." },
-      { title: "Rich Surface", detail: "Tilo opens the review where dense UI belongs." },
-      { title: "Approval", detail: "Human decision becomes a durable confirmation." },
-      { title: "Revision", detail: "Approved action generates a focused draft." },
-      { title: "Memory", detail: "Confirmed preference improves future work." }
-    ],
-    previewCardTitle: "Contract Review Surface",
-    previewCardBody: "RiskReviewPanel is too rich for chat, so it opens here.",
-    previewRisk: "Liability",
-    highRisk: "high risk",
-    activeRiskNode: "Active Risk Node",
+    notNow: "Not now",
+    makeSofter: "Make softer",
+    makeStricter: "Make stricter",
+    draftEmail: "Draft negotiation email",
+    received: "Received. I’m reading the attached contract and creating a Task and Run from this chat message.",
+    recalling: "I’m recalling memory and reviewing the contract autonomously before asking you to decide anything.",
+    rendering: "Most findings are going into the full review. I’ll show only the key liability decision here.",
+    ready: (count: number) => `I found ${count} high-risk issue${count === 1 ? "" : "s"} in the full contract. One needs direction now: clauses 8.1 and 8.2 conflict on liability cap and indemnity carve-outs.`,
+    approvedObservation: "Observation: You approved a conservative revision for the liability and indemnity conflict in clauses 8.1 / 8.2.",
+    approvedReply: "Got it. I’m generating a conservative but explainable revision draft for those clauses.",
+    memoryPrompt: "I noticed you prefer conservative but negotiation-friendly revisions. Should I remember this?",
+    rememberedObservation: "Observation: You confirmed this memory candidate.",
+    rememberedReply: "Remembered. Future contract reviews will use this preference.",
+    notNowObservation: "Observation: You skipped memory capture for now.",
+    followupObservation: "Observation: Your follow-up preference was captured for this artifact.",
+    followupReply: "Understood. I’ll make the revision tone suitable for customer negotiation rather than overly aggressive.",
+    editObservation: "Observation: You asked to adjust the revision direction.",
+    editReply: "Tell me the direction in the composer, for example: keep it firm but customer-friendly.",
+    followupSuggestion: "Keep the tone customer-friendly and suitable for negotiation.",
+    fullReviewObservation: "Observation: You opened the rich artifact for the complete finding list.",
+    runtimeDeterministic: "Deterministic mode",
+    runtimeLlm: (provider: string, model: string) => `LLM mode · ${provider} · ${model}`,
+    noSecrets: "API keys stay backend-only.",
+    contractReview: "ContractReviewMiniSurface",
+    revisionDraft: "RevisionDraftMiniSurface",
+    memoryCandidate: "MemoryCandidateMiniSurface",
+    riskSummary: "Risk summary",
+    activeRisk: "Primary issue",
     recommendedRevision: "Recommended revision",
     evidence: "Evidence",
-    summaryHigh: "High",
-    summaryMedium: "Medium",
-    summaryLow: "Low",
-    primaryApprove: "Approve Revision",
-    rememberPreference: "Remember Preference",
-    inspectorRendererDecision: "Renderer Decision",
-    inspectorLiveEvents: "Live Events",
-    inspectorRuntimeMode: "Runtime Mode",
-    inspectorInteractionContract: "Interaction Contract",
-    inspectorChannelRouting: "Channel Routing",
-    inspectorDurableObservations: "Durable Observations",
-    show: "show",
-    hide: "hide",
-    rendererDecisionRows: [
-      "RiskReviewPanel routes rich review into the Rich Surface",
-      "ApprovalCard renders as chat buttons",
-      "MemoryCandidateCard can render in chat or surface"
-    ],
-    runtimeProviderFamily: "Provider family",
-    runtimeTelegramBot: "Telegram live bot",
-    configured: "configured",
-    notConfigured: "not configured",
-    frontendSecretNote: "Model exposed to frontend: no API key, mode only",
-    pendingConfirmations: "pending confirmations",
-    memories: "memories",
+    high: "High",
+    medium: "Medium",
+    low: "Low",
+    revisionPreview: "Revision draft preview",
+    before: "Before",
+    after: "After",
+    memoryWhy: "Tilo suggests remembering this because it can improve future contract reviews.",
+    rendererDecision: "Renderer Decision",
+    liveEvents: "Live Events",
+    runtimeMode: "Runtime Mode",
+    modelDiagnostics: "Model Diagnostics",
+    interactionContract: "Interaction Contract",
+    durableObservations: "Durable Observations",
+    provider: "Provider",
+    model: "Model",
+    mode: "Mode",
+    fallback: "Fallback",
+    yes: "yes",
+    no: "no",
     traceSteps: "trace steps",
-    stageTitle: {
-      Intent: "Intent",
-      "Risk Review": "Risk Review",
-      Approval: "Approval",
-      "Revision Draft": "Revision Draft",
-      Memory: "Memory"
-    },
-    stageCopy: {
-      Intent: "The chat-like entry captures user intent.",
-      "Risk Review": "Rich contract review opens in the ROAM surface, not inside the chat thread.",
-      Approval: "A lightweight approval can happen from chat or the rich surface.",
-      "Revision Draft": "After approval, Tilo acts and renders the conservative revision draft.",
-      Memory: "Confirmed preference becomes inspectable long-term memory."
-    },
-    liveEvents: {
+    memories: "memories",
+    confirmations: "pending confirmations",
+    live: {
       waitingGoal: "Waiting for user goal",
-      notRendered: "Rich surface not rendered yet",
-      noAction: "No action observed yet",
+      notRendered: "No mini surface rendered yet",
+      noAction: "No UI action observed yet",
       noApproval: "No approval yet",
-      noMemory: "Memory not created yet",
-      goalReceived: "Goal received from Telegram-like chat",
-      surfaceRendered: "Contract Review surface rendered",
-      approvalClicked: "Approve Revision clicked from chat/surface",
+      noMemory: "No memory confirmed yet",
+      goalReceived: "Chat message received",
+      surfaceRendered: "ContractReviewMiniSurface inserted",
+      approvalClicked: "Approve Revision clicked",
       confirmationApproved: "Linked Confirmation approved",
-      memoryPersisted: "Confirmed preference persisted to memory"
+      memoryPersisted: "Memory candidate persisted"
     }
   },
   zh: {
-    localeLabel: "中文",
     otherLocaleLabel: "English",
-    demoGoal: "请审查这份合同中的付款、责任限制和终止条款风险，并用简体中文输出合同审查结果。",
+    demoGoal: "请审查这份 AI 客服系统服务合同，重点关注付款、验收、数据合规、知识产权、责任限制和终止条款。",
     languageInstruction: "请用简体中文输出 Contract Review artifact。JSON key 保持英文，但所有面向用户的字符串值必须是简体中文。",
-    headerEyebrow: "Tilo 类 Telegram 演示 · ROAM Loop",
-    headline: "聊天是入口，Surface 是工作区，交互会变成记忆。",
-    subhead: "用户从聊天发起任务。Tilo 渲染结构化 Surface。用户动作会成为可追踪的观察记录。",
-    developerConsole: "开发者控制台",
-    github: "GitHub",
+    title: "Tilo 会话式 Surface 演示",
+    subtitle: "一个类 Telegram 的 agent 会话：UI 卡片在聊天中出现，用户动作会成为观察记录。",
+    thesis: "会话是主界面。聊天不够表达时，mini surface 会自然出现。",
     botName: "Tilo Bot",
     online: "在线",
-    renderingWorkflow: "正在渲染工作流",
-    welcome: "欢迎使用 Tilo。你可以发送目标，也可以直接运行演示。",
-    runDemo: "运行合同审查演示",
-    replayDemo: "重放演示",
-    openSurface: "打开审查 Surface",
+    thinking: "处理中",
+    welcome: "欢迎使用 Tilo。发送合同审查目标，或直接运行样例演示。",
+    sampleMode: "使用样例合同",
+    pasteMode: "粘贴合同",
+    pastePlaceholder: "在这里粘贴合同文本。发送后会进入同一个 Task -> Run -> Artifact loop。",
+    sampleAttachmentDetail: "问题样例 AI 服务合同 · 12 个章节 · 真实感 fixture",
+    pastedAttachmentName: "粘贴的合同文本",
+    pastedAttachmentDetail: (chars: number) => `${chars.toLocaleString()} 个字符 · 用户提供的合同`,
+    runSample: "运行样例",
+    replay: "重放",
+    reset: "重置",
+    inspector: "Inspector",
+    stagePrefix: "阶段",
+    stageIntent: "意图",
+    stageRiskReview: "风险审查",
+    stageRevisionDraft: "修订草案",
+    stageMemory: "记忆",
+    openArtifact: "打开 Artifact",
+    openFullReview: "打开完整审查",
     approveRevision: "批准修订",
-    remember: "记住偏好",
-    openArtifactPage: "打开 artifact 页面",
-    received: "已收到。正在从聊天入口创建 Task 和 Run。",
-    recalling: "正在召回记忆，并选择合同审查 Surface。",
-    renderingSurface: "正在渲染 Rich ROAM Surface。",
-    ready: (count: number) => `合同审查已完成。发现 ${count} 个高风险条款，我已打开结构化审查 Surface。`,
-    replayStarted: "已开始重放。我会再次运行同一个合同审查 loop。",
-    userOpenSurface: "打开审查 Surface",
-    userApproved: "批准修订",
-    approved: "已批准。Tilo 正在生成保守的合同修订草案。",
-    memoryReady: "记忆候选已准备好。是否让 Tilo 记住这个审查偏好？",
-    userRemember: "记住这个偏好",
-    remembered: "已记住。之后的合同审查会使用这个偏好。",
-    runtimeDeterministic: "演示模式：本地确定性 artifact 生成",
-    runtimeLlm: (provider: string, model: string) => `LLM 模式：${provider} · ${model}`,
-    surfaceEyebrow: "Dynamic ROAM Surface",
-    surfaceTitle: "合同审查 Surface",
-    modeExplanation: "确定性模式可在本地直接运行。LLM 模式只通过后端 OpenAI-compatible 配置调用模型，API key 不会进入浏览器。",
-    loadingEyebrow: "正在 Render",
-    loadingTitle: "正在生成合同审查 Surface",
-    loadingBody: "Tilo 正在创建 Task、Run、TraceStep、Artifact、Confirmation 和 Memory candidate。",
-    roamPhases: ["Render", "Observe", "Act", "Memorize"],
-    stageRail: ["意图", "合同输入", "风险审查", "审批", "修订草案", "记忆"],
-    previewEyebrow: "流程预览",
-    previewTitle: "聊天发起任务，Tilo 渲染工作区。",
-    previewBody: "一条轻量消息会启动完整的 ROAM Surface，用于审查、批准、修订和记忆。",
-    previewSteps: [
-      { title: "聊天入口", detail: "用户发送合同审查目标。" },
-      { title: "Rich Surface", detail: "Tilo 在适合复杂交互的区域打开审查。" },
-      { title: "审批", detail: "人的决定会成为持久 Confirmation。" },
-      { title: "修订", detail: "批准后的动作会生成聚焦的草案。" },
-      { title: "记忆", detail: "确认后的偏好会影响未来工作。" }
-    ],
-    previewCardTitle: "合同审查 Surface",
-    previewCardBody: "RiskReviewPanel 太复杂，不适合塞进聊天气泡，所以会在这里打开。",
-    previewRisk: "责任限制",
-    highRisk: "高风险",
-    activeRiskNode: "当前风险节点",
+    editDirection: "调整方向",
+    remember: "记住",
+    notNow: "暂不",
+    makeSofter: "语气更柔和",
+    makeStricter: "更严格",
+    draftEmail: "起草谈判邮件",
+    received: "已收到。我正在读取这份合同附件，并从这条消息创建 Task 和 Run。",
+    recalling: "正在召回记忆并自主审查合同，先不要求你操作任何复杂界面。",
+    rendering: "大部分 findings 会进入完整审查；这里先只展示一个真正需要你决策的责任条款问题。",
+    ready: (count: number) => `我在完整合同中发现 ${count} 个高风险问题。当前需要先确认的是：8.1 与 8.2 在责任上限和赔偿例外上存在冲突。`,
+    approvedObservation: "Observation：你批准了针对 8.1 / 8.2 责任与赔偿冲突的保守修订方向。",
+    approvedReply: "收到。我会为这两个条款生成一版保守但有解释空间的修订草案。",
+    memoryPrompt: "我注意到你偏好保守但适合谈判的修订。要让我记住吗？",
+    rememberedObservation: "Observation：你确认了这个记忆候选。",
+    rememberedReply: "已记住。未来合同审查会使用这个偏好。",
+    notNowObservation: "Observation：你暂时跳过了记忆保存。",
+    followupObservation: "Observation：你的谈判语气偏好已记录到当前 artifact 上。",
+    followupReply: "明白。我会把修订建议调整成更适合发给客户谈判的表达，而不是直接否定对方条款。",
+    editObservation: "Observation：你要求调整修订方向。",
+    editReply: "请在输入框里告诉我方向，例如：语气不要太强硬，适合发给客户谈判。",
+    followupSuggestion: "语气不要太强硬，适合发给客户谈判。",
+    fullReviewObservation: "Observation：你打开了完整 artifact 查看全部 findings。",
+    runtimeDeterministic: "确定性模式",
+    runtimeLlm: (provider: string, model: string) => `LLM 模式 · ${provider} · ${model}`,
+    noSecrets: "API key 只在后端使用。",
+    contractReview: "ContractReviewMiniSurface",
+    revisionDraft: "RevisionDraftMiniSurface",
+    memoryCandidate: "MemoryCandidateMiniSurface",
+    riskSummary: "风险摘要",
+    activeRisk: "主要问题",
     recommendedRevision: "建议修订",
     evidence: "依据",
-    summaryHigh: "高",
-    summaryMedium: "中",
-    summaryLow: "低",
-    primaryApprove: "批准修订",
-    rememberPreference: "记住偏好",
-    inspectorRendererDecision: "渲染决策",
-    inspectorLiveEvents: "实时事件",
-    inspectorRuntimeMode: "运行模式",
-    inspectorInteractionContract: "交互契约",
-    inspectorChannelRouting: "通道路由",
-    inspectorDurableObservations: "持久观察",
-    show: "展开",
-    hide: "收起",
-    rendererDecisionRows: [
-      "RiskReviewPanel 内容过重，进入 Rich Surface",
-      "ApprovalCard 可以渲染成聊天按钮",
-      "MemoryCandidateCard 可在聊天或 Surface 中呈现"
-    ],
-    runtimeProviderFamily: "Provider family",
-    runtimeTelegramBot: "Telegram live bot",
-    configured: "已配置",
-    notConfigured: "未配置",
-    frontendSecretNote: "前端只展示模式，不暴露 API key",
-    pendingConfirmations: "待确认",
-    memories: "记忆数",
+    high: "高",
+    medium: "中",
+    low: "低",
+    revisionPreview: "修订草案预览",
+    before: "修订前",
+    after: "修订后",
+    memoryWhy: "Tilo 建议记住它，因为这能改善未来的合同审查。",
+    rendererDecision: "渲染决策",
+    liveEvents: "实时事件",
+    runtimeMode: "运行模式",
+    modelDiagnostics: "模型诊断",
+    interactionContract: "交互契约",
+    durableObservations: "持久观察",
+    provider: "Provider",
+    model: "Model",
+    mode: "Mode",
+    fallback: "Fallback",
+    yes: "是",
+    no: "否",
     traceSteps: "trace 步数",
-    stageTitle: {
-      Intent: "意图",
-      "Risk Review": "风险审查",
-      Approval: "审批",
-      "Revision Draft": "修订草案",
-      Memory: "记忆"
-    },
-    stageCopy: {
-      Intent: "聊天入口捕获用户意图。",
-      "Risk Review": "复杂合同审查在 ROAM Surface 中打开，而不是塞进聊天消息。",
-      Approval: "轻量审批可以来自聊天，也可以来自 Rich Surface。",
-      "Revision Draft": "批准后，Tilo 执行动作并渲染保守修订草案。",
-      Memory: "确认后的偏好会成为可检查的长期记忆。"
-    },
-    liveEvents: {
+    memories: "记忆数",
+    confirmations: "待确认",
+    live: {
       waitingGoal: "等待用户目标",
-      notRendered: "Rich surface 尚未渲染",
-      noAction: "尚未观察到动作",
+      notRendered: "尚未渲染 mini surface",
+      noAction: "尚未观察到 UI 动作",
       noApproval: "尚未批准",
-      noMemory: "尚未创建记忆",
-      goalReceived: "从类 Telegram 聊天收到目标",
-      surfaceRendered: "合同审查 Surface 已渲染",
-      approvalClicked: "从聊天或 Surface 点击批准修订",
+      noMemory: "尚未确认记忆",
+      goalReceived: "收到聊天消息",
+      surfaceRendered: "已插入 ContractReviewMiniSurface",
+      approvalClicked: "点击批准修订",
       confirmationApproved: "关联 Confirmation 已批准",
-      memoryPersisted: "已确认的偏好已写入记忆"
+      memoryPersisted: "记忆候选已持久化"
     }
   }
 };
@@ -241,16 +220,19 @@ type DemoCopy = (typeof demoCopy)["en"];
 
 function initialLiveEvents(copy: DemoCopy): LiveEvent[] {
   return [
-    { id: "channel.message.received", label: "channel.message.received", detail: copy.liveEvents.waitingGoal, status: "pending" },
-    { id: "artifact.rendered", label: "artifact.rendered", detail: copy.liveEvents.notRendered, status: "pending" },
-    { id: "artifact.action.clicked", label: "artifact.action.clicked", detail: copy.liveEvents.noAction, status: "pending" },
-    { id: "confirmation.approved", label: "confirmation.approved", detail: copy.liveEvents.noApproval, status: "pending" },
-    { id: "memory.candidate.created", label: "memory.candidate.created", detail: copy.liveEvents.noMemory, status: "pending" }
+    { id: "channel.message.received", label: "channel.message.received", detail: copy.live.waitingGoal, status: "pending" },
+    { id: "artifact.rendered", label: "artifact.rendered", detail: copy.live.notRendered, status: "pending" },
+    { id: "artifact.action.clicked", label: "artifact.action.clicked", detail: copy.live.noAction, status: "pending" },
+    { id: "confirmation.approved", label: "confirmation.approved", detail: copy.live.noApproval, status: "pending" },
+    { id: "memory.candidate.created", label: "memory.candidate.created", detail: copy.live.noMemory, status: "pending" }
   ];
 }
 
-function initialMessages(copy: DemoCopy): ChatMessage[] {
-  return [{ id: "welcome", role: "bot", text: copy.welcome }];
+function initialTurns(copy: DemoCopy): ChatTurn[] {
+  return [
+    { id: "welcome", type: "bot_message", content: copy.welcome },
+    { id: "thesis", type: "system_event", content: copy.thesis }
+  ];
 }
 
 export function TelegramDemoPage() {
@@ -265,12 +247,13 @@ export function TelegramDemoPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [trace, setTrace] = useState<TraceStep[]>([]);
   const [interactions, setInteractions] = useState<UIInteractionEvent[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages(copy));
+  const [turns, setTurns] = useState<ChatTurn[]>(initialTurns(copy));
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>(initialLiveEvents(copy));
   const [composer, setComposer] = useState(copy.demoGoal);
+  const [inputMode, setInputMode] = useState<InputMode>("sample");
   const [stage, setStage] = useState<DemoStage>("Intent");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   useEffect(() => {
     void boot();
@@ -299,25 +282,45 @@ export function TelegramDemoPage() {
     setConfirmations([]);
     setTrace([]);
     setInteractions([]);
-    setMessages(initialMessages(nextCopy));
+    setTurns(initialTurns(nextCopy));
     setLiveEvents(initialLiveEvents(nextCopy));
     setComposer(nextCopy.demoGoal);
+    setInputMode("sample");
     setStage("Intent");
-    setError(null);
   }
 
-  async function runDemo(content = copy.demoGoal) {
+  function resetDemo() {
+    setArtifact(null);
+    setConfirmations([]);
+    setTrace([]);
+    setInteractions([]);
+    setTurns(initialTurns(copy));
+    setLiveEvents(initialLiveEvents(copy));
+    setComposer(inputMode === "sample" ? copy.demoGoal : "");
+    setStage("Intent");
+  }
+
+  async function submitMessage() {
+    if (!workspace || busy) return;
+    if (!artifact) {
+      await runInitialReview(buildDemoMessage(copy, inputMode, composer), userMessagePreview(copy, inputMode, composer), inputMode);
+      return;
+    }
+    await handleFollowUp(composer.trim());
+  }
+
+  async function runInitialReview(content: string, preview: string, sourceMode: InputMode) {
     if (!workspace) return;
     setBusy(true);
-    setError(null);
     setStage("Intent");
-    setLiveEvents((items) => advanceLiveEvent(items, "channel.message.received", copy.liveEvents.goalReceived));
-    setMessages((items) => [
+    setLiveEvents((items) => advanceLiveEvent(items, "channel.message.received", copy.live.goalReceived));
+    setTurns((items) => [
       ...items,
-      { id: `user-${Date.now()}`, role: "user", text: content },
-      { id: `bot-task-${Date.now()}`, role: "bot", text: copy.received, status: "typing" },
-      { id: `bot-recall-${Date.now()}`, role: "bot", text: copy.recalling, status: "typing" },
-      { id: `bot-loading-${Date.now()}`, role: "bot", text: copy.renderingSurface, status: "rendering" }
+      { id: id("user"), type: "user_message", content: preview },
+      contractAttachmentTurn(copy, sourceMode, content),
+      { id: id("bot-task"), type: "bot_message", content: copy.received, status: "typing" },
+      { id: id("bot-recall"), type: "bot_message", content: copy.recalling, status: "typing" },
+      { id: id("bot-render"), type: "bot_message", content: copy.rendering, status: "rendering" }
     ]);
     try {
       const response = await sendMessage({
@@ -340,72 +343,72 @@ export function TelegramDemoPage() {
       setTrace(traceList);
       setInteractions(eventList);
       setStage("Risk Review");
-      const riskCount = riskSummary(nextArtifact);
-      setLiveEvents((items) => advanceLiveEvent(items, "artifact.rendered", copy.liveEvents.surfaceRendered));
-      setMessages((items) => [
-        ...items.filter((item) => item.status !== "rendering"),
-        { id: `bot-ready-${Date.now()}`, role: "bot", text: copy.ready(riskCount) }
+      setLiveEvents((items) => advanceLiveEvent(items, "artifact.rendered", copy.live.surfaceRendered));
+      setTurns((items) => [
+        ...items.filter((turn) => !isPendingTurn(turn)),
+        { id: id("bot-ready"), type: "bot_message", content: copy.ready(riskSummary(nextArtifact)) },
+        { id: id("surface-review"), type: "mini_surface", surface: "contract_review" }
       ]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to run Telegram-like demo");
+      setComposer("");
     } finally {
       setBusy(false);
     }
   }
 
-  async function replayDemo() {
-    setArtifact(null);
-    setConfirmations([]);
-    setTrace([]);
-    setInteractions([]);
-    setLiveEvents(initialLiveEvents(copy));
-    setMessages([
-      ...initialMessages(copy),
-      { id: `bot-replay-${Date.now()}`, role: "bot", text: copy.replayStarted }
+  async function handleFollowUp(content: string) {
+    if (!workspace || !artifact || !content) return;
+    const event = await persistInteraction("channel.telegram_demo.text_followup", { content });
+    setInteractions((items) => [event, ...items]);
+    const shouldProposeMemory = stage === "Revision Draft" || /语气|谈判|客户|tone|friendly|negotiat/i.test(content);
+    setTurns((items) => [
+      ...items,
+      { id: id("user-followup"), type: "user_message", content },
+      { id: id("observe-followup"), type: "observation", content: copy.followupObservation },
+      { id: id("bot-followup"), type: "bot_message", content: copy.followupReply },
+      ...(shouldProposeMemory ? [
+        { id: id("bot-memory-prompt"), type: "bot_message" as const, content: copy.memoryPrompt },
+        { id: id("surface-memory"), type: "mini_surface" as const, surface: "memory_candidate" as const }
+      ] : [])
     ]);
-    setStage("Intent");
-    await runDemo(composer || copy.demoGoal);
+    if (shouldProposeMemory) setStage("Memory");
+    setComposer("");
   }
 
-  async function openSurface() {
-    if (!workspace || !artifact) return;
-    const event = await apiFetch<UIInteractionEvent>("/api/interactions", {
-      method: "POST",
-      body: JSON.stringify({
-        workspace_id: workspace.id,
-        project_id: project?.id || null,
-        artifact_id: artifact.id,
-        run_id: artifact.run_id,
-        event_type: "channel.telegram_demo.open_surface",
-        payload: { channel: "telegram-demo", surface: "rich_artifact" }
-      })
-    });
+  async function requestEditDirection() {
+    if (!artifact) return;
+    const event = await persistInteraction("channel.telegram_demo.revision_direction_requested", {});
     setInteractions((items) => [event, ...items]);
-    setStage("Risk Review");
-    setMessages((items) => [...items, { id: `user-open-${Date.now()}`, role: "user", text: copy.userOpenSurface }]);
+    setTurns((items) => [
+      ...items,
+      { id: id("observe-edit"), type: "observation", content: copy.editObservation },
+      { id: id("bot-edit"), type: "bot_message", content: copy.editReply }
+    ]);
+    setComposer(copy.followupSuggestion);
+  }
+
+  async function openFullReview() {
+    if (!artifact) return;
+    const event = await persistInteraction("channel.telegram_demo.open_full_review", {});
+    setInteractions((items) => [event, ...items]);
+    setTurns((items) => [...items, { id: id("observe-full-review"), type: "observation", content: copy.fullReviewObservation }]);
+    window.location.href = `/artifacts/${artifact.id}?channel=telegram-demo`;
   }
 
   async function approveRevision() {
     if (!workspace || !artifact) return;
     const action = findApprovalAction(artifact);
     const block = findBlock(artifact, "summary");
-    const event = await apiFetch<UIInteractionEvent>("/api/interactions", {
-      method: "POST",
-      body: JSON.stringify({
-        workspace_id: workspace.id,
-        project_id: project?.id || null,
-        artifact_id: artifact.id,
-        block_id: block?.id || null,
-        action_id: action?.id || "approve_revision",
-        run_id: artifact.run_id,
-        event_type: "channel.telegram_demo.approve_revision",
-        payload: { channel: "telegram-demo", confirmation_id: action?.confirmation_id || null }
-      })
+    const primaryRisk = primaryRiskForArtifact(artifact);
+    const event = await persistInteraction("channel.telegram_demo.approve_revision", {
+      confirmation_id: action?.confirmation_id || null,
+      block_id: block?.id || null,
+      primary_risk_id: String(primaryRisk?.id || "risk_liability_indemnity_conflict"),
+      clauses: String(primaryRisk?.clause || "8.1 / 8.2")
     });
     if (action?.confirmation_id) {
       const updated = await apiFetch<Confirmation>(`/api/confirmations/${action.confirmation_id}/approve`, {
         method: "POST",
-        body: JSON.stringify({ decision: { source: "telegram_like_web_demo" } })
+        body: JSON.stringify({ decision: { source: "telegram_in_chat_demo" } })
       });
       setConfirmations((items) => items.map((item) => (item.id === updated.id ? updated : item)).filter((item) => item.status === "pending"));
     }
@@ -413,34 +416,24 @@ export function TelegramDemoPage() {
     setStage("Revision Draft");
     setLiveEvents((items) =>
       advanceLiveEvent(
-        advanceLiveEvent(items, "artifact.action.clicked", copy.liveEvents.approvalClicked),
+        advanceLiveEvent(items, "artifact.action.clicked", copy.live.approvalClicked),
         "confirmation.approved",
-        copy.liveEvents.confirmationApproved
+        copy.live.confirmationApproved
       )
     );
-    setMessages((items) => [
+    setTurns((items) => [
       ...items,
-      { id: `user-approved-${Date.now()}`, role: "user", text: copy.userApproved },
-      { id: `bot-approved-${Date.now()}`, role: "bot", text: copy.approved },
-      { id: `bot-memory-ready-${Date.now()}`, role: "bot", text: copy.memoryReady }
+      { id: id("observe-approve"), type: "observation", content: copy.approvedObservation },
+      { id: id("bot-approved"), type: "bot_message", content: copy.approvedReply },
+      { id: id("surface-revision"), type: "mini_surface", surface: "revision_draft" }
     ]);
+    setComposer(copy.followupSuggestion);
   }
 
   async function rememberPreference() {
     if (!workspace || !artifact) return;
     const block = findBlock(artifact, "memory_candidate");
-    const event = await apiFetch<UIInteractionEvent>("/api/interactions", {
-      method: "POST",
-      body: JSON.stringify({
-        workspace_id: workspace.id,
-        project_id: project?.id || null,
-        artifact_id: artifact.id,
-        block_id: block?.id || null,
-        run_id: artifact.run_id,
-        event_type: "channel.telegram_demo.remember_preference",
-        payload: { channel: "telegram-demo" }
-      })
-    });
+    const event = await persistInteraction("channel.telegram_demo.remember_preference", { block_id: block?.id || null });
     setInteractions((items) => [event, ...items]);
     if (block) {
       const memory = await apiFetch<Memory>("/api/memories", {
@@ -449,10 +442,10 @@ export function TelegramDemoPage() {
           workspace_id: workspace.id,
           project_id: project?.id || null,
           source_run_id: artifact.run_id,
-          source_type: "telegram_like_demo",
+          source_type: "telegram_in_chat_demo",
           source_id: artifact.id,
           type: String(block.data.memory_type || "preference"),
-          content: String(block.data.content || copy.remembered),
+          content: String(block.data.content || copy.rememberedReply),
           confidence: Number(block.data.confidence || 0.75),
           status: "confirmed",
           is_confirmed: true,
@@ -462,381 +455,319 @@ export function TelegramDemoPage() {
       setMemories((items) => [memory, ...items]);
     }
     setStage("Memory");
-    setLiveEvents((items) => advanceLiveEvent(items, "memory.candidate.created", copy.liveEvents.memoryPersisted));
-    setMessages((items) => [
+    setLiveEvents((items) => advanceLiveEvent(items, "memory.candidate.created", copy.live.memoryPersisted));
+    setTurns((items) => [
       ...items,
-      { id: `user-remember-${Date.now()}`, role: "user", text: copy.userRemember },
-      { id: `bot-memory-${Date.now()}`, role: "bot", text: copy.remembered }
+      { id: id("observe-memory"), type: "observation", content: copy.rememberedObservation },
+      { id: id("bot-memory"), type: "bot_message", content: copy.rememberedReply }
     ]);
   }
 
+  async function skipMemory() {
+    if (!artifact) return;
+    const event = await persistInteraction("channel.telegram_demo.skip_memory", {});
+    setInteractions((items) => [event, ...items]);
+    setTurns((items) => [...items, { id: id("observe-skip-memory"), type: "observation", content: copy.notNowObservation }]);
+  }
+
+  async function persistInteraction(eventType: string, payload: Record<string, unknown>) {
+    if (!workspace || !artifact) throw new Error("Missing artifact");
+    return apiFetch<UIInteractionEvent>("/api/interactions", {
+      method: "POST",
+      body: JSON.stringify({
+        workspace_id: workspace.id,
+        project_id: project?.id || null,
+        artifact_id: artifact.id,
+        run_id: artifact.run_id,
+        event_type: eventType,
+        payload: { channel: "telegram-demo", ...payload }
+      })
+    });
+  }
+
   const modeLabel = capabilities?.llm_enabled ? copy.runtimeLlm(capabilities.llm_provider, capabilities.default_model) : copy.runtimeDeterministic;
-  const activeBlocks = useMemo(() => selectBlocksForStage(artifact, stage), [artifact, stage]);
+  const diagnostics = modelDiagnostics(capabilities, trace);
 
   return (
-    <main className="telegram-demo-page">
-      <header className="telegram-demo-header">
-        <div>
-          <span className="eyebrow">{copy.headerEyebrow}</span>
-          <h1>{copy.headline}</h1>
-          <p>{copy.subhead}</p>
-        </div>
-        <nav>
-          <button className="language-toggle" onClick={() => switchLocale(locale === "en" ? "zh" : "en")}><Languages size={14} /> {copy.otherLocaleLabel}</button>
-          <a href="/workspace?mode=developer">{copy.developerConsole}</a>
-          <a href="https://github.com/adam2go/tilo-framework" target="_blank" rel="noreferrer">{copy.github}</a>
-        </nav>
-      </header>
+    <main className="telegram-chat-page">
+      <section className="telegram-chat-shell">
+        <header className="telegram-chat-topbar">
+          <div className="telegram-avatar"><Bot size={18} /></div>
+          <div>
+            <span className="eyebrow">{copy.title}</span>
+            <h1>{copy.botName}</h1>
+            <p>{copy.subtitle}</p>
+          </div>
+          <div className="telegram-chat-actions">
+            <span className="stage-badge">{copy.stagePrefix}: {stageLabel(stage, copy)}</span>
+            <span className={capabilities?.llm_enabled ? "runtime-badge llm" : "runtime-badge"}>{modeLabel}</span>
+            <button className="language-toggle" onClick={() => switchLocale(locale === "en" ? "zh" : "en")}><Languages size={14} /> {copy.otherLocaleLabel}</button>
+            <button className="language-toggle" onClick={() => setInspectorOpen(true)}><Code2 size={14} /> {copy.inspector}</button>
+          </div>
+        </header>
 
-      <section className="telegram-demo-grid">
-        <ChatSimulator
-          artifact={artifact}
-          busy={busy}
-          composer={composer}
-          copy={copy}
-          messages={messages}
-          onApprove={approveRevision}
-          onChangeComposer={setComposer}
-          onOpenSurface={openSurface}
-          onRemember={rememberPreference}
-          onReplay={() => void replayDemo()}
-          onRun={() => void runDemo(composer || copy.demoGoal)}
-        />
-        <RichSurfacePreview
-          activeBlocks={activeBlocks}
-          artifact={artifact}
-          busy={busy}
-          copy={copy}
-          error={error}
-          modeLabel={modeLabel}
-          onApprove={approveRevision}
-          onRemember={rememberPreference}
-          onReplay={() => void replayDemo()}
-          stage={stage}
-        />
-        <DeveloperInspector
+        <div className="telegram-chat-thread">
+          {turns.map((turn) => (
+            <ChatTurnItem
+              artifact={artifact}
+              copy={copy}
+              key={turn.id}
+              onApprove={approveRevision}
+              onEdit={requestEditDirection}
+              onFullReview={openFullReview}
+              onMemory={rememberPreference}
+              onSkipMemory={skipMemory}
+              turn={turn}
+            />
+          ))}
+        </div>
+
+        <footer className="telegram-chat-composer">
+          {!artifact ? (
+            <div className="contract-input-toggle">
+              {(["sample", "paste"] as const).map((mode) => (
+                <button className={inputMode === mode ? "active" : ""} key={mode} onClick={() => {
+                  setInputMode(mode);
+                  setComposer(mode === "sample" ? copy.demoGoal : "");
+                }} type="button">
+                  {mode === "sample" ? copy.sampleMode : copy.pasteMode}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button className="secondary-action" onClick={() => void runInitialReview(buildDemoMessage(copy, "sample", copy.demoGoal), copy.demoGoal, "sample")} disabled={busy}>{copy.runSample}</button>
+          <button className="secondary-action" onClick={resetDemo} disabled={busy}><RotateCcw size={14} /> {copy.reset}</button>
+          {inputMode === "paste" && !artifact ? (
+            <textarea placeholder={copy.pastePlaceholder} value={composer} onChange={(event) => setComposer(event.target.value)} />
+          ) : (
+            <input value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void submitMessage();
+              }
+            }} />
+          )}
+          <button className="primary-button" onClick={() => void submitMessage()} disabled={busy}><Send size={16} /></button>
+        </footer>
+      </section>
+
+      {inspectorOpen ? (
+        <DeveloperInspectorDrawer
           capabilities={capabilities}
           confirmations={confirmations}
           copy={copy}
+          diagnostics={diagnostics}
           interactions={interactions}
           liveEvents={liveEvents}
           memories={memories}
           modeLabel={modeLabel}
+          onClose={() => setInspectorOpen(false)}
           trace={trace}
         />
-      </section>
+      ) : null}
     </main>
   );
 }
 
-function ChatSimulator({
+function ChatTurnItem({
   artifact,
-  busy,
-  composer,
   copy,
-  messages,
   onApprove,
-  onChangeComposer,
-  onOpenSurface,
-  onRemember,
-  onReplay,
-  onRun
+  onEdit,
+  onFullReview,
+  onMemory,
+  onSkipMemory,
+  turn
 }: {
   artifact: Artifact | null;
-  busy: boolean;
-  composer: string;
   copy: DemoCopy;
-  messages: ChatMessage[];
   onApprove: () => Promise<void>;
-  onChangeComposer: (value: string) => void;
-  onOpenSurface: () => Promise<void>;
-  onRemember: () => Promise<void>;
-  onReplay: () => void;
-  onRun: () => void;
+  onEdit: () => Promise<void>;
+  onFullReview: () => Promise<void>;
+  onMemory: () => Promise<void>;
+  onSkipMemory: () => Promise<void>;
+  turn: ChatTurn;
 }) {
+  if (turn.type === "mini_surface") {
+    if (!artifact) return null;
+    if (turn.surface === "contract_review") return <ContractReviewMiniSurface artifact={artifact} copy={copy} onApprove={onApprove} onEdit={onEdit} onFullReview={onFullReview} />;
+    if (turn.surface === "revision_draft") return <RevisionDraftMiniSurface artifact={artifact} copy={copy} onFullReview={onFullReview} />;
+    return <MemoryCandidateMiniSurface artifact={artifact} copy={copy} onMemory={onMemory} onSkip={onSkipMemory} />;
+  }
+  if (turn.type === "attachment") {
+    return (
+      <div className="chat-turn attachment">
+        <FileText size={18} />
+        <div>
+          <strong>{turn.fileName}</strong>
+          <span>{turn.detail}</span>
+        </div>
+      </div>
+    );
+  }
   return (
-    <aside className="telegram-phone">
+    <div className={`chat-turn ${turn.type}`}>
+      <span>{turn.content}</span>
+      {turn.status ? <span className="typing-dots"><i /> <i /> <i /></span> : null}
+    </div>
+  );
+}
+
+function ContractReviewMiniSurface({
+  artifact,
+  copy,
+  onApprove,
+  onEdit,
+  onFullReview
+}: {
+  artifact: Artifact;
+  copy: DemoCopy;
+  onApprove: () => Promise<void>;
+  onEdit: () => Promise<void>;
+  onFullReview: () => Promise<void>;
+}) {
+  const summary = findBlock(artifact, "risk_summary");
+  const activeRisk = primaryRiskForArtifact(artifact);
+  return (
+    <article className="mini-surface-card contract-review-mini">
       <header>
-        <div className="telegram-avatar"><Bot size={18} /></div>
-        <div>
-          <strong>{copy.botName}</strong>
-          <span>{busy ? copy.renderingWorkflow : copy.online}</span>
-        </div>
+        <span className="eyebrow">{copy.contractReview}</span>
+        <h2>{artifact.title}</h2>
       </header>
-      <div className="telegram-thread">
-        {messages.map((message) => (
-          <div className={`telegram-bubble ${message.role} ${message.status || ""}`} key={message.id}>
-            {message.text}
-            {message.status === "typing" || message.status === "rendering" ? <span className="typing-dots"><i /> <i /> <i /></span> : null}
-          </div>
-        ))}
-        <div className="telegram-inline-actions">
-          <button onClick={onRun} disabled={busy}><Play size={14} /> {copy.runDemo}</button>
-          <button onClick={onReplay} disabled={busy}><RotateCcw size={14} /> {copy.replayDemo}</button>
-          <button onClick={() => void onOpenSurface()} disabled={!artifact}><ArrowUpRight size={14} /> {copy.openSurface}</button>
-          <button onClick={() => void onApprove()} disabled={!artifact}><Check size={14} /> {copy.approveRevision}</button>
-          <button onClick={() => void onRemember()} disabled={!artifact}><Database size={14} /> {copy.remember}</button>
-        </div>
-      </div>
-      {artifact ? <a className="telegram-artifact-link" href={`/artifacts/${artifact.id}?channel=telegram-demo`}>{copy.openArtifactPage}</a> : null}
-      <footer className="telegram-composer">
-        <input value={composer} onChange={(event) => onChangeComposer(event.target.value)} />
-        <button onClick={onRun} disabled={busy}><Send size={16} /></button>
-      </footer>
-    </aside>
-  );
-}
-
-function RichSurfacePreview({
-  activeBlocks,
-  artifact,
-  busy,
-  copy,
-  error,
-  modeLabel,
-  onApprove,
-  onRemember,
-  onReplay,
-  stage
-}: {
-  activeBlocks: ArtifactBlock[];
-  artifact: Artifact | null;
-  busy: boolean;
-  copy: DemoCopy;
-  error: string | null;
-  modeLabel: string;
-  onApprove: () => Promise<void>;
-  onRemember: () => Promise<void>;
-  onReplay: () => void;
-  stage: DemoStage;
-}) {
-  return (
-    <section className="telegram-rich-surface">
-      <div className="surface-topline">
-        <div>
-          <span className="eyebrow">{copy.surfaceEyebrow}</span>
-          <h2>{artifact?.title || copy.surfaceTitle}</h2>
-        </div>
-        <span className={modeLabel.startsWith("LLM") ? "runtime-badge llm" : "runtime-badge"}>{modeLabel}</span>
-      </div>
-      <p className="surface-explainer">
-        {copy.modeExplanation}
-      </p>
-      <div className="roam-mini-strip">
-        {copy.roamPhases.map((item) => <span className={roamPhaseForStage(stage, item) ? "active" : ""} key={item}>{item}</span>)}
-      </div>
-      <div className="showcase-stage-rail">
-        {copy.stageRail.map((item, index) => (
-          <span className={index <= stageIndex(stage, busy) ? "active" : ""} key={item}>{item}</span>
-        ))}
-      </div>
-      {busy ? (
-        <div className="surface-loading-hero">
-          <div>
-            <MessageCircle size={26} />
-          </div>
-          <span className="eyebrow">{copy.loadingEyebrow}</span>
-          <strong>{copy.loadingTitle}</strong>
-          <p>{copy.loadingBody}</p>
+      {summary ? (
+        <div className="mini-risk-metrics">
+          <div><strong>{String(summary.data.high_count || 0)}</strong><span>{copy.high}</span></div>
+          <div><strong>{String(summary.data.medium_count || 0)}</strong><span>{copy.medium}</span></div>
+          <div><strong>{String(summary.data.low_count || 0)}</strong><span>{copy.low}</span></div>
         </div>
       ) : null}
-      {!busy && !artifact ? (
-        <InitialSurfacePreview copy={copy} />
-      ) : null}
-      {error ? <div className="error-box">{error}</div> : null}
-      {artifact ? (
-        <div className="telegram-surface-blocks">
-          <div className="stage-context">
-            <span>{copy.stageTitle[stage]}</span>
-            <p>{stageCopy(stage, copy)}</p>
-          </div>
-          <FocusedContractSurface artifact={artifact} blocks={activeBlocks} copy={copy} stage={stage} />
-          <div className="surface-primary-actions">
-            <button className="primary-button" onClick={() => void onApprove()} disabled={stage === "Revision Draft" || stage === "Memory"}>{copy.primaryApprove}</button>
-            <button className="secondary-action" onClick={() => void onRemember()}>{copy.rememberPreference}</button>
-            <button className="secondary-action" onClick={onReplay}>{copy.replayDemo}</button>
-          </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function InitialSurfacePreview({ copy }: { copy: DemoCopy }) {
-  const steps = [
-    { icon: <MessageCircle size={16} />, ...copy.previewSteps[0] },
-    { icon: <FileText size={16} />, ...copy.previewSteps[1] },
-    { icon: <ShieldCheck size={16} />, ...copy.previewSteps[2] },
-    { icon: <GitBranch size={16} />, ...copy.previewSteps[3] },
-    { icon: <Database size={16} />, ...copy.previewSteps[4] }
-  ];
-  return (
-    <div className="telegram-preview-surface">
-      <div className="preview-hero-card">
-        <span className="eyebrow">{copy.previewEyebrow}</span>
-        <h3>{copy.previewTitle}</h3>
-        <p>{copy.previewBody}</p>
-      </div>
-      <div className="preview-flow-grid">
-        {steps.map((step, index) => (
-          <article key={step.title}>
-            <div>{step.icon}</div>
-            <span>{index + 1}</span>
-            <strong>{step.title}</strong>
-            <p>{step.detail}</p>
-          </article>
-        ))}
-      </div>
-      <div className="preview-contract-card">
-        <div>
-          <strong>{copy.previewCardTitle}</strong>
-          <span>{copy.previewCardBody}</span>
-        </div>
-        <div className="preview-risk-node">
-          <b>{copy.previewRisk}</b>
-          <em>{copy.highRisk}</em>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FocusedContractSurface({ artifact, blocks, copy, stage }: { artifact: Artifact; blocks: ArtifactBlock[]; copy: DemoCopy; stage: DemoStage }) {
-  const riskSummaryBlock = blocks.find((block) => block.type === "risk_summary");
-  const approvalBlock = blocks.find((block) => block.type === "approval_card");
-  const riskBlock = blocks.find((block) => block.type === "risk_review_panel");
-  const revisionBlock = blocks.find((block) => block.type === "editable_document_preview");
-  const memoryBlock = blocks.find((block) => block.type === "memory_candidate_card");
-  const risks = ((riskBlock?.data.risks as Array<Record<string, unknown>>) || []);
-  const activeRisk = risks.find((risk) => String(risk.risk_level) === "high") || risks[0];
-  const secondaryRisks = risks.filter((risk) => risk !== activeRisk).slice(0, 4);
-
-  if (stage === "Revision Draft" && revisionBlock) {
-    return <div className="focused-single-block">{renderInteractionComponent(artifact, revisionBlock)}</div>;
-  }
-  if (stage === "Memory" && memoryBlock) {
-    return <div className="focused-single-block">{renderInteractionComponent(artifact, memoryBlock)}</div>;
-  }
-
-  return (
-    <div className="focused-contract-surface">
-      {riskSummaryBlock ? (
-        <div className="compact-risk-summary">
-          <div>
-            <strong>{String(riskSummaryBlock.data.high_count || 0)}</strong>
-            <span>{copy.summaryHigh}</span>
-          </div>
-          <div>
-            <strong>{String(riskSummaryBlock.data.medium_count || 0)}</strong>
-            <span>{copy.summaryMedium}</span>
-          </div>
-          <div>
-            <strong>{String(riskSummaryBlock.data.low_count || 0)}</strong>
-            <span>{copy.summaryLow}</span>
-          </div>
-          <p>{String(riskSummaryBlock.data.summary || "")}</p>
-        </div>
-      ) : null}
-
       {activeRisk ? (
-        <article className="active-risk-node">
-          <div className="active-risk-heading">
-            <div>
-              <span className="eyebrow">{copy.activeRiskNode}</span>
-              <h3>{String(activeRisk.clause || "Contract risk")}</h3>
-            </div>
-            <em>{String(activeRisk.risk_level || "medium")}</em>
-          </div>
+        <section className="mini-active-risk">
+          <strong>{copy.activeRisk}: {String(activeRisk.clause || "")}</strong>
           <p>{String(activeRisk.issue || "")}</p>
-          <div className="revision-callout">
-            <strong>{copy.recommendedRevision}</strong>
-            <span>{String(activeRisk.suggested_revision || "")}</span>
-          </div>
+          <b>{copy.recommendedRevision}</b>
+          <p>{String(activeRisk.suggested_revision || "")}</p>
           {activeRisk.evidence ? <small>{copy.evidence}: {String(activeRisk.evidence)}</small> : null}
-        </article>
+        </section>
       ) : null}
-
-      {secondaryRisks.length ? (
-        <div className="secondary-risk-strip">
-          {secondaryRisks.map((risk) => (
-            <div key={String(risk.id || risk.clause)}>
-              <strong>{String(risk.clause || "Risk")}</strong>
-              <span>{String(risk.risk_level || "medium")}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {approvalBlock ? <div className="focused-decision-card">{renderInteractionComponent(artifact, approvalBlock)}</div> : null}
-    </div>
+      <div className="mini-surface-actions">
+        <button className="primary-button" onClick={() => void onApprove()}><Check size={14} /> {copy.approveRevision}</button>
+        <button className="secondary-action" onClick={() => void onEdit()}>{copy.editDirection}</button>
+        <button className="secondary-action" onClick={() => void onFullReview()}><ArrowUpRight size={14} /> {copy.openFullReview}</button>
+      </div>
+    </article>
   );
 }
 
-function DeveloperInspector({
+function RevisionDraftMiniSurface({ artifact, copy, onFullReview }: { artifact: Artifact; copy: DemoCopy; onFullReview: () => Promise<void> }) {
+  const block = findBlock(artifact, "editable_revision");
+  const activeRisk = risksForArtifact(artifact).find((risk) => String(risk.risk_level) === "high");
+  return (
+    <article className="mini-surface-card revision-mini">
+      <header>
+        <span className="eyebrow">{copy.revisionDraft}</span>
+        <h2>{String(block?.data.heading || copy.revisionPreview)}</h2>
+      </header>
+      <div className="mini-before-after">
+        <div><span>{copy.before}</span><p>{String(activeRisk?.evidence || activeRisk?.issue || "")}</p></div>
+        <div><span>{copy.after}</span><p>{String(block?.data.content || activeRisk?.suggested_revision || "")}</p></div>
+      </div>
+      <div className="mini-surface-actions">
+        <button className="secondary-action">{copy.makeSofter}</button>
+        <button className="secondary-action">{copy.makeStricter}</button>
+        <button className="secondary-action">{copy.draftEmail}</button>
+        <button className="secondary-action" onClick={() => void onFullReview()}><ArrowUpRight size={14} /> {copy.openArtifact}</button>
+      </div>
+    </article>
+  );
+}
+
+function MemoryCandidateMiniSurface({ artifact, copy, onMemory, onSkip }: { artifact: Artifact; copy: DemoCopy; onMemory: () => Promise<void>; onSkip: () => Promise<void> }) {
+  const block = findBlock(artifact, "memory_candidate");
+  return (
+    <article className="mini-surface-card memory-mini">
+      <header>
+        <span className="eyebrow">{copy.memoryCandidate}</span>
+        <h2>{copy.memoryCandidate}</h2>
+      </header>
+      <p>{String(block?.data.content || copy.memoryPrompt)}</p>
+      <small>{copy.memoryWhy}</small>
+      <div className="mini-surface-actions">
+        <button className="primary-button" onClick={() => void onMemory()}><Database size={14} /> {copy.remember}</button>
+        <button className="secondary-action">{copy.editDirection}</button>
+        <button className="secondary-action" onClick={() => void onSkip()}>{copy.notNow}</button>
+      </div>
+    </article>
+  );
+}
+
+function DeveloperInspectorDrawer({
   capabilities,
   confirmations,
   copy,
+  diagnostics,
   interactions,
   liveEvents,
   memories,
   modeLabel,
+  onClose,
   trace
 }: {
   capabilities: RuntimeCapabilities | null;
   confirmations: Confirmation[];
   copy: DemoCopy;
+  diagnostics: ReturnType<typeof modelDiagnostics>;
   interactions: UIInteractionEvent[];
   liveEvents: LiveEvent[];
   memories: Memory[];
   modeLabel: string;
+  onClose: () => void;
   trace: TraceStep[];
 }) {
   return (
-    <aside className="telegram-dev-inspector">
-      <InspectorCard icon={<GitBranch size={16} />} title={copy.inspectorRendererDecision}>
-        {copy.rendererDecisionRows.map((row) => <span key={row}>{row}</span>)}
-      </InspectorCard>
-      <InspectorCard icon={<MessageCircle size={16} />} title={copy.inspectorLiveEvents}>
-        {liveEvents.map((event) => (
-          <span className={`live-event ${event.status || "pending"}`} key={event.id}>
-            {event.label}: {event.detail}
-          </span>
-        ))}
-      </InspectorCard>
-      <InspectorCard icon={<ShieldCheck size={16} />} title={copy.inspectorRuntimeMode}>
-        <strong>{modeLabel}</strong>
-        <span>{copy.runtimeProviderFamily}: {capabilities?.llm_provider_family || "openai_compatible"}</span>
-        <span>{copy.runtimeTelegramBot}: {capabilities?.telegram_enabled ? copy.configured : copy.notConfigured}</span>
-        <span>{copy.frontendSecretNote}</span>
-      </InspectorCard>
-      <details className="inspector-card inspector-collapsible">
-        <summary data-show-label={copy.show} data-hide-label={copy.hide}><Code2 size={16} /><strong>{copy.inspectorInteractionContract}</strong></summary>
-        <div>
-          <code>when: risk.detected</code>
-          <code>condition: risk_level == high</code>
-          <code>render: RiskReviewPanel</code>
-          <code>observe: approve_revision</code>
-          <code>act: generate_revised_clause</code>
-          <code>memorize: user_preference</code>
-        </div>
-      </details>
-      <details className="inspector-card inspector-collapsible">
-        <summary data-show-label={copy.show} data-hide-label={copy.hide}><RadioTower size={16} /><strong>{copy.inspectorChannelRouting}</strong></summary>
-        <div>
-          <span>ApprovalCard to Telegram buttons</span>
-          <span>RiskReviewPanel to Open rich surface</span>
-          <span>EditableDocument to Open artifact page</span>
-          <span>MemoryCandidate to Chat or surface</span>
-        </div>
-      </details>
-      <InspectorCard icon={<Database size={16} />} title={copy.inspectorDurableObservations}>
-        {interactions.slice(0, 5).map((event) => <span key={event.id}>{event.event_type}</span>)}
-        {!interactions.length ? <span>channel.message.received</span> : null}
-        <span>{copy.pendingConfirmations}: {confirmations.length}</span>
-        <span>{copy.memories}: {memories.length}</span>
-        <span>{copy.traceSteps}: {trace.length}</span>
-      </InspectorCard>
-    </aside>
+    <div className="inspector-overlay">
+      <aside className="inspector-drawer">
+        <header>
+          <div><span className="eyebrow">Developer</span><h2>{copy.inspector}</h2></div>
+          <button onClick={onClose}><X size={16} /></button>
+        </header>
+        <InspectorCard icon={<MessageCircle size={16} />} title={copy.liveEvents}>
+          {liveEvents.map((event) => <span className={`live-event ${event.status || "pending"}`} key={event.id}>{event.label}: {event.detail}</span>)}
+        </InspectorCard>
+        <InspectorCard icon={<ShieldCheck size={16} />} title={copy.runtimeMode}>
+          <strong>{modeLabel}</strong>
+          <span>{copy.provider}: {diagnostics.provider}</span>
+          <span>{copy.model}: {diagnostics.model}</span>
+          <span>{copy.mode}: {diagnostics.mode}</span>
+          <span>{copy.fallback}: {diagnostics.fallback ? copy.yes : copy.no}</span>
+          <span>{copy.noSecrets}</span>
+        </InspectorCard>
+        <InspectorCard icon={<FileText size={16} />} title={copy.rendererDecision}>
+          <span>{"ApprovalCard -> chat inline buttons"}</span>
+          <span>{"RiskReviewPanel -> mini summary + Open Full Review"}</span>
+          <span>{"EditableDocument -> revision preview + Open Artifact"}</span>
+          <span>{"MemoryCandidateCard -> inline memory card"}</span>
+        </InspectorCard>
+        <details className="inspector-card inspector-collapsible">
+          <summary data-show-label="show" data-hide-label="hide"><Code2 size={16} /><strong>{copy.interactionContract}</strong></summary>
+          <div>
+            <code>when: risk.detected</code>
+            <code>render: ContractReviewMiniSurface</code>
+            <code>observe: approve_revision</code>
+            <code>act: generate_revised_clause</code>
+            <code>memorize: user_preference</code>
+          </div>
+        </details>
+        <InspectorCard icon={<Database size={16} />} title={copy.durableObservations}>
+          {interactions.slice(0, 5).map((event) => <span key={event.id}>{event.event_type}</span>)}
+          {!interactions.length ? <span>channel.message.received</span> : null}
+          <span>{copy.confirmations}: {confirmations.length}</span>
+          <span>{copy.memories}: {memories.length}</span>
+          <span>{copy.traceSteps}: {trace.length}</span>
+          <span>Telegram live bot: {capabilities?.telegram_enabled ? "configured" : "not configured"}</span>
+        </InspectorCard>
+      </aside>
+    </div>
   );
 }
 
@@ -849,16 +780,6 @@ function InspectorCard({ children, icon, title }: { children: ReactNode; icon: R
   );
 }
 
-function selectBlocksForStage(artifact: Artifact | null, stage: DemoStage) {
-  if (!artifact) return [];
-  const blocks = artifact.schema_json.blocks;
-  const by = (idOrType: string) => blocks.find((block) => block.id === idOrType || block.type === idOrType);
-  if (stage === "Revision Draft") return [by("editable_revision")].filter(Boolean) as ArtifactBlock[];
-  if (stage === "Memory") return [by("memory_candidate")].filter(Boolean) as ArtifactBlock[];
-  if (stage === "Approval") return [by("risk_summary"), by("summary"), by("risk_review")].filter(Boolean) as ArtifactBlock[];
-  return [by("risk_summary"), by("risk_review"), by("summary")].filter(Boolean) as ArtifactBlock[];
-}
-
 function findBlock(artifact: Artifact, idOrType: string) {
   return artifact.schema_json.blocks.find((block) => block.id === idOrType || block.type === idOrType);
 }
@@ -867,42 +788,83 @@ function findApprovalAction(artifact: Artifact): ArtifactAction | undefined {
   return artifact.schema_json.actions.find((action) => action.confirmation_id) || findBlock(artifact, "summary")?.actions?.find((action) => action.confirmation_id);
 }
 
+function risksForArtifact(artifact: Artifact) {
+  return ((findBlock(artifact, "risk_review")?.data.risks as Array<Record<string, unknown>>) || []);
+}
+
+function primaryRiskForArtifact(artifact: Artifact) {
+  const risks = risksForArtifact(artifact);
+  return (
+    risks.find((risk) => {
+      const text = `${String(risk.id || "")} ${String(risk.clause || "")} ${String(risk.issue || "")}`.toLowerCase();
+      return (text.includes("8.1") && text.includes("8.2")) || (text.includes("liability") && text.includes("indemn")) || (text.includes("责任") && text.includes("赔偿"));
+    }) || risks.find((risk) => String(risk.risk_level) === "high") || risks[0]
+  );
+}
+
 function riskSummary(artifact: Artifact | null) {
   const block = artifact?.schema_json.blocks.find((item) => item.id === "risk_summary");
   return Number(block?.data.high_count || 3);
 }
 
-function stageCopy(stage: DemoStage, copy: DemoCopy) {
-  return copy.stageCopy[stage];
+function stageLabel(stage: DemoStage, copy: DemoCopy) {
+  if (stage === "Risk Review") return copy.stageRiskReview;
+  if (stage === "Revision Draft") return copy.stageRevisionDraft;
+  if (stage === "Memory") return copy.stageMemory;
+  return copy.stageIntent;
+}
+
+function buildDemoMessage(copy: DemoCopy, inputMode: InputMode, composer: string) {
+  if (inputMode === "sample") return `${copy.demoGoal}\n\nAttached contract file: ${SAMPLE_CONTRACT_FILE_NAME}\n\nContract text:\n${PROBLEMATIC_AI_SERVICE_AGREEMENT}`;
+  const pasted = composer.trim();
+  return pasted ? `${copy.demoGoal}\n\nContract text:\n${pasted}` : copy.demoGoal;
+}
+
+function userMessagePreview(copy: DemoCopy, inputMode: InputMode, composer: string) {
+  if (inputMode === "sample") return copy.demoGoal;
+  const pasted = composer.trim();
+  if (!pasted) return copy.demoGoal;
+  return copy.demoGoal;
+}
+
+function contractAttachmentTurn(copy: DemoCopy, inputMode: InputMode, content: string): ChatTurn {
+  if (inputMode === "sample") {
+    return {
+      id: id("attachment"),
+      type: "attachment",
+      fileName: SAMPLE_CONTRACT_FILE_NAME,
+      detail: copy.sampleAttachmentDetail,
+    };
+  }
+  const contractLength = Math.max(0, content.length - copy.demoGoal.length);
+  return {
+    id: id("attachment"),
+    type: "attachment",
+    fileName: copy.pastedAttachmentName,
+    detail: copy.pastedAttachmentDetail(contractLength),
+  };
 }
 
 function withLanguageInstruction(content: string, copy: DemoCopy) {
   return `${content.trim()}\n\n${copy.languageInstruction}`;
 }
 
-function stageIndex(stage: DemoStage, busy: boolean) {
-  if (busy) return 1;
-  const index: Record<DemoStage, number> = {
-    Intent: 0,
-    "Risk Review": 2,
-    Approval: 3,
-    "Revision Draft": 4,
-    Memory: 5
+function modelDiagnostics(capabilities: RuntimeCapabilities | null, trace: TraceStep[]) {
+  const llmStep = trace.find((step) => step.step_type === "llm_generation");
+  const output = llmStep?.output_json || {};
+  const status = String(output.status || "");
+  return {
+    provider: capabilities?.llm_provider || "openai",
+    model: String(output.model || capabilities?.default_model || "n/a"),
+    mode: capabilities?.llm_runtime_mode || "deterministic",
+    fallback: status === "fallback" || Boolean(output.fallback_reason)
   };
-  return index[stage];
-}
-
-function roamPhaseForStage(stage: DemoStage, phase: string) {
-  const active: Record<DemoStage, string[]> = {
-    Intent: ["Render"],
-    "Risk Review": ["Render", "Observe"],
-    Approval: ["Observe"],
-    "Revision Draft": ["Act"],
-    Memory: ["Memorize"]
-  };
-  return active[stage]?.includes(phase);
 }
 
 function advanceLiveEvent(items: LiveEvent[], eventId: string, detail: string): LiveEvent[] {
   return items.map((event) => event.id === eventId ? { ...event, detail, status: "done" as const } : event);
+}
+
+function id(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

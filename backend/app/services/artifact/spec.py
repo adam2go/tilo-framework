@@ -12,10 +12,198 @@ class ArtifactValidationError(ValueError):
 
 
 def _prefers_chinese(message: str) -> bool:
+    if any(token in message.lower() for token in ["return the contract review artifact in english", " in english", " english."]):
+        return False
     return any(token in message for token in ["中文", "简体", "合同", "条款", "审查", "风险"])
 
 
-def _default_contract_review_content(zh: bool, generation_mode: str) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+def _is_problematic_ai_service_contract(message: str) -> bool:
+    return "AI 客服系统定制开发与运维服务合同" in message or ("**8.1**" in message and "**8.2**" in message)
+
+
+def _fixture_contract_review_content(zh: bool, generation_mode: str) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    if zh:
+        return (
+            {
+                "high_count": 4,
+                "medium_count": 4,
+                "low_count": 0,
+                "confidence": "0.88",
+                "status": "review_ready",
+                "summary": "我已完成整份 AI 客服系统服务合同审查。大部分问题可以继续自动整理，但 8.1 与 8.2 的责任上限和赔偿例外存在明显冲突，需要先确认修订方向。",
+                "generation_mode": generation_mode,
+            },
+            [
+                {
+                    "id": "risk_liability_indemnity_conflict",
+                    "clause": "8.1 / 8.2",
+                    "risk_level": "high",
+                    "issue": "8.1 看似设置乙方责任上限，但 8.2 将数据泄露、知识产权争议、监管处罚、模型输出错误、用户投诉、业务损失、间接损失和第三方索赔等大量场景排除在上限之外，可能导致乙方实际承担接近无限责任。",
+                    "suggested_revision": "保留责任上限，将例外限定为数据泄露、知识产权侵权、故意或重大过失，并明确排除间接损失、商誉损失和预期利润损失；系统不可用或输出错误应采用服务信用或封顶违约金处理。",
+                    "evidence": "8.1 约定赔偿责任以甲方已实际支付款项为限；8.2 又列出大量不适用责任上限的例外。",
+                },
+                {
+                    "id": "risk_scope_creep",
+                    "clause": "1.2 / 1.4 / 12.2",
+                    "risk_level": "high",
+                    "issue": "甲方可随时调整需求且原则上不增加费用，主观不满意时乙方需持续优化，邮件和会议纪要也可能成为合同组成部分，需求边界过于开放。",
+                    "suggested_revision": "建立书面变更单机制，约定影响费用、工期和验收标准的变更需双方确认后执行。",
+                    "evidence": "1.2 要求乙方无条件配合需求变更且原则上不增加费用；1.4 要求优化至甲方认可。",
+                },
+                {
+                    "id": "risk_payment_imbalance",
+                    "clause": "3.2 / 3.3 / 3.4",
+                    "risk_level": "high",
+                    "issue": "90% 款项需上线稳定运行 180 日后支付，甲方延迟付款不构成违约且乙方不得暂停服务，现金流和履约风险显著偏高。",
+                    "suggested_revision": "改为里程碑付款，约定无争议款项付款期限、逾期利息和合理暂停权。",
+                    "evidence": "3.2 仅 10% 预付款；3.3 明确延迟付款不构成违约且乙方不得暂停服务。",
+                },
+                {
+                    "id": "risk_data_privacy",
+                    "clause": "4.1 / 4.2 / 4.3 / 4.4",
+                    "risk_level": "high",
+                    "issue": "合同涉及手机号、地址、购买记录等个人信息，但允许项目结束后继续用于训练，且无需单独签署数据处理协议或取得子处理方书面同意。",
+                    "suggested_revision": "补充个人信息处理协议，限定训练用途、留存期限、脱敏要求、子处理方审批和安全事件责任。",
+                    "evidence": "4.2 允许乙方项目结束后继续使用数据和日志进行内部模型训练；4.3 排除另行签署数据处理协议。",
+                },
+                {
+                    "id": "risk_acceptance_ambiguity",
+                    "clause": "2.2 / 2.4",
+                    "risk_level": "medium",
+                    "issue": "甲方 3 日内未提出书面异议反而视为交付不合格，且甲方资料延误仍要求乙方按原期限交付，验收机制不客观。",
+                    "suggested_revision": "约定明确验收标准、异议清单和视为验收通过机制，并将甲方依赖事项导致的延期顺延。",
+                    "evidence": "2.2 将沉默处理为不合格；2.4 将甲方未及时配合导致的延期风险转给乙方。",
+                },
+                {
+                    "id": "risk_ip_ownership",
+                    "clause": "5.1 / 5.2 / 5.3 / 5.4",
+                    "risk_level": "medium",
+                    "issue": "源代码、Prompt、部署脚本和技术文档交付义务与付款条件、背景 IP 和复用权之间存在冲突。",
+                    "suggested_revision": "区分定制交付物、背景 IP、开源组件、通用方法和客户使用许可，并将源代码交付与付款节点绑定。",
+                    "evidence": "5.2 要求无论是否付款均交付源代码和配置；5.4 又限制乙方复用相似方案。",
+                },
+                {
+                    "id": "risk_sla_unrealistic",
+                    "clause": "6.1 / 6.2 / 6.3 / 6.4",
+                    "risk_level": "medium",
+                    "issue": "99.99% 可用性、10 分钟响应、30 分钟彻底修复、24 个月免费支持和高额违约金组合过重。",
+                    "suggested_revision": "改为分级响应、合理排除项、服务信用机制和封顶违约金。",
+                    "evidence": "6.3 约定累计超过 1 小时即按合同总价 20% 支付违约金。",
+                },
+                {
+                    "id": "risk_termination_asymmetry",
+                    "clause": "9.1 / 9.2 / 9.3 / 9.4",
+                    "risk_level": "medium",
+                    "issue": "甲方可 3 日便利解除，乙方解除需提前 90 日并取得同意，解除后还需 180 日免费过渡，权利义务明显不对等。",
+                    "suggested_revision": "设置对等解除权、合理通知期、已完成工作结算和付费过渡服务。",
+                    "evidence": "9.1 与 9.2 的解除条件明显不对称；9.3 要求乙方继续 180 日免费过渡。",
+                },
+            ],
+            {
+                "heading": "8.1 / 8.2 保守修订草案",
+                "content": "乙方在本合同项下的累计赔偿责任以甲方在索赔发生前十二个月内已实际支付的合同款项为上限。前述责任上限不适用于因乙方故意或重大过失、侵犯第三方知识产权、违反保密义务或经依法认定的数据安全事件造成的直接损失。除法律另有强制规定或双方另有书面约定外，任何一方均不对间接损失、商誉损失、预期利润损失或惩罚性赔偿承担责任。",
+                "status": "draft",
+                "highlights": ["保留责任上限", "缩窄例外范围", "排除间接与预期利润损失"],
+            },
+            {
+                "content": "用户偏好保守但谈判友好的合同修订风格，尤其关注责任上限、赔偿例外和客户沟通语气。",
+                "memory_type": "preference",
+                "confidence": 0.82,
+            },
+        )
+    return (
+        {
+            "high_count": 4,
+            "medium_count": 4,
+            "low_count": 0,
+            "confidence": "0.88",
+            "status": "review_ready",
+            "summary": "I reviewed the full AI service agreement. Most findings can stay in the full artifact, but clauses 8.1 and 8.2 create a liability cap and indemnity exception conflict that needs direction before revision.",
+            "generation_mode": generation_mode,
+        },
+        [
+            {
+                "id": "risk_liability_indemnity_conflict",
+                "clause": "8.1 / 8.2",
+                "risk_level": "high",
+                "issue": "Clause 8.1 appears to cap vendor liability, but clause 8.2 excludes broad categories from the cap, including data leakage, IP disputes, regulatory penalties, model output errors, business loss, indirect loss, and third-party claims. The practical result may be near-unlimited liability.",
+                "suggested_revision": "Keep the liability cap, limit carve-outs to data breach, IP infringement, willful misconduct, and gross negligence, and exclude indirect loss, goodwill loss, and lost profits. Service outages or output errors should use service credits or capped liquidated damages.",
+                "evidence": "8.1 caps liability at amounts actually paid by Customer; 8.2 lists broad exceptions that do not apply to the cap.",
+            },
+            {
+                "id": "risk_scope_creep",
+                "clause": "1.2 / 1.4 / 12.2",
+                "risk_level": "high",
+                "issue": "Customer may change requirements at any time without additional fees, subjective satisfaction controls optimization, and emails or meeting notes can become contract terms.",
+                "suggested_revision": "Add a written change order process for scope, fees, schedule, and acceptance criteria.",
+                "evidence": "1.2 requires unconditional cooperation with changes; 1.4 requires optimization until Customer recognizes the result.",
+            },
+            {
+                "id": "risk_payment_imbalance",
+                "clause": "3.2 / 3.3 / 3.4",
+                "risk_level": "high",
+                "issue": "Only 10% is prepaid, 90% is delayed until 180 days of stable operation, delayed payment is not breach, and vendor cannot suspend service.",
+                "suggested_revision": "Use milestone payments, a clear due date for undisputed amounts, late-payment consequences, and a reasonable suspension right.",
+                "evidence": "3.2 requires 90% payment only after 180 days; 3.3 says delayed payment is not breach.",
+            },
+            {
+                "id": "risk_data_privacy",
+                "clause": "4.1 / 4.2 / 4.3 / 4.4",
+                "risk_level": "high",
+                "issue": "The contract covers personal information but allows post-project model training use without a separate data processing agreement or subprocessor consent.",
+                "suggested_revision": "Add a data processing agreement covering training limits, retention, de-identification, subprocessor approval, and security incident responsibility.",
+                "evidence": "4.2 allows continued use of customer data and logs for internal model training; 4.3 removes a separate data processing agreement.",
+            },
+            {
+                "id": "risk_acceptance_ambiguity",
+                "clause": "2.2 / 2.4",
+                "risk_level": "medium",
+                "issue": "Customer silence after three days means non-acceptance, and Customer delays do not extend the delivery timeline.",
+                "suggested_revision": "Add objective acceptance criteria, a defect list process, deemed acceptance, and schedule relief for customer dependencies.",
+                "evidence": "2.2 treats silence as failure; 2.4 keeps the original deadline even when Customer dependencies are delayed.",
+            },
+            {
+                "id": "risk_ip_ownership",
+                "clause": "5.1 / 5.2 / 5.3 / 5.4",
+                "risk_level": "medium",
+                "issue": "Source code and prompt delivery obligations conflict with payment conditions, background IP, and reuse rights.",
+                "suggested_revision": "Separate custom deliverables, background IP, open-source components, reusable methods, and customer licenses; tie source delivery to payment milestones.",
+                "evidence": "5.2 requires source and configuration delivery regardless of payment; 5.4 restricts vendor reuse of similar solutions.",
+            },
+            {
+                "id": "risk_sla_unrealistic",
+                "clause": "6.1 / 6.2 / 6.3 / 6.4",
+                "risk_level": "medium",
+                "issue": "99.99% uptime, 10-minute response, 30-minute complete fix, 24 months of free support, and heavy penalties are unrealistic as a package.",
+                "suggested_revision": "Use severity tiers, exclusions, service credits, and capped liquidated damages.",
+                "evidence": "6.3 applies a 20% contract-price penalty after one hour of cumulative issues.",
+            },
+            {
+                "id": "risk_termination_asymmetry",
+                "clause": "9.1 / 9.2 / 9.3 / 9.4",
+                "risk_level": "medium",
+                "issue": "Customer can terminate on three days' notice for convenience, while vendor needs 90 days and consent, then must provide 180 days of free transition services.",
+                "suggested_revision": "Create mutual termination rights, reasonable notice periods, payment for completed work, and paid transition services.",
+                "evidence": "9.1 and 9.2 are asymmetric; 9.3 requires 180 days of free transition support.",
+            },
+        ],
+        {
+            "heading": "Conservative revision draft for clauses 8.1 / 8.2",
+            "content": "Vendor's aggregate liability under this Agreement is capped at amounts actually paid by Customer in the twelve months before the claim. The cap does not apply to direct losses caused by Vendor's willful misconduct, gross negligence, IP infringement, confidentiality breach, or legally established data security incident. Except where mandatory law requires otherwise, neither party is liable for indirect loss, goodwill loss, lost profits, or punitive damages.",
+            "status": "draft",
+            "highlights": ["Keeps liability cap", "Narrows carve-outs", "Excludes indirect and lost-profit damages"],
+        },
+        {
+            "content": "User prefers conservative but negotiation-friendly contract revisions, especially for liability caps, indemnity carve-outs, and client-facing tone.",
+            "memory_type": "preference",
+            "confidence": 0.82,
+        },
+    )
+
+
+def _default_contract_review_content(zh: bool, generation_mode: str, fixture_contract: bool = False) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    if fixture_contract:
+        return _fixture_contract_review_content(zh, generation_mode)
     if zh:
         return (
             {
@@ -174,7 +362,7 @@ class ArtifactSpecBuilder:
         memory_contents = [memory.content for memory in memories]
         if artifact_type == "contract_review":
             zh = _prefers_chinese(task.input_message)
-            risk_summary_data, risks, revision_draft, memory_candidate = _default_contract_review_content(zh, generation_mode)
+            risk_summary_data, risks, revision_draft, memory_candidate = _default_contract_review_content(zh, generation_mode, _is_problematic_ai_service_contract(task.input_message))
             if contract_llm_data:
                 risk_summary_data.update(
                     {
@@ -301,7 +489,7 @@ class ArtifactSpecBuilder:
                         "payload": {
                             "risk_level": "high",
                             "operation": "propose_revision",
-                            "target": "risk_1",
+                            "target": risks[0]["id"] if risks else "risk_1",
                         },
                     }
                 ],

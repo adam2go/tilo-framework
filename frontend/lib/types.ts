@@ -128,6 +128,8 @@ export type TraceStep = {
   step_type: string;
   title: string;
   summary: string;
+  input_json?: Record<string, unknown> | null;
+  output_json?: Record<string, unknown> | null;
   status: string;
 };
 

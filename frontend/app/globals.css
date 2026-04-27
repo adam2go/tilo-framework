@@ -1307,6 +1307,363 @@ th {
   color: var(--danger);
 }
 
+.telegram-chat-page {
+  background:
+    radial-gradient(circle at 24% 0%, rgba(22, 138, 205, 0.16), transparent 32%),
+    radial-gradient(circle at 76% 8%, rgba(109, 93, 252, 0.12), transparent 30%),
+    linear-gradient(180deg, #f5f9ff 0%, #edf4fa 100%);
+  min-height: 100vh;
+  padding: 22px;
+}
+
+.telegram-chat-shell {
+  border: 1px solid rgba(25, 42, 72, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 28px 90px rgba(21, 32, 57, 0.1);
+  display: grid;
+  grid-template-rows: auto minmax(540px, 1fr) auto;
+  margin: 0 auto;
+  max-width: 980px;
+  min-height: calc(100vh - 44px);
+  overflow: hidden;
+}
+
+.telegram-chat-topbar {
+  align-items: center;
+  background: #168acd;
+  color: #fff;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.telegram-chat-topbar .eyebrow,
+.telegram-chat-topbar p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.telegram-chat-topbar h1 {
+  color: #fff;
+  font-size: 24px;
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 2px 0 3px;
+}
+
+.telegram-chat-topbar p {
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.telegram-chat-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: end;
+}
+
+.telegram-chat-actions .stage-badge,
+.telegram-chat-actions .runtime-badge,
+.telegram-chat-actions .language-toggle {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.telegram-chat-actions .stage-badge {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.telegram-chat-thread {
+  align-content: end;
+  background:
+    linear-gradient(180deg, rgba(232, 246, 255, 0.92), rgba(248, 251, 255, 0.96)),
+    #edf7ff;
+  display: grid;
+  gap: 11px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.chat-turn {
+  border-radius: 17px;
+  box-shadow: 0 8px 26px rgba(21, 32, 57, 0.05);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: min(78%, 620px);
+  padding: 11px 13px;
+}
+
+.chat-turn.bot_message {
+  background: #fff;
+  border-bottom-left-radius: 5px;
+  color: #1c2a39;
+  justify-self: start;
+}
+
+.chat-turn.user_message {
+  background: #d8f5c4;
+  border-bottom-right-radius: 5px;
+  color: #1b3320;
+  justify-self: end;
+}
+
+.chat-turn.observation {
+  border: 1px solid rgba(109, 93, 252, 0.2);
+  background: #f5f3ff;
+  color: #5141b8;
+  font-size: 12px;
+  font-weight: 800;
+  justify-self: center;
+  max-width: min(86%, 680px);
+}
+
+.chat-turn.system_event {
+  border: 1px solid rgba(22, 138, 205, 0.16);
+  background: rgba(255, 255, 255, 0.62);
+  color: #526070;
+  font-size: 12px;
+  font-weight: 800;
+  justify-self: center;
+  max-width: min(86%, 680px);
+  text-align: center;
+}
+
+.chat-turn.attachment {
+  align-items: center;
+  border: 1px solid rgba(22, 138, 205, 0.2);
+  background: #fff;
+  border-bottom-right-radius: 5px;
+  color: #1c2a39;
+  display: flex;
+  gap: 10px;
+  justify-self: end;
+  max-width: min(78%, 520px);
+}
+
+.chat-turn.attachment svg {
+  color: var(--accent-strong);
+  flex: 0 0 auto;
+}
+
+.chat-turn.attachment div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chat-turn.attachment strong,
+.chat-turn.attachment span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-turn.attachment span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mini-surface-card {
+  border: 1px solid rgba(25, 42, 72, 0.12);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 56px rgba(21, 32, 57, 0.1);
+  display: grid;
+  gap: 13px;
+  justify-self: start;
+  max-width: min(86%, 720px);
+  padding: 16px;
+}
+
+.mini-surface-card header h2 {
+  font-size: 22px;
+  letter-spacing: 0;
+  line-height: 1.12;
+  margin: 4px 0 0;
+}
+
+.contract-review-mini {
+  border-color: rgba(245, 158, 11, 0.28);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 36%),
+    #fff;
+}
+
+.revision-mini {
+  border-color: rgba(23, 111, 122, 0.2);
+  background:
+    radial-gradient(circle at top right, rgba(23, 111, 122, 0.1), transparent 36%),
+    #fff;
+}
+
+.memory-mini {
+  border-color: rgba(21, 164, 106, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(21, 164, 106, 0.1), transparent 36%),
+    #fff;
+}
+
+.mini-risk-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mini-risk-metrics div {
+  border: 1px solid #edf0f5;
+  border-radius: 12px;
+  background: #fbfcff;
+  display: grid;
+  padding: 9px;
+  text-align: center;
+}
+
+.mini-risk-metrics strong {
+  font-size: 22px;
+}
+
+.mini-risk-metrics span,
+.mini-surface-card small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mini-active-risk {
+  border: 1px solid #ffe0b8;
+  border-radius: 14px;
+  background: #fff9ef;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.mini-active-risk p,
+.mini-before-after p,
+.memory-mini p {
+  color: #394255;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.mini-before-after {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mini-before-after div {
+  border: 1px solid #e4eaf3;
+  border-radius: 12px;
+  background: #fbfcff;
+  display: grid;
+  gap: 6px;
+  padding: 11px;
+}
+
+.mini-before-after span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mini-surface-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-surface-actions a {
+  text-decoration: none;
+}
+
+.telegram-chat-composer {
+  align-items: stretch;
+  border-top: 1px solid rgba(25, 42, 72, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  display: grid;
+  grid-template-columns: auto auto minmax(180px, 1fr) auto;
+  gap: 8px;
+  padding: 12px;
+  position: sticky;
+  bottom: 0;
+}
+
+.telegram-chat-composer .contract-input-toggle {
+  grid-column: 1 / -1;
+}
+
+.telegram-chat-composer input,
+.telegram-chat-composer textarea {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-family: inherit;
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.telegram-chat-composer textarea {
+  grid-column: 1 / -2;
+  line-height: 1.35;
+  min-height: 82px;
+  resize: vertical;
+}
+
+.inspector-overlay {
+  background: rgba(15, 23, 42, 0.34);
+  inset: 0;
+  position: fixed;
+  z-index: 40;
+}
+
+.inspector-drawer {
+  background: rgba(255, 255, 255, 0.96);
+  border-left: 1px solid rgba(25, 42, 72, 0.12);
+  box-shadow: -28px 0 80px rgba(21, 32, 57, 0.18);
+  display: grid;
+  gap: 12px;
+  max-width: 390px;
+  min-height: 100vh;
+  overflow: auto;
+  padding: 16px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: min(92vw, 390px);
+}
+
+.inspector-drawer > header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inspector-drawer > header h2 {
+  margin: 3px 0 0;
+}
+
+.inspector-drawer > header button {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  display: grid;
+  height: 34px;
+  place-items: center;
+  width: 34px;
+}
+
 .telegram-demo-page {
   background:
     radial-gradient(circle at top left, rgba(47, 91, 255, 0.08), transparent 34%),
@@ -1479,18 +1836,48 @@ th {
 }
 
 .telegram-composer {
-  align-items: center;
+  align-items: stretch;
   display: grid;
   grid-template-columns: 1fr 42px;
   gap: 8px;
   padding: 12px;
 }
 
-.telegram-composer input {
-  border: 1px solid var(--line);
+.contract-input-toggle {
+  border: 1px solid rgba(22, 138, 205, 0.18);
   border-radius: 999px;
-  min-height: 40px;
-  padding: 0 14px;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.contract-input-toggle button {
+  border: 0;
+  border-radius: 0;
+  color: #5b7187;
+  min-height: 34px;
+}
+
+.contract-input-toggle button.active {
+  background: #168acd;
+  color: #fff;
+}
+
+.telegram-composer input,
+.telegram-composer textarea {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-family: inherit;
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
+.telegram-composer textarea {
+  line-height: 1.35;
+  max-height: 118px;
+  min-height: 76px;
+  resize: vertical;
 }
 
 .telegram-rich-surface {
@@ -1783,6 +2170,30 @@ th {
 }
 
 .stage-context p {
+  margin: 0;
+}
+
+.contract-snippet-card {
+  align-items: start;
+  border: 1px solid rgba(109, 93, 252, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 160px minmax(0, 1fr);
+  padding: 12px;
+}
+
+.contract-snippet-card strong {
+  display: block;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.contract-snippet-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
   margin: 0;
 }
 
@@ -2134,7 +2545,8 @@ th {
 
   .preview-flow-grid,
   .compact-risk-summary,
-  .secondary-risk-strip {
+  .secondary-risk-strip,
+  .contract-snippet-card {
     grid-template-columns: 1fr;
   }
 

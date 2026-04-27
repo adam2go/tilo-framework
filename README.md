@@ -48,6 +48,33 @@ Tilo is not a chatbot wrapper. It is an **AI-native SaaS interaction framework**
 
 ---
 
+## Public Demo
+
+Run the Telegram-like ROAM showcase:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:3000/demo/telegram
+```
+
+The demo supports deterministic local mode and backend-only LLM mode through OpenAI-compatible configuration. API keys stay in `.env` on the backend and are never exposed to the frontend.
+
+Real README screenshots/GIFs should be captured from the running demo and placed here when available:
+
+```text
+docs/assets/telegram-like-llm-demo.png
+docs/assets/telegram-like-llm-demo.gif
+```
+
+Do not commit fake screenshots or generated placeholders.
+
+---
+
 ## The ROAM Loop
 
 Traditional agent loops such as ReAct usually treat observation as tool output or environmental feedback.
