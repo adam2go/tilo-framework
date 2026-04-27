@@ -193,6 +193,36 @@ def test_message_creates_core_loop_records() -> None:
     assert promoted_skill["name"] == approved_candidate["name"]
 
 
+def test_chinese_contract_review_uses_chinese_artifact_labels() -> None:
+    with TestClient(app) as client:
+        bootstrap = client.get("/api/bootstrap").json()
+        workspace = bootstrap["workspace"]
+        project = bootstrap["projects"][0]
+        agent = bootstrap["agents"][0]
+
+        message_response = client.post(
+            "/api/messages",
+            json={
+                "workspace_id": workspace["id"],
+                "project_id": project["id"],
+                "agent_id": agent["id"],
+                "content": "请用简体中文审查这份合同中的付款、责任限制和终止条款风险。",
+                "attachments": [],
+            },
+        )
+        message = message_response.json()
+        artifacts = client.get(
+            "/api/artifacts",
+            params={"workspace_id": workspace["id"], "task_id": message["task_id"]},
+        ).json()
+
+    assert message_response.status_code == 200
+    assert artifacts[0]["title"] == "合同审查"
+    assert artifacts[0]["schema_json"]["title"] == "合同审查"
+    assert artifacts[0]["schema_json"]["blocks"][0]["title"] == "风险摘要"
+    assert artifacts[0]["schema_json"]["actions"][0]["label"] == "批准责任条款修订"
+
+
 def test_ui_interaction_event_api_persists_sanitized_observations() -> None:
     with TestClient(app) as client:
         bootstrap = client.get("/api/bootstrap").json()

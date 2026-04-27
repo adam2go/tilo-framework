@@ -1309,7 +1309,8 @@ th {
 
 .telegram-demo-page {
   background:
-    radial-gradient(circle at top left, rgba(47, 91, 255, 0.09), transparent 34%),
+    radial-gradient(circle at top left, rgba(47, 91, 255, 0.08), transparent 34%),
+    radial-gradient(circle at 52% 16%, rgba(109, 93, 252, 0.1), transparent 30%),
     linear-gradient(180deg, #f7f9ff 0%, #f6f7f9 42%, #eef2f7 100%);
   min-height: 100vh;
   padding: 22px;
@@ -1331,24 +1332,42 @@ th {
   max-width: 780px;
 }
 
+.telegram-demo-header p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+  max-width: 760px;
+}
+
 .telegram-demo-header nav {
   display: flex;
   gap: 10px;
 }
 
-.telegram-demo-header a {
+.telegram-demo-header a,
+.language-toggle {
+  align-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--text);
+  display: inline-flex;
   font-size: 13px;
   font-weight: 700;
+  gap: 6px;
   padding: 9px 11px;
   text-decoration: none;
 }
 
+.language-toggle {
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .telegram-demo-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(270px, 330px) minmax(560px, 1fr) minmax(240px, 300px);
   gap: 16px;
   margin: 0 auto;
   max-width: 1480px;
@@ -1475,6 +1494,11 @@ th {
 }
 
 .telegram-rich-surface {
+  background:
+    radial-gradient(circle at 78% 4%, rgba(109, 93, 252, 0.15), transparent 30%),
+    rgba(255, 255, 255, 0.94);
+  border-color: rgba(82, 71, 255, 0.18);
+  box-shadow: 0 30px 90px rgba(32, 37, 86, 0.13);
   display: grid;
   gap: 16px;
   min-height: 740px;
@@ -1489,8 +1513,21 @@ th {
 }
 
 .surface-topline h2 {
-  font-size: 30px;
+  font-size: 34px;
+  letter-spacing: 0;
+  line-height: 1.04;
   margin: 4px 0 0;
+}
+
+.surface-explainer {
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 12px;
+  background: rgba(247, 248, 255, 0.78);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .runtime-badge {
@@ -1525,6 +1562,39 @@ th {
   text-align: center;
 }
 
+.roam-mini-strip span.active {
+  background: #f1efff;
+  border-color: #cfc8ff;
+  color: #5141b8;
+}
+
+.showcase-stage-rail {
+  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.showcase-stage-rail span {
+  border: 1px solid #e1e6ef;
+  border-radius: 999px;
+  background: #fff;
+  color: #7a8497;
+  font-size: 11px;
+  font-weight: 900;
+  overflow: hidden;
+  padding: 8px 7px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.showcase-stage-rail span.active {
+  background: #151929;
+  border-color: #151929;
+  color: #fff;
+}
+
 .telegram-empty-surface {
   align-content: center;
   border: 1px dashed var(--line);
@@ -1539,6 +1609,44 @@ th {
 
 .telegram-empty-surface.loading {
   background: linear-gradient(145deg, #f8faff, #ffffff);
+}
+
+.surface-loading-hero {
+  align-content: center;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(109, 93, 252, 0.18), transparent 38%),
+    linear-gradient(145deg, #ffffff, #f8faff);
+  display: grid;
+  gap: 10px;
+  min-height: 470px;
+  place-items: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.surface-loading-hero div {
+  align-items: center;
+  border-radius: 999px;
+  background: #f1efff;
+  color: #5141b8;
+  display: grid;
+  height: 52px;
+  place-items: center;
+  width: 52px;
+}
+
+.surface-loading-hero strong {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.surface-loading-hero p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 520px;
 }
 
 .telegram-preview-surface {
@@ -1559,11 +1667,12 @@ th {
   background:
     radial-gradient(circle at top right, rgba(109, 93, 252, 0.14), transparent 38%),
     linear-gradient(135deg, #ffffff, #f8faff);
-  padding: 24px;
+  min-height: 190px;
+  padding: 30px;
 }
 
 .preview-hero-card h3 {
-  font-size: 30px;
+  font-size: 36px;
   line-height: 1.05;
   margin: 6px 0 8px;
   max-width: 620px;
@@ -1658,9 +1767,12 @@ th {
 }
 
 .stage-context {
-  border-left: 3px solid #6d5dfc;
+  border: 1px solid rgba(109, 93, 252, 0.16);
+  border-left: 4px solid #6d5dfc;
+  border-radius: 12px;
+  background: #fbfcff;
   color: var(--muted);
-  padding-left: 12px;
+  padding: 12px 14px;
 }
 
 .stage-context span {
@@ -1679,9 +1791,12 @@ th {
 }
 
 .focused-contract-surface {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.09), transparent 32%),
+    #ffffff;
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: 16px;
+  padding: 18px;
 }
 
 .compact-risk-summary {
@@ -1726,7 +1841,8 @@ th {
     #fffaf3;
   display: grid;
   gap: 13px;
-  padding: 18px;
+  min-height: 260px;
+  padding: 24px;
 }
 
 .active-risk-heading {
@@ -1737,7 +1853,9 @@ th {
 }
 
 .active-risk-heading h3 {
-  font-size: 28px;
+  font-size: 34px;
+  letter-spacing: 0;
+  line-height: 1.08;
   margin: 4px 0 0;
 }
 
@@ -1753,7 +1871,7 @@ th {
 }
 
 .active-risk-node p {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.5;
   margin: 0;
   max-width: 760px;
@@ -1823,25 +1941,51 @@ th {
 
 .telegram-dev-inspector {
   align-content: start;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 18px 54px rgba(21, 32, 57, 0.05);
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-height: 740px;
-  padding: 14px;
+  padding: 12px;
 }
 
 .inspector-card {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(223, 230, 240, 0.88);
   border-radius: 12px;
-  background: white;
+  background: rgba(255, 255, 255, 0.76);
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
 }
 
 .inspector-card header {
   align-items: center;
   display: flex;
   gap: 8px;
+}
+
+.inspector-collapsible summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  list-style: none;
+}
+
+.inspector-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.inspector-collapsible summary::after {
+  color: var(--muted);
+  content: attr(data-show-label);
+  font-size: 11px;
+  font-weight: 900;
+  margin-left: auto;
+}
+
+.inspector-collapsible[open] summary::after {
+  content: attr(data-hide-label);
 }
 
 .inspector-card div {
@@ -1852,7 +1996,7 @@ th {
 .inspector-card code,
 .inspector-card span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .inspector-card code {
@@ -1865,6 +2009,44 @@ th {
 .live-event {
   border-left: 3px solid #d6dbe5;
   padding-left: 8px;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.typing-dots i {
+  animation: typing-dot 1s infinite ease-in-out;
+  background: #8da0b5;
+  border-radius: 999px;
+  display: block;
+  height: 4px;
+  width: 4px;
+}
+
+.typing-dots i:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.typing-dots i:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes typing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 .live-event.done {
