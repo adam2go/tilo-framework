@@ -4,13 +4,15 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Check, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import { apiFetch, getBootstrap, sendMessage } from "../../lib/api";
-import { PROBLEMATIC_AI_SERVICE_AGREEMENT, SAMPLE_CONTRACT_FILE_NAME } from "../../lib/demoContracts";
+import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
+import type { DemoContractFixture, FollowUpIntent, FollowUpIntentResult } from "../../lib/demoContracts";
 import type { Agent, Artifact, ArtifactAction, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
 
 type Locale = "en" | "zh";
 type InputMode = "sample" | "paste";
 type DemoStage = "Intent" | "Risk Review" | "Revision Draft" | "Memory";
 type SurfaceKind = "contract_review" | "revision_draft" | "memory_candidate";
+type MemoryLifecycle = "none" | "candidate" | "confirmed" | "saved";
 type ChatTurn =
   | { id: string; type: "user_message" | "bot_message" | "observation" | "system_event"; content: string; status?: "typing" | "rendering" }
   | { id: string; type: "attachment"; fileName: string; detail: string }
@@ -19,6 +21,10 @@ type LiveEvent = { id: string; label: string; detail: string; status?: "done" | 
 
 function isPendingTurn(turn: ChatTurn) {
   return turn.type !== "mini_surface" && turn.type !== "attachment" && (turn.status === "typing" || turn.status === "rendering");
+}
+
+function settlePendingTurns(turns: ChatTurn[]): ChatTurn[] {
+  return turns.map((turn) => isPendingTurn(turn) ? { ...turn, status: undefined } : turn);
 }
 
 const demoCopy = {
@@ -39,6 +45,7 @@ const demoCopy = {
     sampleAttachmentDetail: "Problematic AI service agreement · 12 sections · realistic fixture",
     pastedAttachmentName: "Pasted contract text",
     pastedAttachmentDetail: (chars: number) => `${chars.toLocaleString()} characters · user-provided contract`,
+    sampleUnavailable: "Sample contract is still loading. Try again in a moment.",
     runSample: "Run sample",
     replay: "Replay",
     reset: "Reset",
@@ -57,22 +64,50 @@ const demoCopy = {
     makeSofter: "Make softer",
     makeStricter: "Make stricter",
     draftEmail: "Draft negotiation email",
-    received: "Received. I’m reading the attached contract and creating a Task and Run from this chat message.",
-    recalling: "I’m recalling memory and reviewing the contract autonomously before asking you to decide anything.",
-    rendering: "Most findings are going into the full review. I’ll show only the key liability decision here.",
+    received: "Received. I’m creating a Task and Run from this chat message.",
+    readingContract: "Reading the attached contract from the sample fixture.",
+    identifyingSections: "Identifying sections: scope, acceptance, payment, data, IP, SLA, confidentiality, liability, termination, and disputes.",
+    scanningRisks: "Scanning risks against the contract text and recalled memory.",
+    placingFullReview: "Most findings are being placed into the full review artifact.",
+    rendering: "I’ll show only the key liability decision here because it affects the revision strategy.",
     ready: (count: number) => `I found ${count} high-risk issue${count === 1 ? "" : "s"} in the full contract. One needs direction now: clauses 8.1 and 8.2 conflict on liability cap and indemnity carve-outs.`,
     approvedObservation: "Observation: You approved a conservative revision for the liability and indemnity conflict in clauses 8.1 / 8.2.",
     approvedReply: "Got it. I’m generating a conservative but explainable revision draft for those clauses.",
     memoryPrompt: "I noticed you prefer conservative but negotiation-friendly revisions. Should I remember this?",
+    memoryCandidateProposed: "Memory candidate proposed: conservative but negotiation-friendly contract revisions.",
+    memoryConfirmed: "Memory confirmed by user.",
+    memorySaved: "Memory saved to workspace memory.",
     rememberedObservation: "Observation: You confirmed this memory candidate.",
     rememberedReply: "Remembered. Future contract reviews will use this preference.",
     notNowObservation: "Observation: You skipped memory capture for now.",
     followupObservation: "Observation: Your follow-up preference was captured for this artifact.",
-    followupReply: "Understood. I’ll make the revision tone suitable for customer negotiation rather than overly aggressive.",
+    followupReplies: {
+      explain_risk: "The issue is that 8.1 looks like a cap, but 8.2 removes broad categories from that cap. That can make the cap unreliable in the exact cases that usually matter most.",
+      revise_tone: "Understood. I’ll make the revision tone suitable for customer negotiation rather than overly aggressive.",
+      focus_clause: "I’ll keep the focus on the clause you named and connect it back to the 8.1 / 8.2 liability strategy.",
+      draft_email: "I’ll frame the revision as a negotiation email with business rationale, not as a hard rejection.",
+      remember_preference: "That sounds like a reusable review preference. I’ll propose it as memory before applying it to future contract reviews.",
+      general_followup: "I’ll keep that instruction attached to this review and apply it to the revision direction."
+    },
+    intentLabels: {
+      explain_risk: "explain risk",
+      revise_tone: "revise tone",
+      focus_clause: "focus clause",
+      draft_email: "draft email",
+      remember_preference: "remember preference",
+      general_followup: "general follow-up"
+    },
     editObservation: "Observation: You asked to adjust the revision direction.",
     editReply: "Tell me the direction in the composer, for example: keep it firm but customer-friendly.",
     followupSuggestion: "Keep the tone customer-friendly and suitable for negotiation.",
     fullReviewObservation: "Observation: You opened the rich artifact for the complete finding list.",
+    memoryLifecycle: "Memory lifecycle",
+    memoryLifecycleLabels: {
+      none: "No memory proposal yet",
+      candidate: "Candidate proposed",
+      confirmed: "User confirmed",
+      saved: "Memory saved"
+    },
     runtimeDeterministic: "Deterministic mode",
     runtimeLlm: (provider: string, model: string) => `LLM mode · ${provider} · ${model}`,
     noSecrets: "API keys stay backend-only.",
@@ -135,6 +170,7 @@ const demoCopy = {
     sampleAttachmentDetail: "问题样例 AI 服务合同 · 12 个章节 · 真实感 fixture",
     pastedAttachmentName: "粘贴的合同文本",
     pastedAttachmentDetail: (chars: number) => `${chars.toLocaleString()} 个字符 · 用户提供的合同`,
+    sampleUnavailable: "样例合同还在加载，请稍后再试。",
     runSample: "运行样例",
     replay: "重放",
     reset: "重置",
@@ -153,22 +189,50 @@ const demoCopy = {
     makeSofter: "语气更柔和",
     makeStricter: "更严格",
     draftEmail: "起草谈判邮件",
-    received: "已收到。我正在读取这份合同附件，并从这条消息创建 Task 和 Run。",
-    recalling: "正在召回记忆并自主审查合同，先不要求你操作任何复杂界面。",
-    rendering: "大部分 findings 会进入完整审查；这里先只展示一个真正需要你决策的责任条款问题。",
+    received: "已收到。正在从这条聊天消息创建 Task 和 Run。",
+    readingContract: "正在读取样例 fixture 中的合同附件。",
+    identifyingSections: "正在识别范围、验收、付款、数据、知识产权、SLA、保密、责任、解除和争议解决章节。",
+    scanningRisks: "正在结合合同文本和召回记忆扫描风险。",
+    placingFullReview: "大部分 findings 会进入完整审查 artifact。",
+    rendering: "这里只展示一个关键责任决策，因为它会影响修订策略。",
     ready: (count: number) => `我在完整合同中发现 ${count} 个高风险问题。当前需要先确认的是：8.1 与 8.2 在责任上限和赔偿例外上存在冲突。`,
     approvedObservation: "Observation：你批准了针对 8.1 / 8.2 责任与赔偿冲突的保守修订方向。",
     approvedReply: "收到。我会为这两个条款生成一版保守但有解释空间的修订草案。",
     memoryPrompt: "我注意到你偏好保守但适合谈判的修订。要让我记住吗？",
+    memoryCandidateProposed: "已提出记忆候选：保守但谈判友好的合同修订风格。",
+    memoryConfirmed: "用户已确认该记忆。",
+    memorySaved: "记忆已保存到 workspace memory。",
     rememberedObservation: "Observation：你确认了这个记忆候选。",
     rememberedReply: "已记住。未来合同审查会使用这个偏好。",
     notNowObservation: "Observation：你暂时跳过了记忆保存。",
     followupObservation: "Observation：你的谈判语气偏好已记录到当前 artifact 上。",
-    followupReply: "明白。我会把修订建议调整成更适合发给客户谈判的表达，而不是直接否定对方条款。",
+    followupReplies: {
+      explain_risk: "这个问题的核心是：8.1 看起来设置了责任上限，但 8.2 又把大量关键场景排除在上限之外，导致上限在真正高风险场景下可能失效。",
+      revise_tone: "明白。我会把修订建议调整成更适合发给客户谈判的表达，而不是直接否定对方条款。",
+      focus_clause: "我会把重点放在你提到的条款上，并把它和 8.1 / 8.2 的责任策略关联起来。",
+      draft_email: "我会把修订建议组织成适合发给客户的谈判邮件，并保留商业理由。",
+      remember_preference: "这是一个可复用的审查偏好。我会先把它作为记忆候选提交给你确认。",
+      general_followup: "我会把这条指令记录到当前审查中，并用于后续修订方向。"
+    },
+    intentLabels: {
+      explain_risk: "解释风险",
+      revise_tone: "调整语气",
+      focus_clause: "聚焦条款",
+      draft_email: "起草邮件",
+      remember_preference: "记住偏好",
+      general_followup: "一般追问"
+    },
     editObservation: "Observation：你要求调整修订方向。",
     editReply: "请在输入框里告诉我方向，例如：语气不要太强硬，适合发给客户谈判。",
     followupSuggestion: "语气不要太强硬，适合发给客户谈判。",
     fullReviewObservation: "Observation：你打开了完整 artifact 查看全部 findings。",
+    memoryLifecycle: "记忆生命周期",
+    memoryLifecycleLabels: {
+      none: "尚未提出记忆",
+      candidate: "已提出候选",
+      confirmed: "用户已确认",
+      saved: "记忆已保存"
+    },
     runtimeDeterministic: "确定性模式",
     runtimeLlm: (provider: string, model: string) => `LLM 模式 · ${provider} · ${model}`,
     noSecrets: "API key 只在后端使用。",
@@ -242,6 +306,7 @@ export function TelegramDemoPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [capabilities, setCapabilities] = useState<RuntimeCapabilities | null>(null);
+  const [sampleContract, setSampleContract] = useState<DemoContractFixture | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -252,6 +317,8 @@ export function TelegramDemoPage() {
   const [composer, setComposer] = useState(copy.demoGoal);
   const [inputMode, setInputMode] = useState<InputMode>("sample");
   const [stage, setStage] = useState<DemoStage>("Intent");
+  const [lastIntent, setLastIntent] = useState<FollowUpIntentResult | null>(null);
+  const [memoryLifecycle, setMemoryLifecycle] = useState<MemoryLifecycle>("none");
   const [busy, setBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
@@ -260,14 +327,16 @@ export function TelegramDemoPage() {
   }, []);
 
   async function boot() {
-    const [bootstrap, runtime] = await Promise.all([
+    const [bootstrap, runtime, contract] = await Promise.all([
       getBootstrap(),
-      apiFetch<RuntimeCapabilities>("/api/runtime/capabilities")
+      apiFetch<RuntimeCapabilities>("/api/runtime/capabilities"),
+      apiFetch<DemoContractFixture>("/api/demo/contracts/problematic-ai-service-agreement")
     ]);
     setWorkspace(bootstrap.workspace);
     setProject(bootstrap.projects[0] || null);
     setAgent(bootstrap.agents[0] || null);
     setCapabilities(runtime);
+    setSampleContract(contract);
     if (bootstrap.workspace) {
       setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${bootstrap.workspace.id}`));
       setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${bootstrap.workspace.id}`));
@@ -287,6 +356,8 @@ export function TelegramDemoPage() {
     setComposer(nextCopy.demoGoal);
     setInputMode("sample");
     setStage("Intent");
+    setLastIntent(null);
+    setMemoryLifecycle("none");
   }
 
   function resetDemo() {
@@ -298,12 +369,18 @@ export function TelegramDemoPage() {
     setLiveEvents(initialLiveEvents(copy));
     setComposer(inputMode === "sample" ? copy.demoGoal : "");
     setStage("Intent");
+    setLastIntent(null);
+    setMemoryLifecycle("none");
   }
 
   async function submitMessage() {
     if (!workspace || busy) return;
     if (!artifact) {
-      await runInitialReview(buildDemoMessage(copy, inputMode, composer), userMessagePreview(copy, inputMode, composer), inputMode);
+      if (inputMode === "sample" && !sampleContract) {
+        setTurns((items) => [...items, { id: id("sample-loading"), type: "bot_message", content: copy.sampleUnavailable }]);
+        return;
+      }
+      await runInitialReview(buildDemoMessage(copy, inputMode, composer, sampleContract), userMessagePreview(copy, inputMode, composer), inputMode);
       return;
     }
     await handleFollowUp(composer.trim());
@@ -317,9 +394,12 @@ export function TelegramDemoPage() {
     setTurns((items) => [
       ...items,
       { id: id("user"), type: "user_message", content: preview },
-      contractAttachmentTurn(copy, sourceMode, content),
+      contractAttachmentTurn(copy, sourceMode, content, sampleContract),
       { id: id("bot-task"), type: "bot_message", content: copy.received, status: "typing" },
-      { id: id("bot-recall"), type: "bot_message", content: copy.recalling, status: "typing" },
+      { id: id("bot-read-contract"), type: "bot_message", content: copy.readingContract, status: "typing" },
+      { id: id("bot-identify-sections"), type: "bot_message", content: copy.identifyingSections, status: "typing" },
+      { id: id("bot-scan-risks"), type: "bot_message", content: copy.scanningRisks, status: "typing" },
+      { id: id("bot-full-review"), type: "bot_message", content: copy.placingFullReview, status: "typing" },
       { id: id("bot-render"), type: "bot_message", content: copy.rendering, status: "rendering" }
     ]);
     try {
@@ -345,7 +425,7 @@ export function TelegramDemoPage() {
       setStage("Risk Review");
       setLiveEvents((items) => advanceLiveEvent(items, "artifact.rendered", copy.live.surfaceRendered));
       setTurns((items) => [
-        ...items.filter((turn) => !isPendingTurn(turn)),
+        ...settlePendingTurns(items),
         { id: id("bot-ready"), type: "bot_message", content: copy.ready(riskSummary(nextArtifact)) },
         { id: id("surface-review"), type: "mini_surface", surface: "contract_review" }
       ]);
@@ -357,15 +437,24 @@ export function TelegramDemoPage() {
 
   async function handleFollowUp(content: string) {
     if (!workspace || !artifact || !content) return;
-    const event = await persistInteraction("channel.telegram_demo.text_followup", { content });
+    const intent = await classifyFollowUp(content, locale, artifact);
+    setLastIntent(intent);
+    const event = await persistInteraction("channel.telegram_demo.text_followup", {
+      content,
+      intent: intent.intent,
+      intent_mode: intent.mode,
+      intent_confidence: intent.confidence
+    });
     setInteractions((items) => [event, ...items]);
-    const shouldProposeMemory = stage === "Revision Draft" || /语气|谈判|客户|tone|friendly|negotiat/i.test(content);
+    const shouldProposeMemory = stage === "Revision Draft" && ["revise_tone", "remember_preference"].includes(intent.intent);
+    if (shouldProposeMemory) setMemoryLifecycle("candidate");
     setTurns((items) => [
       ...items,
       { id: id("user-followup"), type: "user_message", content },
-      { id: id("observe-followup"), type: "observation", content: copy.followupObservation },
-      { id: id("bot-followup"), type: "bot_message", content: copy.followupReply },
+      { id: id("observe-followup"), type: "observation", content: `${copy.followupObservation} (${copy.intentLabels[intent.intent]}, ${intent.mode})` },
+      { id: id("bot-followup"), type: "bot_message", content: copy.followupReplies[intent.intent] },
       ...(shouldProposeMemory ? [
+        { id: id("observe-memory-candidate"), type: "observation" as const, content: copy.memoryCandidateProposed },
         { id: id("bot-memory-prompt"), type: "bot_message" as const, content: copy.memoryPrompt },
         { id: id("surface-memory"), type: "mini_surface" as const, surface: "memory_candidate" as const }
       ] : [])
@@ -435,6 +524,7 @@ export function TelegramDemoPage() {
     const block = findBlock(artifact, "memory_candidate");
     const event = await persistInteraction("channel.telegram_demo.remember_preference", { block_id: block?.id || null });
     setInteractions((items) => [event, ...items]);
+    setMemoryLifecycle("confirmed");
     if (block) {
       const memory = await apiFetch<Memory>("/api/memories", {
         method: "POST",
@@ -454,11 +544,14 @@ export function TelegramDemoPage() {
       });
       setMemories((items) => [memory, ...items]);
     }
+    setMemoryLifecycle("saved");
     setStage("Memory");
     setLiveEvents((items) => advanceLiveEvent(items, "memory.candidate.created", copy.live.memoryPersisted));
     setTurns((items) => [
       ...items,
       { id: id("observe-memory"), type: "observation", content: copy.rememberedObservation },
+      { id: id("observe-memory-confirmed"), type: "observation", content: copy.memoryConfirmed },
+      { id: id("observe-memory-saved"), type: "observation", content: copy.memorySaved },
       { id: id("bot-memory"), type: "bot_message", content: copy.rememberedReply }
     ]);
   }
@@ -535,7 +628,13 @@ export function TelegramDemoPage() {
               ))}
             </div>
           ) : null}
-          <button className="secondary-action" onClick={() => void runInitialReview(buildDemoMessage(copy, "sample", copy.demoGoal), copy.demoGoal, "sample")} disabled={busy}>{copy.runSample}</button>
+          <button className="secondary-action" onClick={() => {
+            if (!sampleContract) {
+              setTurns((items) => [...items, { id: id("sample-loading"), type: "bot_message", content: copy.sampleUnavailable }]);
+              return;
+            }
+            void runInitialReview(buildDemoMessage(copy, "sample", copy.demoGoal, sampleContract), copy.demoGoal, "sample");
+          }} disabled={busy}>{copy.runSample}</button>
           <button className="secondary-action" onClick={resetDemo} disabled={busy}><RotateCcw size={14} /> {copy.reset}</button>
           {inputMode === "paste" && !artifact ? (
             <textarea placeholder={copy.pastePlaceholder} value={composer} onChange={(event) => setComposer(event.target.value)} />
@@ -558,7 +657,9 @@ export function TelegramDemoPage() {
           copy={copy}
           diagnostics={diagnostics}
           interactions={interactions}
+          lastIntent={lastIntent}
           liveEvents={liveEvents}
+          memoryLifecycle={memoryLifecycle}
           memories={memories}
           modeLabel={modeLabel}
           onClose={() => setInspectorOpen(false)}
@@ -707,7 +808,9 @@ function DeveloperInspectorDrawer({
   copy,
   diagnostics,
   interactions,
+  lastIntent,
   liveEvents,
+  memoryLifecycle,
   memories,
   modeLabel,
   onClose,
@@ -718,7 +821,9 @@ function DeveloperInspectorDrawer({
   copy: DemoCopy;
   diagnostics: ReturnType<typeof modelDiagnostics>;
   interactions: UIInteractionEvent[];
+  lastIntent: FollowUpIntentResult | null;
   liveEvents: LiveEvent[];
+  memoryLifecycle: MemoryLifecycle;
   memories: Memory[];
   modeLabel: string;
   onClose: () => void;
@@ -761,6 +866,8 @@ function DeveloperInspectorDrawer({
         <InspectorCard icon={<Database size={16} />} title={copy.durableObservations}>
           {interactions.slice(0, 5).map((event) => <span key={event.id}>{event.event_type}</span>)}
           {!interactions.length ? <span>channel.message.received</span> : null}
+          {lastIntent ? <span>followup intent: {copy.intentLabels[lastIntent.intent]} ({lastIntent.mode})</span> : null}
+          <span>{copy.memoryLifecycle}: {copy.memoryLifecycleLabels[memoryLifecycle]}</span>
           <span>{copy.confirmations}: {confirmations.length}</span>
           <span>{copy.memories}: {memories.length}</span>
           <span>{copy.traceSteps}: {trace.length}</span>
@@ -814,8 +921,10 @@ function stageLabel(stage: DemoStage, copy: DemoCopy) {
   return copy.stageIntent;
 }
 
-function buildDemoMessage(copy: DemoCopy, inputMode: InputMode, composer: string) {
-  if (inputMode === "sample") return `${copy.demoGoal}\n\nAttached contract file: ${SAMPLE_CONTRACT_FILE_NAME}\n\nContract text:\n${PROBLEMATIC_AI_SERVICE_AGREEMENT}`;
+function buildDemoMessage(copy: DemoCopy, inputMode: InputMode, composer: string, sampleContract: DemoContractFixture | null) {
+  if (inputMode === "sample") {
+    return `${copy.demoGoal}\n\nAttached contract file: ${sampleContract?.file_name || SAMPLE_CONTRACT_FALLBACK_FILE_NAME}\n\nContract text:\n${sampleContract?.content || ""}`;
+  }
   const pasted = composer.trim();
   return pasted ? `${copy.demoGoal}\n\nContract text:\n${pasted}` : copy.demoGoal;
 }
@@ -827,12 +936,12 @@ function userMessagePreview(copy: DemoCopy, inputMode: InputMode, composer: stri
   return copy.demoGoal;
 }
 
-function contractAttachmentTurn(copy: DemoCopy, inputMode: InputMode, content: string): ChatTurn {
+function contractAttachmentTurn(copy: DemoCopy, inputMode: InputMode, content: string, sampleContract: DemoContractFixture | null): ChatTurn {
   if (inputMode === "sample") {
     return {
       id: id("attachment"),
       type: "attachment",
-      fileName: SAMPLE_CONTRACT_FILE_NAME,
+      fileName: sampleContract?.file_name || SAMPLE_CONTRACT_FALLBACK_FILE_NAME,
       detail: copy.sampleAttachmentDetail,
     };
   }
@@ -843,6 +952,45 @@ function contractAttachmentTurn(copy: DemoCopy, inputMode: InputMode, content: s
     fileName: copy.pastedAttachmentName,
     detail: copy.pastedAttachmentDetail(contractLength),
   };
+}
+
+async function classifyFollowUp(text: string, locale: Locale, artifact: Artifact): Promise<FollowUpIntentResult> {
+  try {
+    return await apiFetch<FollowUpIntentResult>("/api/demo/followup-intent", {
+      method: "POST",
+      body: JSON.stringify({
+        text,
+        locale,
+        artifact_id: artifact.id,
+        run_id: artifact.run_id,
+      }),
+    });
+  } catch {
+    return deterministicFollowUpIntent(text);
+  }
+}
+
+function deterministicFollowUpIntent(text: string): FollowUpIntentResult {
+  const normalized = text.toLowerCase();
+  let intent: FollowUpIntent = "general_followup";
+  let reason = "fallback";
+  if (/记住|记忆|以后|remember|save this|preference/i.test(normalized)) {
+    intent = "remember_preference";
+    reason = "memory keyword";
+  } else if (/语气|强硬|柔和|客户|谈判|tone|softer|friendlier|friendly|negotiat/i.test(normalized)) {
+    intent = "revise_tone";
+    reason = "tone keyword";
+  } else if (/邮件|email|mail|发给|回复客户/i.test(normalized)) {
+    intent = "draft_email";
+    reason = "email keyword";
+  } else if (/8\.1|8\.2|条款|clause|section/i.test(normalized)) {
+    intent = "focus_clause";
+    reason = "clause keyword";
+  } else if (/为什么|解释|原因|why|explain|meaning|risk/i.test(normalized)) {
+    intent = "explain_risk";
+    reason = "explanation keyword";
+  }
+  return { intent, confidence: 0.62, mode: "deterministic", reason };
 }
 
 function withLanguageInstruction(content: string, copy: DemoCopy) {

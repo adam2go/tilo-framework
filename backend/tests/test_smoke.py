@@ -27,6 +27,7 @@ from app.services.channels.telegram.types import parse_telegram_callback_data  #
 from app.services.artifact.contract_llm import ContractReviewLLMGenerator  # noqa: E402
 from app.services.models.client import ModelClient  # noqa: E402
 from app.services.models.errors import ModelDisabledError, ModelInvalidJSONError  # noqa: E402
+from app.services.demo import classify_followup_deterministic, load_problematic_ai_service_agreement  # noqa: E402
 from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
 from app.services.trace.recorder import TraceRecorder  # noqa: E402
 
@@ -54,6 +55,38 @@ def test_runtime_capabilities_hide_model_secrets() -> None:
     assert "custom" in capabilities["llm_supported_providers"]
     assert "openai_api_key" not in capabilities
     assert "api_key" not in capabilities
+
+
+def test_demo_contract_endpoint_reads_single_source_fixture() -> None:
+    fixture = load_problematic_ai_service_agreement()
+    with TestClient(app) as client:
+        response = client.get("/api/demo/contracts/problematic-ai-service-agreement")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["content"] == fixture.content
+    assert payload["source_path"] == "examples/contracts/problematic-ai-service-agreement.md"
+    assert "**8.1**" in payload["content"]
+    assert "**8.2**" in payload["content"]
+
+
+def test_demo_followup_intent_endpoint_uses_deterministic_fallback() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/demo/followup-intent",
+            json={"text": "语气不要太强硬，适合发给客户谈判", "locale": "zh"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["intent"] == "revise_tone"
+    assert payload["mode"] == "deterministic"
+
+
+def test_followup_intent_rules_cover_core_demo_intents() -> None:
+    assert classify_followup_deterministic("why is clause 8.2 risky?").intent == "focus_clause"
+    assert classify_followup_deterministic("draft an email for the customer").intent == "draft_email"
+    assert classify_followup_deterministic("以后记住这个偏好").intent == "remember_preference"
 
 
 def test_model_client_disabled_mode_is_explicit() -> None:

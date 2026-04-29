@@ -22,7 +22,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     env_file:
       - .env.example
       - path: .env

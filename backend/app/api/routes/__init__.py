@@ -1,4 +1,4 @@
-from app.api.routes import agents, artifacts, channels, confirmations, feedback, interactions, memories, messages, projects, runs, skills, system, tasks, tools, workspaces
+from app.api.routes import agents, artifacts, channels, confirmations, demo, feedback, interactions, memories, messages, projects, runs, skills, system, tasks, tools, workspaces
 
 routers = [
     system.router,
@@ -14,6 +14,7 @@ routers = [
     memories.router,
     artifacts.router,
     confirmations.router,
+    demo.router,
     skills.router,
     tools.router,
 ]
