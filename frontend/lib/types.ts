@@ -199,3 +199,35 @@ export type RuntimeCapabilities = {
   telegram_enabled: boolean;
   public_app_url: string;
 };
+
+export type AgentAppManifest = {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+  entry: {
+    type: "conversation";
+    default_prompt: string;
+  };
+  runtime: {
+    model: string;
+    deterministic_fallback: boolean;
+    memory: "enabled" | "disabled";
+    interaction_policy: string;
+  };
+  surfaces: {
+    mini: string[];
+    rich: string[];
+  };
+  sample_inputs: Array<{
+    type: string;
+    name: string;
+    path: string;
+    resolved_path?: string | null;
+  }>;
+  tools: Array<{
+    name: string;
+    required: boolean;
+  }>;
+  channels: string[];
+};

@@ -334,6 +334,36 @@ See [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) for a more detailed walkthrough
 
 ---
 
+## Build an Agent App
+
+Tilo apps can be defined declaratively instead of hard-coded into one demo.
+
+Start with the contract review example:
+
+```text
+examples/apps/contract-review-agent/app.yaml
+examples/apps/contract-review-agent/interaction.policy.yaml
+```
+
+The manifest defines the app entry prompt, runtime fallback behavior, allowed mini/rich surfaces, sample inputs, tools, and channels. The policy decides when the agent should continue with `no_ui`, show a `mini_surface`, open a `rich_surface`, or `ask_text`.
+
+To add a new app:
+
+1. Copy `examples/apps/contract-review-agent/`.
+2. Change `app.yaml` identity, entry prompt, surfaces, sample inputs, tools, and channels.
+3. Edit `interaction.policy.yaml` so UI appears only at meaningful decision points.
+4. Open `GET /api/apps` to confirm the manifest loads.
+5. Reuse or add mini surfaces through `frontend/components/mini-surfaces/registry.ts`.
+
+Developer references:
+
+- [`docs/APP_MANIFEST.md`](./docs/APP_MANIFEST.md)
+- [`docs/INTERACTION_POLICY.md`](./docs/INTERACTION_POLICY.md)
+- [`docs/MINI_SURFACE_REGISTRY.md`](./docs/MINI_SURFACE_REGISTRY.md)
+- [`examples/apps/README.md`](./examples/apps/README.md)
+
+---
+
 ## Example Use Cases
 
 ### Contract Review Agent

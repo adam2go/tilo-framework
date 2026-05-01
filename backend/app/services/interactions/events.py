@@ -37,3 +37,15 @@ class UIInteractionEventService:
         self.db.commit()
         self.db.refresh(event)
         return event
+
+    def recent_for_context(
+        self,
+        *,
+        workspace_id: str,
+        project_id: str | None = None,
+        limit: int = 5,
+    ) -> list[UIInteractionEvent]:
+        query = self.db.query(UIInteractionEvent).filter(UIInteractionEvent.workspace_id == workspace_id)
+        if project_id:
+            query = query.filter(UIInteractionEvent.project_id == project_id)
+        return query.order_by(UIInteractionEvent.created_at.desc()).limit(limit).all()

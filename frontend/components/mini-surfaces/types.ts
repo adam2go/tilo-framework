@@ -1,0 +1,26 @@
+export type DemoSurfaceCopy = {
+  activeRisk: string;
+  after: string;
+  approveRevision: string;
+  before: string;
+  contractReview: string;
+  draftEmail: string;
+  editDirection: string;
+  evidence: string;
+  followupReplies: { draft_email: string };
+  high: string;
+  low: string;
+  makeSofter: string;
+  makeStricter: string;
+  medium: string;
+  memoryCandidate: string;
+  memoryPrompt: string;
+  memoryWhy: string;
+  notNow: string;
+  openArtifact: string;
+  openFullReview: string;
+  recommendedRevision: string;
+  remember: string;
+  rendering: string;
+  revisionPreview: string;
+};

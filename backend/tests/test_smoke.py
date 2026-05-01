@@ -10,6 +10,8 @@ if db_path.exists():
 
 os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
 os.environ["LLM_ENABLED"] = "false"
+os.environ["LLM_PROVIDER"] = "openai"
+os.environ["LLM_BASE_URL"] = ""
 os.environ["OPENAI_API_KEY"] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -19,6 +21,7 @@ from app.core.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Confirmation, Memory, Run, Task, TraceStep, UIInteractionEvent  # noqa: E402
 from app.services.agent_runtime.run_manager import RunManager  # noqa: E402
+from app.services.agent_runtime.prompt_builder import PromptBuilder  # noqa: E402
 from app.services.agent_runtime.state_machine import InvalidStateTransition, RunStateMachine  # noqa: E402
 from app.services.artifact.generator import ArtifactGenerator  # noqa: E402
 from app.services.artifact.spec import ArtifactSpecBuilder  # noqa: E402
@@ -28,6 +31,9 @@ from app.services.artifact.contract_llm import ContractReviewLLMGenerator  # noq
 from app.services.models.client import ModelClient  # noqa: E402
 from app.services.models.errors import ModelDisabledError, ModelInvalidJSONError  # noqa: E402
 from app.services.demo import classify_followup_deterministic, load_problematic_ai_service_agreement  # noqa: E402
+from app.services.apps.loader import get_app_loader  # noqa: E402
+from app.services.interaction_policy.schemas import InteractionContext, InteractionDecisionType  # noqa: E402
+from app.services.interaction_policy.service import InteractionPolicyService  # noqa: E402
 from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
 from app.services.trace.recorder import TraceRecorder  # noqa: E402
 
@@ -68,6 +74,83 @@ def test_demo_contract_endpoint_reads_single_source_fixture() -> None:
     assert payload["source_path"] == "examples/contracts/problematic-ai-service-agreement.md"
     assert "**8.1**" in payload["content"]
     assert "**8.2**" in payload["content"]
+
+
+def test_agent_app_manifest_loader_resolves_contract_review_app() -> None:
+    app_manifest = get_app_loader().load_manifest("contract-review-agent")
+
+    assert app_manifest.id == "contract-review-agent"
+    assert app_manifest.entry.type == "conversation"
+    assert app_manifest.runtime.interaction_policy == "interaction.policy.yaml"
+    assert "MiniIssueCard" in app_manifest.surfaces.mini
+    assert app_manifest.sample_inputs[0].resolved_path == "examples/contracts/problematic-ai-service-agreement.md"
+
+
+def test_apps_api_lists_and_reads_contract_review_app() -> None:
+    with TestClient(app) as client:
+        list_response = client.get("/api/apps")
+        detail_response = client.get("/api/apps/contract-review-agent")
+
+    assert list_response.status_code == 200
+    assert any(item["id"] == "contract-review-agent" for item in list_response.json())
+    assert detail_response.status_code == 200
+    assert detail_response.json()["runtime"]["deterministic_fallback"] is True
+
+
+def test_interaction_policy_evaluates_core_decisions_and_budget() -> None:
+    service = InteractionPolicyService()
+    policy = service.load_for_app("contract-review-agent")
+
+    high_risk = service.evaluate(
+        policy,
+        InteractionContext(
+            artifact_type="contract_review",
+            risk_level="high",
+            requires_user_decision=True,
+            category="liability",
+        ),
+    )
+    medium_risk = service.evaluate(policy, InteractionContext(artifact_type="contract_review", risk_level="medium"))
+    full_review = service.evaluate(policy, InteractionContext(user_action="open_full_review"))
+    memory = service.evaluate(policy, InteractionContext(signal="user_preference_detected"))
+    unknown = service.evaluate(policy, InteractionContext(artifact_type="contract_review", risk_level="low"))
+    budgeted = service.evaluate(
+        policy,
+        InteractionContext(
+            artifact_type="contract_review",
+            risk_level="high",
+            requires_user_decision=True,
+            category="liability",
+            mini_surfaces_used=3,
+        ),
+    )
+
+    assert high_risk.decision == InteractionDecisionType.mini_surface
+    assert high_risk.surface == "MiniIssueCard"
+    assert medium_risk.decision == InteractionDecisionType.no_ui
+    assert full_review.decision == InteractionDecisionType.rich_surface
+    assert full_review.surface == "ContractReviewArtifact"
+    assert memory.surface == "MiniMemoryCard"
+    assert unknown.decision == InteractionDecisionType.no_ui
+    assert budgeted.decision == InteractionDecisionType.no_ui
+    assert budgeted.reason == "mini_surface_budget_exceeded"
+
+
+def test_interaction_policy_api_returns_primary_mini_surface() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/apps/contract-review-agent/interaction-policy/evaluate",
+            json={
+                "artifact_type": "contract_review",
+                "risk_level": "high",
+                "requires_user_decision": True,
+                "category": "liability",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "mini_surface"
+    assert response.json()["surface"] == "MiniIssueCard"
 
 
 def test_demo_followup_intent_endpoint_uses_deterministic_fallback() -> None:
@@ -339,6 +422,23 @@ def test_ui_interaction_event_api_persists_sanitized_observations() -> None:
     assert event["event_type"] == "artifact.action.approved"
     assert event["payload_json"]["token"] == "[REDACTED]"
     assert events and events[0]["block_id"] == "approval"
+
+
+def test_prompt_builder_includes_recent_ui_observations_without_turning_them_into_memory() -> None:
+    event = UIInteractionEvent(
+        workspace_id="workspace",
+        event_type="artifact.action.approved",
+        artifact_id="artifact-1",
+        run_id="run-1",
+        payload_json={"choice": "approve"},
+    )
+    task = Task(workspace_id="workspace", title="Follow-up", input_message="Continue from the last approval.")
+
+    prompt = PromptBuilder().build(task, None, [], [], [], [event])
+
+    assert prompt["recent_ui_observations"][0]["event_type"] == "artifact.action.approved"
+    assert prompt["recent_ui_observations"][0]["payload"] == {"choice": "approve"}
+    assert prompt["memories"] == []
 
 
 def test_telegram_normalizes_text_message_and_callback_query() -> None:

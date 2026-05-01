@@ -2,22 +2,22 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Bot, Check, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
+import { ArrowUpRight, Bot, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
+import { MiniSurfaceRenderer } from "../mini-surfaces/MiniSurfaceRenderer";
 import { apiFetch, getBootstrap, sendMessage } from "../../lib/api";
 import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
 import type { ConversationEvent } from "../../lib/conversationEvents";
 import { settlePendingConversationEvents } from "../../lib/conversationEvents";
 import type { DemoContractFixture, FollowUpIntent, FollowUpIntentResult } from "../../lib/demoContracts";
-import { interactionPolicyService } from "../../lib/interactionPolicy";
+import { interactionPolicyService, normalizePolicyDecision } from "../../lib/interactionPolicy";
 import type { InteractionDecision } from "../../lib/interactionPolicy";
 import { getMiniSurfaceRegistration } from "../../lib/miniSurfaceRegistry";
 import type { MiniSurfaceType } from "../../lib/miniSurfaceRegistry";
-import type { Agent, Artifact, ArtifactAction, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
+import type { Agent, AgentAppManifest, Artifact, ArtifactAction, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
 
 type Locale = "en" | "zh";
 type InputMode = "sample" | "paste";
 type DemoStage = "Intent" | "Risk Review" | "Revision Draft" | "Memory";
-type SurfaceKind = MiniSurfaceType;
 type MemoryLifecycle = "none" | "candidate" | "confirmed" | "saved";
 type ChatTurn = ConversationEvent;
 type LiveEvent = { id: string; label: string; detail: string; status?: "done" | "active" | "pending" };
@@ -301,6 +301,7 @@ export function TelegramDemoPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [capabilities, setCapabilities] = useState<RuntimeCapabilities | null>(null);
+  const [appManifest, setAppManifest] = useState<AgentAppManifest | null>(null);
   const [sampleContract, setSampleContract] = useState<DemoContractFixture | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [confirmations, setConfirmations] = useState<Confirmation[]>([]);
@@ -324,16 +325,18 @@ export function TelegramDemoPage() {
   }, []);
 
   async function boot() {
-    const [bootstrap, runtime, contract] = await Promise.all([
+    const [bootstrap, runtime, contract, manifest] = await Promise.all([
       getBootstrap(),
       apiFetch<RuntimeCapabilities>("/api/runtime/capabilities"),
-      apiFetch<DemoContractFixture>("/api/demo/contracts/problematic-ai-service-agreement")
+      apiFetch<DemoContractFixture>("/api/demo/contracts/problematic-ai-service-agreement"),
+      apiFetch<AgentAppManifest>("/api/apps/contract-review-agent")
     ]);
     setWorkspace(bootstrap.workspace);
     setProject(bootstrap.projects[0] || null);
     setAgent(bootstrap.agents[0] || null);
     setCapabilities(runtime);
     setSampleContract(contract);
+    setAppManifest(manifest);
     if (bootstrap.workspace) {
       setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${bootstrap.workspace.id}`));
       setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${bootstrap.workspace.id}`));
@@ -425,18 +428,29 @@ export function TelegramDemoPage() {
       setInteractions(eventList);
       setStage("Risk Review");
       setLiveEvents((items) => advanceLiveEvent(items, "artifact.rendered", copy.live.surfaceRendered));
-      const decision = interactionPolicyService.evaluate({
-        event: "artifact_ready",
-        artifact: nextArtifact,
-        riskLevel: "high",
-        visibleMiniSurfaceCount: countVisibleMiniSurfaces(settlePendingConversationEvents([])),
-        channel: "web",
-      });
+      const decision = await evaluateAppPolicy(
+        {
+          artifact_type: "contract_review",
+          risk_level: "high",
+          requires_user_decision: true,
+          category: "liability",
+          mini_surfaces_used: 0,
+          confirmations_used: 0,
+          memory_cards_used: 0,
+        },
+        {
+          event: "artifact_ready",
+          artifact: nextArtifact,
+          riskLevel: "high",
+          visibleMiniSurfaceCount: 0,
+          channel: "web",
+        }
+      );
       setLastPolicyDecision(decision);
       setTurns((items) => [
         ...settlePendingConversationEvents(items),
         { id: id("bot-ready"), type: "agent_message", content: copy.ready(riskSummary(nextArtifact)) },
-        ...eventsForDecision(decision, "review", copy)
+        ...eventsForDecision(decision, "review", copy, appManifest)
       ]);
       setComposer("");
     } finally {
@@ -456,13 +470,18 @@ export function TelegramDemoPage() {
     });
     setInteractions((items) => [event, ...items]);
     const shouldProposeMemory = stage === "Revision Draft" && ["revise_tone", "remember_preference"].includes(intent.intent);
-    const decision = interactionPolicyService.evaluate({
-      event: "followup_received",
-      artifact,
-      followUpIntent: intent.intent,
-      visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns),
-      channel: "web",
-    });
+    const decision = shouldProposeMemory
+      ? await evaluateAppPolicy(
+        { signal: "user_preference_detected", mini_surfaces_used: countVisibleMiniSurfaces(turns), memory_cards_used: memoryLifecycle === "none" ? 0 : 1 },
+        { event: "followup_received", artifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
+      )
+      : interactionPolicyService.evaluate({
+        event: "followup_received",
+        artifact,
+        followUpIntent: intent.intent,
+        visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns),
+        channel: "web",
+      });
     setLastPolicyDecision(decision);
     if (shouldProposeMemory) setMemoryLifecycle("candidate");
     setTurns((items) => [
@@ -473,7 +492,7 @@ export function TelegramDemoPage() {
       ...(shouldProposeMemory ? [
         { id: id("observe-memory-candidate"), type: "observation" as const, content: copy.memoryCandidateProposed },
         { id: id("bot-memory-prompt"), type: "agent_message" as const, content: copy.memoryPrompt },
-        ...eventsForDecision(decision, "memory", copy)
+        ...eventsForDecision(decision, "memory", copy, appManifest)
       ] : [])
     ]);
     if (shouldProposeMemory) setStage("Memory");
@@ -496,7 +515,10 @@ export function TelegramDemoPage() {
     if (!artifact) return;
     const event = await persistInteraction("channel.telegram_demo.open_full_review", {});
     setInteractions((items) => [event, ...items]);
-    const decision = interactionPolicyService.evaluate({ event: "open_full_review", artifact, richSurfaceOpened: fullReviewOpen, channel: "web" });
+    const decision = await evaluateAppPolicy(
+      { user_action: "open_full_review" },
+      { event: "open_full_review", artifact, richSurfaceOpened: fullReviewOpen, channel: "web" }
+    );
     setLastPolicyDecision(decision);
     setFullReviewOpen(true);
     setTurns((items) => [
@@ -544,7 +566,7 @@ export function TelegramDemoPage() {
       ...items,
       { id: id("observe-approve"), type: "observation", content: copy.approvedObservation },
       { id: id("bot-approved"), type: "agent_message", content: copy.approvedReply },
-      ...eventsForDecision(decision, "revision", copy)
+      ...eventsForDecision(decision, "revision", copy, appManifest)
     ]);
     setComposer(copy.followupSuggestion);
   }
@@ -608,6 +630,18 @@ export function TelegramDemoPage() {
     });
   }
 
+  async function evaluateAppPolicy(context: Record<string, unknown>, fallbackContext: Parameters<typeof interactionPolicyService.evaluate>[0]) {
+    try {
+      const decision = await apiFetch<InteractionDecision>("/api/apps/contract-review-agent/interaction-policy/evaluate", {
+        method: "POST",
+        body: JSON.stringify(context),
+      });
+      return normalizePolicyDecision(decision);
+    } catch {
+      return normalizePolicyDecision(interactionPolicyService.evaluate(fallbackContext));
+    }
+  }
+
   const modeLabel = capabilities?.llm_enabled ? copy.runtimeLlm(capabilities.llm_provider, capabilities.default_model) : copy.runtimeDeterministic;
   const diagnostics = modelDiagnostics(capabilities, trace);
 
@@ -633,6 +667,7 @@ export function TelegramDemoPage() {
           {turns.map((turn) => (
             <ChatTurnItem
               artifact={artifact}
+              appManifest={appManifest}
               copy={copy}
               key={turn.id}
               onApprove={approveRevision}
@@ -683,6 +718,7 @@ export function TelegramDemoPage() {
       {inspectorOpen ? (
         <DeveloperInspectorDrawer
           capabilities={capabilities}
+          appManifest={appManifest}
           confirmations={confirmations}
           copy={copy}
           diagnostics={diagnostics}
@@ -707,6 +743,7 @@ export function TelegramDemoPage() {
 
 function ChatTurnItem({
   artifact,
+  appManifest,
   copy,
   onApprove,
   onEdit,
@@ -716,6 +753,7 @@ function ChatTurnItem({
   turn
 }: {
   artifact: Artifact | null;
+  appManifest: AgentAppManifest | null;
   copy: DemoCopy;
   onApprove: () => Promise<void>;
   onEdit: () => Promise<void>;
@@ -726,11 +764,22 @@ function ChatTurnItem({
 }) {
   if (turn.type === "mini_surface" || turn.type === "memory_candidate") {
     if (!artifact) return null;
-    if (turn.surface === "MiniIssueCard") return <ContractReviewMiniSurface artifact={artifact} copy={copy} onApprove={onApprove} onEdit={onEdit} onFullReview={onFullReview} />;
-    if (turn.surface === "MiniRevisionPreview") return <RevisionDraftMiniSurface artifact={artifact} copy={copy} onFullReview={onFullReview} />;
-    if (turn.surface === "MiniChoiceCard") return <MiniChoiceCard artifact={artifact} copy={copy} onFullReview={onFullReview} />;
-    if (turn.surface === "MiniToolPreview") return <MiniToolPreview copy={copy} />;
-    return <MemoryCandidateMiniSurface artifact={artifact} copy={copy} onMemory={onMemory} onSkip={onSkipMemory} />;
+    const surfaceType = isMiniSurfaceType(turn.surface) ? turn.surface : "MiniMemoryCard";
+    if (appManifest && !appManifest.surfaces.mini.includes(surfaceType)) return null;
+    return (
+      <MiniSurfaceRenderer
+        artifact={artifact}
+        copy={copy}
+        onApprove={onApprove}
+        onEdit={onEdit}
+        onFullReview={onFullReview}
+        onMemory={onMemory}
+        onSkipMemory={onSkipMemory}
+        primaryRisk={primaryRiskForArtifact(artifact)}
+        summary={findBlock(artifact, "risk_summary")?.data}
+        surfaceType={surfaceType}
+      />
+    );
   }
   if (turn.type === "attachment") {
     return (
@@ -749,124 +798,6 @@ function ChatTurnItem({
       <span>{turn.content}</span>
       {turn.status ? <span className="typing-dots"><i /> <i /> <i /></span> : null}
     </div>
-  );
-}
-
-function ContractReviewMiniSurface({
-  artifact,
-  copy,
-  onApprove,
-  onEdit,
-  onFullReview
-}: {
-  artifact: Artifact;
-  copy: DemoCopy;
-  onApprove: () => Promise<void>;
-  onEdit: () => Promise<void>;
-  onFullReview: () => Promise<void>;
-}) {
-  const summary = findBlock(artifact, "risk_summary");
-  const activeRisk = primaryRiskForArtifact(artifact);
-  return (
-    <article className="mini-surface-card contract-review-mini">
-      <header>
-        <span className="eyebrow">{copy.contractReview}</span>
-        <h2>{artifact.title}</h2>
-      </header>
-      {summary ? (
-        <div className="mini-risk-metrics">
-          <div><strong>{String(summary.data.high_count || 0)}</strong><span>{copy.high}</span></div>
-          <div><strong>{String(summary.data.medium_count || 0)}</strong><span>{copy.medium}</span></div>
-          <div><strong>{String(summary.data.low_count || 0)}</strong><span>{copy.low}</span></div>
-        </div>
-      ) : null}
-      {activeRisk ? (
-        <section className="mini-active-risk">
-          <strong>{copy.activeRisk}: {String(activeRisk.clause || "")}</strong>
-          <p>{String(activeRisk.issue || "")}</p>
-          <b>{copy.recommendedRevision}</b>
-          <p>{String(activeRisk.suggested_revision || "")}</p>
-          {activeRisk.evidence ? <small>{copy.evidence}: {String(activeRisk.evidence)}</small> : null}
-        </section>
-      ) : null}
-      <div className="mini-surface-actions">
-        <button className="primary-button" onClick={() => void onApprove()}><Check size={14} /> {copy.approveRevision}</button>
-        <button className="secondary-action" onClick={() => void onEdit()}>{copy.editDirection}</button>
-        <button className="secondary-action" onClick={() => void onFullReview()}><ArrowUpRight size={14} /> {copy.openFullReview}</button>
-      </div>
-    </article>
-  );
-}
-
-function RevisionDraftMiniSurface({ artifact, copy, onFullReview }: { artifact: Artifact; copy: DemoCopy; onFullReview: () => Promise<void> }) {
-  const block = findBlock(artifact, "editable_revision");
-  const activeRisk = risksForArtifact(artifact).find((risk) => String(risk.risk_level) === "high");
-  return (
-    <article className="mini-surface-card revision-mini">
-      <header>
-        <span className="eyebrow">{copy.revisionDraft}</span>
-        <h2>{String(block?.data.heading || copy.revisionPreview)}</h2>
-      </header>
-      <div className="mini-before-after">
-        <div><span>{copy.before}</span><p>{String(activeRisk?.evidence || activeRisk?.issue || "")}</p></div>
-        <div><span>{copy.after}</span><p>{String(block?.data.content || activeRisk?.suggested_revision || "")}</p></div>
-      </div>
-      <div className="mini-surface-actions">
-        <button className="secondary-action">{copy.makeSofter}</button>
-        <button className="secondary-action">{copy.makeStricter}</button>
-        <button className="secondary-action">{copy.draftEmail}</button>
-        <button className="secondary-action" onClick={() => void onFullReview()}><ArrowUpRight size={14} /> {copy.openArtifact}</button>
-      </div>
-    </article>
-  );
-}
-
-function MemoryCandidateMiniSurface({ artifact, copy, onMemory, onSkip }: { artifact: Artifact; copy: DemoCopy; onMemory: () => Promise<void>; onSkip: () => Promise<void> }) {
-  const block = findBlock(artifact, "memory_candidate");
-  return (
-    <article className="mini-surface-card memory-mini">
-      <header>
-        <span className="eyebrow">{copy.memoryCandidate}</span>
-        <h2>{copy.memoryCandidate}</h2>
-      </header>
-      <p>{String(block?.data.content || copy.memoryPrompt)}</p>
-      <small>{copy.memoryWhy}</small>
-      <div className="mini-surface-actions">
-        <button className="primary-button" onClick={() => void onMemory()}><Database size={14} /> {copy.remember}</button>
-        <button className="secondary-action">{copy.editDirection}</button>
-        <button className="secondary-action" onClick={() => void onSkip()}>{copy.notNow}</button>
-      </div>
-    </article>
-  );
-}
-
-function MiniChoiceCard({ artifact, copy, onFullReview }: { artifact: Artifact; copy: DemoCopy; onFullReview: () => Promise<void> }) {
-  return (
-    <article className="mini-surface-card choice-mini">
-      <header>
-        <span className="eyebrow">MiniChoiceCard</span>
-        <h2>{copy.draftEmail}</h2>
-      </header>
-      <p>{copy.followupReplies.draft_email}</p>
-      <div className="mini-surface-actions">
-        <button className="secondary-action">{copy.makeSofter}</button>
-        <button className="secondary-action">{copy.makeStricter}</button>
-        <button className="secondary-action" onClick={() => void onFullReview()}><ArrowUpRight size={14} /> {copy.openArtifact}</button>
-      </div>
-      <small>{artifact.title}</small>
-    </article>
-  );
-}
-
-function MiniToolPreview({ copy }: { copy: DemoCopy }) {
-  return (
-    <article className="mini-surface-card tool-mini">
-      <header>
-        <span className="eyebrow">MiniToolPreview</span>
-        <h2>{copy.approveRevision}</h2>
-      </header>
-      <p>{copy.rendering}</p>
-    </article>
   );
 }
 
@@ -904,6 +835,7 @@ function FullReviewDrawer({ artifact, copy, onClose }: { artifact: Artifact; cop
 }
 
 function DeveloperInspectorDrawer({
+  appManifest,
   capabilities,
   confirmations,
   copy,
@@ -918,6 +850,7 @@ function DeveloperInspectorDrawer({
   onClose,
   trace
 }: {
+  appManifest: AgentAppManifest | null;
   capabilities: RuntimeCapabilities | null;
   confirmations: Confirmation[];
   copy: DemoCopy;
@@ -951,8 +884,9 @@ function DeveloperInspectorDrawer({
           <span>{copy.noSecrets}</span>
         </InspectorCard>
         <InspectorCard icon={<FileText size={16} />} title={copy.rendererDecision}>
+          {appManifest ? <span>app: {appManifest.id} · policy {appManifest.runtime.interaction_policy}</span> : null}
           {lastPolicyDecision ? (
-            <span>{lastPolicyDecision.decision}: {lastPolicyDecision.surfaceType || "none"} · {lastPolicyDecision.reason}</span>
+            <span>{lastPolicyDecision.decision}: {lastPolicyDecision.surfaceType || lastPolicyDecision.surface || "none"} · {lastPolicyDecision.reason}</span>
           ) : null}
           {Object.values(["MiniIssueCard", "MiniApprovalCard", "MiniRevisionPreview", "MiniMemoryCard", "MiniToolPreview", "MiniChoiceCard"] as MiniSurfaceType[]).map((type) => {
             const registration = getMiniSurfaceRegistration(type);
@@ -1024,13 +958,14 @@ function countVisibleMiniSurfaces(turns: ChatTurn[]) {
   return turns.filter((turn) => turn.type === "mini_surface" || turn.type === "memory_candidate").length;
 }
 
-function eventsForDecision(decision: InteractionDecision, context: "review" | "revision" | "memory", copy: DemoCopy): ChatTurn[] {
+function eventsForDecision(decision: InteractionDecision, context: "review" | "revision" | "memory", copy: DemoCopy, appManifest: AgentAppManifest | null): ChatTurn[] {
   if (decision.decision !== "mini_surface" || !decision.surfaceType) {
-    if (decision.decision === "rich_surface_link") {
+    if (decision.decision === "rich_surface" || decision.decision === "rich_surface_link") {
       return [{ id: id(`rich-${context}`), type: "rich_surface_link", content: copy.openFullReview, metadata: { reason: decision.reason } }];
     }
     return [];
   }
+  if (appManifest && !appManifest.surfaces.mini.includes(decision.surfaceType)) return [];
   return [
     {
       id: id(`surface-${context}`),
@@ -1039,6 +974,10 @@ function eventsForDecision(decision: InteractionDecision, context: "review" | "r
       metadata: { reason: decision.reason, priority: decision.priority },
     },
   ];
+}
+
+function isMiniSurfaceType(surface: string): surface is MiniSurfaceType {
+  return ["MiniIssueCard", "MiniApprovalCard", "MiniRevisionPreview", "MiniMemoryCard", "MiniToolPreview", "MiniChoiceCard"].includes(surface);
 }
 
 function stageLabel(stage: DemoStage, copy: DemoCopy) {

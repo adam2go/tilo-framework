@@ -6,7 +6,7 @@ COPY backend/pyproject.toml ./
 RUN pip install --no-cache-dir .
 
 COPY backend/app ./app
-COPY examples/contracts ./examples/contracts
+COPY examples ./examples
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -10,6 +10,7 @@ from app.services.agent_runtime.state_machine import RunStateMachine
 from app.services.artifact.generator import ArtifactGenerator
 from app.services.improvement.metrics import RunMetricsService
 from app.services.inbox.confirmations import ConfirmationService
+from app.services.interactions.events import UIInteractionEventService
 from app.services.memory.extraction import MemoryExtractionService
 from app.services.memory.recall import MemoryRecallService, recall_results_to_json
 from app.services.skill.selector import SkillSelector
@@ -45,8 +46,19 @@ class RunManager:
             skills = SkillSelector(self.db).select_for_task(task, agent)
             self.trace.record(run.id, "select_skill", "Select skills", f"Selected {len(skills)} candidate skills.", output_json={"skill_ids": [skill.id for skill in skills]})
 
-            prompt = PromptBuilder().build(task, agent, memories, skills, [])
-            self.trace.record(run.id, "build_prompt", "Build prompt context", "Built safe runtime context from task, memory, skills, and tools.", output_json={"memory_count": len(prompt["memories"]), "skill_count": len(prompt["skills"])})
+            recent_ui_observations = UIInteractionEventService(self.db).recent_for_context(workspace_id=task.workspace_id, project_id=task.project_id)
+            prompt = PromptBuilder().build(task, agent, memories, skills, [], recent_ui_observations)
+            self.trace.record(
+                run.id,
+                "build_prompt",
+                "Build prompt context",
+                "Built safe runtime context from task, memory, skills, tools, and recent UI observations.",
+                output_json={
+                    "memory_count": len(prompt["memories"]),
+                    "skill_count": len(prompt["skills"]),
+                    "recent_ui_observation_count": len(prompt["recent_ui_observations"]),
+                },
+            )
 
             plan = Planner().plan(task, memories, skills)
             run.plan_json = plan

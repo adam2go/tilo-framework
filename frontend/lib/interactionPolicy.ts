@@ -2,7 +2,7 @@ import type { Artifact } from "./types";
 import type { FollowUpIntent } from "./demoContracts";
 import type { MiniSurfaceType } from "./miniSurfaceRegistry";
 
-export type InteractionDecisionKind = "no_ui" | "mini_surface" | "rich_surface_link" | "ask_text";
+export type InteractionDecisionKind = "no_ui" | "mini_surface" | "rich_surface" | "rich_surface_link" | "ask_text";
 
 export type InteractionPolicyContext = {
   event:
@@ -26,6 +26,8 @@ export type InteractionDecision = {
   decision: InteractionDecisionKind;
   reason: string;
   surfaceType?: MiniSurfaceType;
+  surface?: string | null;
+  rule_id?: string | null;
   priority?: "high" | "medium" | "low";
 };
 
@@ -93,7 +95,7 @@ export class InteractionPolicyService {
     }
 
     if (context.event === "open_full_review") {
-      return { decision: "rich_surface_link", reason: "user_requested_complete_artifact", priority: "medium" };
+      return { decision: "rich_surface", reason: "user_requested_complete_artifact", priority: "medium" };
     }
 
     if (context.event === "tool_call_requested") {
@@ -113,6 +115,18 @@ export class InteractionPolicyService {
 }
 
 export const interactionPolicyService = new InteractionPolicyService();
+
+export function normalizePolicyDecision(decision: InteractionDecision): InteractionDecision {
+  const surface = decision.surfaceType || decision.surface;
+  return {
+    ...decision,
+    surfaceType: isMiniSurfaceType(surface) ? surface : decision.surfaceType,
+  };
+}
+
+function isMiniSurfaceType(surface?: string | null): surface is MiniSurfaceType {
+  return Boolean(surface && ["MiniIssueCard", "MiniApprovalCard", "MiniRevisionPreview", "MiniMemoryCard", "MiniToolPreview", "MiniChoiceCard"].includes(surface));
+}
 
 function hasHighRiskArtifact(artifact?: Artifact | null) {
   const riskReview = artifact?.schema_json.blocks.find((block) => block.id === "risk_review" || block.type === "risk_review_panel");

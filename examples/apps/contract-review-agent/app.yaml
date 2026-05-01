@@ -1,0 +1,40 @@
+id: contract-review-agent
+version: "0.1"
+name: Contract Review Agent
+description: Reviews contracts and asks for human input only at key legal and business decision points.
+
+entry:
+  type: conversation
+  default_prompt: 请审查这份合同，重点关注付款、验收、数据合规、知识产权、责任限制和终止条款。
+
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: interaction.policy.yaml
+
+surfaces:
+  mini:
+    - MiniIssueCard
+    - MiniApprovalCard
+    - MiniRevisionPreview
+    - MiniMemoryCard
+    - MiniToolPreview
+    - MiniChoiceCard
+  rich:
+    - ContractReviewArtifact
+
+sample_inputs:
+  - type: contract_fixture
+    name: problematic-ai-service-agreement
+    path: ../../contracts/problematic-ai-service-agreement.md
+
+tools:
+  - name: contract_parser
+    required: false
+  - name: document_exporter
+    required: false
+
+channels:
+  - web
+  - telegram

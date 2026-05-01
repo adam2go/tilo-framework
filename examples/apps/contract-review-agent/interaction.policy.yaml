@@ -1,0 +1,39 @@
+id: contract-review-policy
+version: "0.1"
+
+budget:
+  max_mini_surfaces_per_run: 3
+  max_confirmations_per_run: 2
+  max_memory_cards_per_run: 1
+
+rules:
+  - id: high-risk-liability-needs-confirmation
+    when:
+      artifact_type: contract_review
+      risk_level: high
+      requires_user_decision: true
+      category: liability
+    decision: mini_surface
+    surface: MiniIssueCard
+    reason: high_risk_human_confirmation_required
+
+  - id: normal-finding-no-ui
+    when:
+      artifact_type: contract_review
+      risk_level: medium
+    decision: no_ui
+    reason: agent_can_continue_autonomously
+
+  - id: open-full-review
+    when:
+      user_action: open_full_review
+    decision: rich_surface
+    surface: ContractReviewArtifact
+    reason: user_requested_details
+
+  - id: memory-after-preference
+    when:
+      signal: user_preference_detected
+    decision: mini_surface
+    surface: MiniMemoryCard
+    reason: memory_requires_user_control
