@@ -19,7 +19,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.core.config import Settings  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Confirmation, Memory, Run, Task, TraceStep, UIInteractionEvent  # noqa: E402
+from app.models import Artifact, Confirmation, Memory, Run, Task, TraceStep, UIInteractionEvent  # noqa: E402
+from app.services.agent_context import AgentContextBuilder  # noqa: E402
 from app.services.agent_runtime.run_manager import RunManager  # noqa: E402
 from app.services.agent_runtime.prompt_builder import PromptBuilder  # noqa: E402
 from app.services.agent_runtime.state_machine import InvalidStateTransition, RunStateMachine  # noqa: E402
@@ -31,7 +32,7 @@ from app.services.artifact.contract_llm import ContractReviewLLMGenerator  # noq
 from app.services.models.client import ModelClient  # noqa: E402
 from app.services.models.errors import ModelDisabledError, ModelInvalidJSONError  # noqa: E402
 from app.services.demo import classify_followup_deterministic, load_problematic_ai_service_agreement  # noqa: E402
-from app.services.apps.loader import get_app_loader  # noqa: E402
+from app.services.apps.loader import AgentAppLoader, get_app_loader  # noqa: E402
 from app.services.interaction_policy.schemas import InteractionContext, InteractionDecisionType  # noqa: E402
 from app.services.interaction_policy.service import InteractionPolicyService  # noqa: E402
 from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
@@ -113,6 +114,7 @@ def test_interaction_policy_evaluates_core_decisions_and_budget() -> None:
     medium_risk = service.evaluate(policy, InteractionContext(artifact_type="contract_review", risk_level="medium"))
     full_review = service.evaluate(policy, InteractionContext(user_action="open_full_review"))
     memory = service.evaluate(policy, InteractionContext(signal="user_preference_detected"))
+    revision = service.evaluate(policy, InteractionContext(user_action="approve_revision"))
     unknown = service.evaluate(policy, InteractionContext(artifact_type="contract_review", risk_level="low"))
     budgeted = service.evaluate(
         policy,
@@ -127,10 +129,12 @@ def test_interaction_policy_evaluates_core_decisions_and_budget() -> None:
 
     assert high_risk.decision == InteractionDecisionType.mini_surface
     assert high_risk.surface == "MiniIssueCard"
+    assert high_risk.rule_id == "high-risk-liability-needs-confirmation"
     assert medium_risk.decision == InteractionDecisionType.no_ui
     assert full_review.decision == InteractionDecisionType.rich_surface
     assert full_review.surface == "ContractReviewArtifact"
     assert memory.surface == "MiniMemoryCard"
+    assert revision.surface == "MiniRevisionPreview"
     assert unknown.decision == InteractionDecisionType.no_ui
     assert budgeted.decision == InteractionDecisionType.no_ui
     assert budgeted.reason == "mini_surface_budget_exceeded"
@@ -151,6 +155,131 @@ def test_interaction_policy_api_returns_primary_mini_surface() -> None:
     assert response.status_code == 200
     assert response.json()["decision"] == "mini_surface"
     assert response.json()["surface"] == "MiniIssueCard"
+    assert response.json()["rule_id"] == "high-risk-liability-needs-confirmation"
+
+
+def test_policy_surface_validation_rejects_undeclared_surface(tmp_path: Path) -> None:
+    app_dir = tmp_path / "bad-agent"
+    app_dir.mkdir()
+    (app_dir / "app.yaml").write_text(
+        """
+id: bad-agent
+version: "0.1"
+name: Bad Agent
+description: Bad manifest
+entry:
+  type: conversation
+  default_prompt: Hello
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: interaction.policy.yaml
+surfaces:
+  mini:
+    - MiniIssueCard
+  rich: []
+sample_inputs: []
+tools: []
+channels:
+  - web
+""",
+        encoding="utf-8",
+    )
+    (app_dir / "interaction.policy.yaml").write_text(
+        """
+id: bad-policy
+version: "0.1"
+rules:
+  - id: missing-surface
+    when:
+      signal: test
+    decision: mini_surface
+    surface: MiniMemoryCard
+    reason: missing
+""",
+        encoding="utf-8",
+    )
+
+    loader = AgentAppLoader(tmp_path)
+    service = InteractionPolicyService()
+    policy = service.load_file(loader.load_policy_path("bad-agent"))
+
+    with pytest.raises(ValueError, match="undeclared mini surface"):
+        service.validate_for_app(loader.load_manifest("bad-agent"), policy)
+
+
+def test_manifest_loader_restricts_sample_paths(tmp_path: Path) -> None:
+    app_dir = tmp_path / "unsafe-sample-agent"
+    app_dir.mkdir()
+    (app_dir / "app.yaml").write_text(
+        """
+id: unsafe-sample-agent
+version: "0.1"
+name: Unsafe Agent
+description: Unsafe manifest
+entry:
+  type: conversation
+  default_prompt: Hello
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: interaction.policy.yaml
+surfaces:
+  mini: []
+  rich: []
+sample_inputs:
+  - type: fixture
+    name: unsafe
+    path: ../../../outside.txt
+tools: []
+channels:
+  - web
+""",
+        encoding="utf-8",
+    )
+    (app_dir / "interaction.policy.yaml").write_text("id: safe\nversion: '0.1'\nrules: []\n", encoding="utf-8")
+
+    loader = AgentAppLoader(tmp_path)
+
+    with pytest.raises(ValueError, match="Sample input"):
+        loader.load_manifest("unsafe-sample-agent")
+
+
+def test_manifest_loader_restricts_policy_paths(tmp_path: Path) -> None:
+    app_dir = tmp_path / "unsafe-policy-agent"
+    app_dir.mkdir()
+    (app_dir / "app.yaml").write_text(
+        """
+id: unsafe-policy-agent
+version: "0.1"
+name: Unsafe Agent
+description: Unsafe manifest
+entry:
+  type: conversation
+  default_prompt: Hello
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: ../outside.policy.yaml
+surfaces:
+  mini: []
+  rich: []
+sample_inputs: []
+tools: []
+channels:
+  - web
+""",
+        encoding="utf-8",
+    )
+    (tmp_path / "outside.policy.yaml").write_text("id: outside\nversion: '0.1'\nrules: []\n", encoding="utf-8")
+
+    loader = AgentAppLoader(tmp_path)
+
+    with pytest.raises(ValueError, match="outside app directory"):
+        loader.load_policy_path("unsafe-policy-agent")
 
 
 def test_demo_followup_intent_endpoint_uses_deterministic_fallback() -> None:
@@ -439,6 +568,60 @@ def test_prompt_builder_includes_recent_ui_observations_without_turning_them_int
     assert prompt["recent_ui_observations"][0]["event_type"] == "artifact.action.approved"
     assert prompt["recent_ui_observations"][0]["payload"] == {"choice": "approve"}
     assert prompt["memories"] == []
+
+
+def test_agent_context_builder_includes_ui_events_confirmed_memories_and_policy_decision() -> None:
+    with TestClient(app):
+        with SessionLocal() as db:
+            workspace_id = "agent-context-workspace"
+            project_id = "agent-context-project"
+            artifact = Artifact(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                title="Context Artifact",
+                type="contract_review",
+                schema_json={"status": "ready", "blocks": [{"id": "risk_summary", "data": {"high_count": 1}}]},
+            )
+            memory = Memory(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                type="preference",
+                content="Prefer negotiation-friendly revisions.",
+                status="confirmed",
+                is_confirmed=True,
+            )
+            interaction = UIInteractionEvent(
+                workspace_id=workspace_id,
+                project_id=project_id,
+                artifact_id="artifact-context",
+                event_type="artifact.action.approved",
+                payload_json={"choice": "approve"},
+            )
+            confirmation = Confirmation(
+                workspace_id=workspace_id,
+                type="approval",
+                title="Approve revision",
+                description="Approve revision",
+                status="pending",
+                payload_json={},
+            )
+            db.add_all([artifact, memory, interaction, confirmation])
+            db.commit()
+            db.refresh(artifact)
+
+            context = AgentContextBuilder(db).build(
+                app_id="contract-review-agent",
+                workspace_id=workspace_id,
+                project_id=project_id,
+                artifact_id=artifact.id,
+                policy_context=InteractionContext(user_action="approve_revision"),
+            )
+
+    assert context["recent_ui_observations"][0]["event_type"] == "artifact.action.approved"
+    assert context["confirmed_memories"][0]["content"] == "Prefer negotiation-friendly revisions."
+    assert context["pending_confirmations"][0]["title"] == "Approve revision"
+    assert context["active_artifact_summary"]["risk_summary"]["high_count"] == 1
+    assert context["last_policy_decision"]["rule_id"] == "revision-approved-preview"
 
 
 def test_telegram_normalizes_text_message_and_callback_query() -> None:

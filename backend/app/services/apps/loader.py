@@ -29,7 +29,7 @@ class AgentAppLoader:
 
     def load_policy_path(self, app_id: str) -> Path:
         app = self.load_manifest(app_id)
-        return self._resolve_relative_file(self._safe_app_dir(app_id), app.runtime.interaction_policy)
+        return self._resolve_app_file(self._safe_app_dir(app_id), app.runtime.interaction_policy)
 
     def _safe_app_dir(self, app_id: str) -> Path:
         app_dir = (self.apps_root / app_id).resolve()
@@ -41,14 +41,25 @@ class AgentAppLoader:
         return app_dir
 
     def _resolve_sample_input(self, item, app_dir: Path):
-        resolved = self._resolve_relative_file(app_dir, item.path)
+        resolved = self._resolve_sample_file(app_dir, item.path)
         return item.model_copy(update={"resolved_path": str(resolved.relative_to(repo_root()))})
 
-    def _resolve_relative_file(self, app_dir: Path, relative_path: str) -> Path:
+    def _resolve_app_file(self, app_dir: Path, relative_path: str) -> Path:
         resolved = (app_dir / relative_path).resolve()
-        root = repo_root().resolve()
-        if root not in resolved.parents and resolved != root:
-            raise ValueError(f"Path resolves outside repository: {relative_path}")
+        if app_dir.resolve() not in resolved.parents and resolved != app_dir.resolve():
+            raise ValueError(f"Path resolves outside app directory: {relative_path}")
+        if not resolved.exists():
+            raise FileNotFoundError(relative_path)
+        return resolved
+
+    def _resolve_sample_file(self, app_dir: Path, relative_path: str) -> Path:
+        resolved = (app_dir / relative_path).resolve()
+        allowed_contracts = (repo_root() / "examples" / "contracts").resolve()
+        app_dir = app_dir.resolve()
+        is_inside_app = app_dir in resolved.parents or resolved == app_dir
+        is_contract_fixture = allowed_contracts in resolved.parents or resolved == allowed_contracts
+        if not is_inside_app and not is_contract_fixture:
+            raise ValueError(f"Sample input must be inside the app directory or examples/contracts: {relative_path}")
         if not resolved.exists():
             raise FileNotFoundError(relative_path)
         return resolved

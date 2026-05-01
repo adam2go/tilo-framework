@@ -30,3 +30,12 @@ Budgets prevent UI overload:
 - `max_memory_cards_per_run`
 
 If a budget is exceeded, the service returns `no_ui` or `ask_text` depending on the kind of interaction.
+
+Round 1.5 note: budget counters are still supplied by the caller in `InteractionContext`
+(`mini_surfaces_used`, `confirmations_used`, `memory_cards_used`). They are explicit
+runtime inputs, not yet durable backend-computed counters. Round 2 should derive them
+from persisted conversation turns, confirmations, and UI interaction events.
+
+The Telegram-like web demo treats backend policy evaluation as the source of truth.
+Its local TypeScript policy is retained only as a deterministic fallback when the
+backend policy endpoint is unavailable, and the debug drawer labels fallback decisions.

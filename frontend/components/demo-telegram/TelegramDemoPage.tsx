@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
-import { MiniSurfaceRenderer } from "../mini-surfaces/MiniSurfaceRenderer";
+import { ContractReviewMiniSurfaceAdapter } from "./ContractReviewMiniSurfaceAdapter";
 import { apiFetch, getBootstrap, sendMessage } from "../../lib/api";
 import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
 import type { ConversationEvent } from "../../lib/conversationEvents";
@@ -121,6 +121,7 @@ const demoCopy = {
     after: "After",
     memoryWhy: "Tilo suggests remembering this because it can improve future contract reviews.",
     rendererDecision: "Renderer Decision",
+    policyFallback: "frontend fallback policy",
     liveEvents: "Live Events",
     runtimeMode: "Runtime Mode",
     modelDiagnostics: "Model Diagnostics",
@@ -246,6 +247,7 @@ const demoCopy = {
     after: "修订后",
     memoryWhy: "Tilo 建议记住它，因为这能改善未来的合同审查。",
     rendererDecision: "渲染决策",
+    policyFallback: "前端 fallback policy",
     liveEvents: "实时事件",
     runtimeMode: "运行模式",
     modelDiagnostics: "模型诊断",
@@ -325,18 +327,19 @@ export function TelegramDemoPage() {
   }, []);
 
   async function boot() {
-    const [bootstrap, runtime, contract, manifest] = await Promise.all([
+    const [bootstrap, runtime, manifest] = await Promise.all([
       getBootstrap(),
       apiFetch<RuntimeCapabilities>("/api/runtime/capabilities"),
-      apiFetch<DemoContractFixture>("/api/demo/contracts/problematic-ai-service-agreement"),
       apiFetch<AgentAppManifest>("/api/apps/contract-review-agent")
     ]);
+    const contract = await apiFetch<DemoContractFixture>(contractEndpointForManifest(manifest));
     setWorkspace(bootstrap.workspace);
     setProject(bootstrap.projects[0] || null);
     setAgent(bootstrap.agents[0] || null);
     setCapabilities(runtime);
     setSampleContract(contract);
     setAppManifest(manifest);
+    setComposer(defaultPrompt(copy, manifest, locale));
     if (bootstrap.workspace) {
       setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${bootstrap.workspace.id}`));
       setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${bootstrap.workspace.id}`));
@@ -353,7 +356,7 @@ export function TelegramDemoPage() {
     setInteractions([]);
     setTurns(initialTurns(nextCopy));
     setLiveEvents(initialLiveEvents(nextCopy));
-    setComposer(nextCopy.demoGoal);
+    setComposer(defaultPrompt(nextCopy, appManifest, nextLocale));
     setInputMode("sample");
     setStage("Intent");
     setLastIntent(null);
@@ -369,7 +372,7 @@ export function TelegramDemoPage() {
     setInteractions([]);
     setTurns(initialTurns(copy));
     setLiveEvents(initialLiveEvents(copy));
-    setComposer(inputMode === "sample" ? copy.demoGoal : "");
+    setComposer(inputMode === "sample" ? defaultPrompt(copy, appManifest, locale) : "");
     setStage("Intent");
     setLastIntent(null);
     setMemoryLifecycle("none");
@@ -475,13 +478,10 @@ export function TelegramDemoPage() {
         { signal: "user_preference_detected", mini_surfaces_used: countVisibleMiniSurfaces(turns), memory_cards_used: memoryLifecycle === "none" ? 0 : 1 },
         { event: "followup_received", artifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
       )
-      : interactionPolicyService.evaluate({
-        event: "followup_received",
-        artifact,
-        followUpIntent: intent.intent,
-        visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns),
-        channel: "web",
-      });
+      : await evaluateAppPolicy(
+        { signal: policySignalForFollowUp(intent.intent), mini_surfaces_used: countVisibleMiniSurfaces(turns), memory_cards_used: memoryLifecycle === "none" ? 0 : 1 },
+        { event: "followup_received", artifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
+      );
     setLastPolicyDecision(decision);
     if (shouldProposeMemory) setMemoryLifecycle("candidate");
     setTurns((items) => [
@@ -548,12 +548,10 @@ export function TelegramDemoPage() {
     }
     setInteractions((items) => [event, ...items]);
     setStage("Revision Draft");
-    const decision = interactionPolicyService.evaluate({
-      event: "revision_approved",
-      artifact,
-      visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns),
-      channel: "web",
-    });
+    const decision = await evaluateAppPolicy(
+      { user_action: "approve_revision", mini_surfaces_used: countVisibleMiniSurfaces(turns) },
+      { event: "revision_approved", artifact, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
+    );
     setLastPolicyDecision(decision);
     setLiveEvents((items) =>
       advanceLiveEvent(
@@ -636,9 +634,9 @@ export function TelegramDemoPage() {
         method: "POST",
         body: JSON.stringify(context),
       });
-      return normalizePolicyDecision(decision);
+      return { ...normalizePolicyDecision(decision), source: "backend_policy" };
     } catch {
-      return normalizePolicyDecision(interactionPolicyService.evaluate(fallbackContext));
+      return { ...normalizePolicyDecision(interactionPolicyService.evaluate(fallbackContext)), source: "frontend_fallback" };
     }
   }
 
@@ -686,7 +684,7 @@ export function TelegramDemoPage() {
               {(["sample", "paste"] as const).map((mode) => (
                 <button className={inputMode === mode ? "active" : ""} key={mode} onClick={() => {
                   setInputMode(mode);
-                  setComposer(mode === "sample" ? copy.demoGoal : "");
+                  setComposer(mode === "sample" ? defaultPrompt(copy, appManifest, locale) : "");
                 }} type="button">
                   {mode === "sample" ? copy.sampleMode : copy.pasteMode}
                 </button>
@@ -698,7 +696,8 @@ export function TelegramDemoPage() {
               setTurns((items) => [...items, { id: id("sample-loading"), type: "agent_message", content: copy.sampleUnavailable }]);
               return;
             }
-            void runInitialReview(buildDemoMessage(copy, "sample", copy.demoGoal, sampleContract), copy.demoGoal, "sample");
+            const prompt = defaultPrompt(copy, appManifest, locale);
+            void runInitialReview(buildDemoMessage(copy, "sample", prompt, sampleContract), prompt, "sample");
           }} disabled={busy}>{copy.runSample}</button>
           <button className="secondary-action" onClick={resetDemo} disabled={busy}><RotateCcw size={14} /> {copy.reset}</button>
           {inputMode === "paste" && !artifact ? (
@@ -767,7 +766,7 @@ function ChatTurnItem({
     const surfaceType = isMiniSurfaceType(turn.surface) ? turn.surface : "MiniMemoryCard";
     if (appManifest && !appManifest.surfaces.mini.includes(surfaceType)) return null;
     return (
-      <MiniSurfaceRenderer
+      <ContractReviewMiniSurfaceAdapter
         artifact={artifact}
         copy={copy}
         onApprove={onApprove}
@@ -886,7 +885,7 @@ function DeveloperInspectorDrawer({
         <InspectorCard icon={<FileText size={16} />} title={copy.rendererDecision}>
           {appManifest ? <span>app: {appManifest.id} · policy {appManifest.runtime.interaction_policy}</span> : null}
           {lastPolicyDecision ? (
-            <span>{lastPolicyDecision.decision}: {lastPolicyDecision.surfaceType || lastPolicyDecision.surface || "none"} · {lastPolicyDecision.reason}</span>
+            <span>{lastPolicyDecision.decision}: {lastPolicyDecision.surfaceType || lastPolicyDecision.surface || "none"} · {lastPolicyDecision.rule_id || copy.policyFallback} · {lastPolicyDecision.reason}</span>
           ) : null}
           {Object.values(["MiniIssueCard", "MiniApprovalCard", "MiniRevisionPreview", "MiniMemoryCard", "MiniToolPreview", "MiniChoiceCard"] as MiniSurfaceType[]).map((type) => {
             const registration = getMiniSurfaceRegistration(type);
@@ -987,11 +986,28 @@ function stageLabel(stage: DemoStage, copy: DemoCopy) {
   return copy.stageIntent;
 }
 
-function buildDemoMessage(copy: DemoCopy, inputMode: InputMode, composer: string, sampleContract: DemoContractFixture | null) {
+function defaultPrompt(copy: DemoCopy, appManifest: AgentAppManifest | null, locale: Locale) {
+  if (locale === "zh" && appManifest?.entry.default_prompt) return appManifest.entry.default_prompt;
+  return copy.demoGoal;
+}
+
+function contractEndpointForManifest(appManifest: AgentAppManifest) {
+  const sample = appManifest.sample_inputs.find((item) => item.type === "contract_fixture") || appManifest.sample_inputs[0];
+  return `/api/demo/contracts/${sample?.name || "problematic-ai-service-agreement"}`;
+}
+
+function policySignalForFollowUp(intent: FollowUpIntent) {
+  if (intent === "draft_email") return "draft_email_requested";
+  if (intent === "explain_risk" || intent === "focus_clause") return "text_explanation_requested";
+  if (intent === "revise_tone" || intent === "remember_preference") return "user_preference_detected";
+  return "general_followup";
+}
+
+function buildDemoMessage(copy: DemoCopy, inputMode: InputMode, prompt: string, sampleContract: DemoContractFixture | null) {
   if (inputMode === "sample") {
-    return `${copy.demoGoal}\n\nAttached contract file: ${sampleContract?.file_name || SAMPLE_CONTRACT_FALLBACK_FILE_NAME}\n\nContract text:\n${sampleContract?.content || ""}`;
+    return `${prompt}\n\nAttached contract file: ${sampleContract?.file_name || SAMPLE_CONTRACT_FALLBACK_FILE_NAME}\n\nContract text:\n${sampleContract?.content || ""}`;
   }
-  const pasted = composer.trim();
+  const pasted = prompt.trim();
   return pasted ? `${copy.demoGoal}\n\nContract text:\n${pasted}` : copy.demoGoal;
 }
 

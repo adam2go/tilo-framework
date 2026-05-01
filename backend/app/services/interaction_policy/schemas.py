@@ -39,9 +39,9 @@ class InteractionContext(BaseModel):
     category: str | None = None
     user_action: str | None = None
     signal: str | None = None
-    mini_surfaces_used: int = 0
-    confirmations_used: int = 0
-    memory_cards_used: int = 0
+    mini_surfaces_used: int = Field(default=0, description="Caller-supplied Round 1.5 counter; not yet backend-persisted.")
+    confirmations_used: int = Field(default=0, description="Caller-supplied Round 1.5 counter; not yet backend-persisted.")
+    memory_cards_used: int = Field(default=0, description="Caller-supplied Round 1.5 counter; not yet backend-persisted.")
     extra: dict[str, Any] = Field(default_factory=dict)
 
 

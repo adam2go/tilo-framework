@@ -28,6 +28,7 @@ export type InteractionDecision = {
   surfaceType?: MiniSurfaceType;
   surface?: string | null;
   rule_id?: string | null;
+  source?: "backend_policy" | "frontend_fallback" | string;
   priority?: "high" | "medium" | "low";
 };
 

@@ -31,9 +31,35 @@ rules:
     surface: ContractReviewArtifact
     reason: user_requested_details
 
+  - id: revision-approved-preview
+    when:
+      user_action: approve_revision
+    decision: mini_surface
+    surface: MiniRevisionPreview
+    reason: approved_revision_needs_compact_preview
+
   - id: memory-after-preference
     when:
       signal: user_preference_detected
     decision: mini_surface
     surface: MiniMemoryCard
     reason: memory_requires_user_control
+
+  - id: draft-email-choice
+    when:
+      signal: draft_email_requested
+    decision: mini_surface
+    surface: MiniChoiceCard
+    reason: draft_email_requires_user_choice_before_external_action
+
+  - id: explanation-text-is-enough
+    when:
+      signal: text_explanation_requested
+    decision: ask_text
+    reason: text_response_is_enough_for_explanation
+
+  - id: general-followup-no-ui
+    when:
+      signal: general_followup
+    decision: no_ui
+    reason: general_followup_does_not_need_ui
