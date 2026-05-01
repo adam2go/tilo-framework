@@ -1403,7 +1403,7 @@ th {
   padding: 11px 13px;
 }
 
-.chat-turn.bot_message {
+.chat-turn.agent_message {
   background: #fff;
   border-bottom-left-radius: 5px;
   color: #1c2a39;
@@ -1433,6 +1433,17 @@ th {
   color: #526070;
   font-size: 12px;
   font-weight: 800;
+  justify-self: center;
+  max-width: min(86%, 680px);
+  text-align: center;
+}
+
+.chat-turn.rich_surface_link {
+  border: 1px solid rgba(23, 111, 122, 0.2);
+  background: #f5fbfc;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
   justify-self: center;
   max-width: min(86%, 680px);
   text-align: center;
@@ -1513,6 +1524,11 @@ th {
     #fff;
 }
 
+.choice-mini,
+.tool-mini {
+  border-color: rgba(23, 111, 122, 0.2);
+}
+
 .mini-risk-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1585,6 +1601,16 @@ th {
 
 .mini-surface-actions a {
   text-decoration: none;
+}
+
+.full-review-drawer {
+  width: min(94vw, 760px);
+}
+
+.full-review-list {
+  display: grid;
+  gap: 10px;
+  overflow: auto;
 }
 
 .telegram-chat-composer {

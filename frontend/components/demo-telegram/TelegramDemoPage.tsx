@@ -5,27 +5,22 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Check, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import { apiFetch, getBootstrap, sendMessage } from "../../lib/api";
 import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
+import type { ConversationEvent } from "../../lib/conversationEvents";
+import { settlePendingConversationEvents } from "../../lib/conversationEvents";
 import type { DemoContractFixture, FollowUpIntent, FollowUpIntentResult } from "../../lib/demoContracts";
+import { interactionPolicyService } from "../../lib/interactionPolicy";
+import type { InteractionDecision } from "../../lib/interactionPolicy";
+import { getMiniSurfaceRegistration } from "../../lib/miniSurfaceRegistry";
+import type { MiniSurfaceType } from "../../lib/miniSurfaceRegistry";
 import type { Agent, Artifact, ArtifactAction, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
 
 type Locale = "en" | "zh";
 type InputMode = "sample" | "paste";
 type DemoStage = "Intent" | "Risk Review" | "Revision Draft" | "Memory";
-type SurfaceKind = "contract_review" | "revision_draft" | "memory_candidate";
+type SurfaceKind = MiniSurfaceType;
 type MemoryLifecycle = "none" | "candidate" | "confirmed" | "saved";
-type ChatTurn =
-  | { id: string; type: "user_message" | "bot_message" | "observation" | "system_event"; content: string; status?: "typing" | "rendering" }
-  | { id: string; type: "attachment"; fileName: string; detail: string }
-  | { id: string; type: "mini_surface"; surface: SurfaceKind };
+type ChatTurn = ConversationEvent;
 type LiveEvent = { id: string; label: string; detail: string; status?: "done" | "active" | "pending" };
-
-function isPendingTurn(turn: ChatTurn) {
-  return turn.type !== "mini_surface" && turn.type !== "attachment" && (turn.status === "typing" || turn.status === "rendering");
-}
-
-function settlePendingTurns(turns: ChatTurn[]): ChatTurn[] {
-  return turns.map((turn) => isPendingTurn(turn) ? { ...turn, status: undefined } : turn);
-}
 
 const demoCopy = {
   en: {
@@ -294,7 +289,7 @@ function initialLiveEvents(copy: DemoCopy): LiveEvent[] {
 
 function initialTurns(copy: DemoCopy): ChatTurn[] {
   return [
-    { id: "welcome", type: "bot_message", content: copy.welcome },
+    { id: "welcome", type: "agent_message", content: copy.welcome },
     { id: "thesis", type: "system_event", content: copy.thesis }
   ];
 }
@@ -319,6 +314,8 @@ export function TelegramDemoPage() {
   const [stage, setStage] = useState<DemoStage>("Intent");
   const [lastIntent, setLastIntent] = useState<FollowUpIntentResult | null>(null);
   const [memoryLifecycle, setMemoryLifecycle] = useState<MemoryLifecycle>("none");
+  const [lastPolicyDecision, setLastPolicyDecision] = useState<InteractionDecision | null>(null);
+  const [fullReviewOpen, setFullReviewOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
@@ -358,6 +355,8 @@ export function TelegramDemoPage() {
     setStage("Intent");
     setLastIntent(null);
     setMemoryLifecycle("none");
+    setLastPolicyDecision(null);
+    setFullReviewOpen(false);
   }
 
   function resetDemo() {
@@ -371,13 +370,15 @@ export function TelegramDemoPage() {
     setStage("Intent");
     setLastIntent(null);
     setMemoryLifecycle("none");
+    setLastPolicyDecision(null);
+    setFullReviewOpen(false);
   }
 
   async function submitMessage() {
     if (!workspace || busy) return;
     if (!artifact) {
       if (inputMode === "sample" && !sampleContract) {
-        setTurns((items) => [...items, { id: id("sample-loading"), type: "bot_message", content: copy.sampleUnavailable }]);
+        setTurns((items) => [...items, { id: id("sample-loading"), type: "agent_message", content: copy.sampleUnavailable }]);
         return;
       }
       await runInitialReview(buildDemoMessage(copy, inputMode, composer, sampleContract), userMessagePreview(copy, inputMode, composer), inputMode);
@@ -395,12 +396,12 @@ export function TelegramDemoPage() {
       ...items,
       { id: id("user"), type: "user_message", content: preview },
       contractAttachmentTurn(copy, sourceMode, content, sampleContract),
-      { id: id("bot-task"), type: "bot_message", content: copy.received, status: "typing" },
-      { id: id("bot-read-contract"), type: "bot_message", content: copy.readingContract, status: "typing" },
-      { id: id("bot-identify-sections"), type: "bot_message", content: copy.identifyingSections, status: "typing" },
-      { id: id("bot-scan-risks"), type: "bot_message", content: copy.scanningRisks, status: "typing" },
-      { id: id("bot-full-review"), type: "bot_message", content: copy.placingFullReview, status: "typing" },
-      { id: id("bot-render"), type: "bot_message", content: copy.rendering, status: "rendering" }
+      { id: id("bot-task"), type: "agent_message", content: copy.received, status: "typing" },
+      { id: id("bot-read-contract"), type: "agent_message", content: copy.readingContract, status: "typing" },
+      { id: id("bot-identify-sections"), type: "agent_message", content: copy.identifyingSections, status: "typing" },
+      { id: id("bot-scan-risks"), type: "agent_message", content: copy.scanningRisks, status: "typing" },
+      { id: id("bot-full-review"), type: "agent_message", content: copy.placingFullReview, status: "typing" },
+      { id: id("bot-render"), type: "agent_message", content: copy.rendering, status: "rendering" }
     ]);
     try {
       const response = await sendMessage({
@@ -424,10 +425,18 @@ export function TelegramDemoPage() {
       setInteractions(eventList);
       setStage("Risk Review");
       setLiveEvents((items) => advanceLiveEvent(items, "artifact.rendered", copy.live.surfaceRendered));
+      const decision = interactionPolicyService.evaluate({
+        event: "artifact_ready",
+        artifact: nextArtifact,
+        riskLevel: "high",
+        visibleMiniSurfaceCount: countVisibleMiniSurfaces(settlePendingConversationEvents([])),
+        channel: "web",
+      });
+      setLastPolicyDecision(decision);
       setTurns((items) => [
-        ...settlePendingTurns(items),
-        { id: id("bot-ready"), type: "bot_message", content: copy.ready(riskSummary(nextArtifact)) },
-        { id: id("surface-review"), type: "mini_surface", surface: "contract_review" }
+        ...settlePendingConversationEvents(items),
+        { id: id("bot-ready"), type: "agent_message", content: copy.ready(riskSummary(nextArtifact)) },
+        ...eventsForDecision(decision, "review", copy)
       ]);
       setComposer("");
     } finally {
@@ -447,16 +456,24 @@ export function TelegramDemoPage() {
     });
     setInteractions((items) => [event, ...items]);
     const shouldProposeMemory = stage === "Revision Draft" && ["revise_tone", "remember_preference"].includes(intent.intent);
+    const decision = interactionPolicyService.evaluate({
+      event: "followup_received",
+      artifact,
+      followUpIntent: intent.intent,
+      visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns),
+      channel: "web",
+    });
+    setLastPolicyDecision(decision);
     if (shouldProposeMemory) setMemoryLifecycle("candidate");
     setTurns((items) => [
       ...items,
       { id: id("user-followup"), type: "user_message", content },
       { id: id("observe-followup"), type: "observation", content: `${copy.followupObservation} (${copy.intentLabels[intent.intent]}, ${intent.mode})` },
-      { id: id("bot-followup"), type: "bot_message", content: copy.followupReplies[intent.intent] },
+      { id: id("bot-followup"), type: "agent_message", content: copy.followupReplies[intent.intent] },
       ...(shouldProposeMemory ? [
         { id: id("observe-memory-candidate"), type: "observation" as const, content: copy.memoryCandidateProposed },
-        { id: id("bot-memory-prompt"), type: "bot_message" as const, content: copy.memoryPrompt },
-        { id: id("surface-memory"), type: "mini_surface" as const, surface: "memory_candidate" as const }
+        { id: id("bot-memory-prompt"), type: "agent_message" as const, content: copy.memoryPrompt },
+        ...eventsForDecision(decision, "memory", copy)
       ] : [])
     ]);
     if (shouldProposeMemory) setStage("Memory");
@@ -470,7 +487,7 @@ export function TelegramDemoPage() {
     setTurns((items) => [
       ...items,
       { id: id("observe-edit"), type: "observation", content: copy.editObservation },
-      { id: id("bot-edit"), type: "bot_message", content: copy.editReply }
+      { id: id("bot-edit"), type: "agent_message", content: copy.editReply }
     ]);
     setComposer(copy.followupSuggestion);
   }
@@ -479,8 +496,14 @@ export function TelegramDemoPage() {
     if (!artifact) return;
     const event = await persistInteraction("channel.telegram_demo.open_full_review", {});
     setInteractions((items) => [event, ...items]);
-    setTurns((items) => [...items, { id: id("observe-full-review"), type: "observation", content: copy.fullReviewObservation }]);
-    window.location.href = `/artifacts/${artifact.id}?channel=telegram-demo`;
+    const decision = interactionPolicyService.evaluate({ event: "open_full_review", artifact, richSurfaceOpened: fullReviewOpen, channel: "web" });
+    setLastPolicyDecision(decision);
+    setFullReviewOpen(true);
+    setTurns((items) => [
+      ...items,
+      { id: id("observe-full-review"), type: "observation", content: `${copy.fullReviewObservation} (${decision.reason})` },
+      { id: id("rich-surface-link"), type: "rich_surface_link", content: copy.openArtifact, metadata: { artifact_id: artifact.id } }
+    ]);
   }
 
   async function approveRevision() {
@@ -503,6 +526,13 @@ export function TelegramDemoPage() {
     }
     setInteractions((items) => [event, ...items]);
     setStage("Revision Draft");
+    const decision = interactionPolicyService.evaluate({
+      event: "revision_approved",
+      artifact,
+      visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns),
+      channel: "web",
+    });
+    setLastPolicyDecision(decision);
     setLiveEvents((items) =>
       advanceLiveEvent(
         advanceLiveEvent(items, "artifact.action.clicked", copy.live.approvalClicked),
@@ -513,8 +543,8 @@ export function TelegramDemoPage() {
     setTurns((items) => [
       ...items,
       { id: id("observe-approve"), type: "observation", content: copy.approvedObservation },
-      { id: id("bot-approved"), type: "bot_message", content: copy.approvedReply },
-      { id: id("surface-revision"), type: "mini_surface", surface: "revision_draft" }
+      { id: id("bot-approved"), type: "agent_message", content: copy.approvedReply },
+      ...eventsForDecision(decision, "revision", copy)
     ]);
     setComposer(copy.followupSuggestion);
   }
@@ -552,7 +582,7 @@ export function TelegramDemoPage() {
       { id: id("observe-memory"), type: "observation", content: copy.rememberedObservation },
       { id: id("observe-memory-confirmed"), type: "observation", content: copy.memoryConfirmed },
       { id: id("observe-memory-saved"), type: "observation", content: copy.memorySaved },
-      { id: id("bot-memory"), type: "bot_message", content: copy.rememberedReply }
+      { id: id("bot-memory"), type: "agent_message", content: copy.rememberedReply }
     ]);
   }
 
@@ -630,7 +660,7 @@ export function TelegramDemoPage() {
           ) : null}
           <button className="secondary-action" onClick={() => {
             if (!sampleContract) {
-              setTurns((items) => [...items, { id: id("sample-loading"), type: "bot_message", content: copy.sampleUnavailable }]);
+              setTurns((items) => [...items, { id: id("sample-loading"), type: "agent_message", content: copy.sampleUnavailable }]);
               return;
             }
             void runInitialReview(buildDemoMessage(copy, "sample", copy.demoGoal, sampleContract), copy.demoGoal, "sample");
@@ -658,6 +688,7 @@ export function TelegramDemoPage() {
           diagnostics={diagnostics}
           interactions={interactions}
           lastIntent={lastIntent}
+          lastPolicyDecision={lastPolicyDecision}
           liveEvents={liveEvents}
           memoryLifecycle={memoryLifecycle}
           memories={memories}
@@ -665,6 +696,10 @@ export function TelegramDemoPage() {
           onClose={() => setInspectorOpen(false)}
           trace={trace}
         />
+      ) : null}
+
+      {fullReviewOpen && artifact ? (
+        <FullReviewDrawer artifact={artifact} copy={copy} onClose={() => setFullReviewOpen(false)} />
       ) : null}
     </main>
   );
@@ -689,10 +724,12 @@ function ChatTurnItem({
   onSkipMemory: () => Promise<void>;
   turn: ChatTurn;
 }) {
-  if (turn.type === "mini_surface") {
+  if (turn.type === "mini_surface" || turn.type === "memory_candidate") {
     if (!artifact) return null;
-    if (turn.surface === "contract_review") return <ContractReviewMiniSurface artifact={artifact} copy={copy} onApprove={onApprove} onEdit={onEdit} onFullReview={onFullReview} />;
-    if (turn.surface === "revision_draft") return <RevisionDraftMiniSurface artifact={artifact} copy={copy} onFullReview={onFullReview} />;
+    if (turn.surface === "MiniIssueCard") return <ContractReviewMiniSurface artifact={artifact} copy={copy} onApprove={onApprove} onEdit={onEdit} onFullReview={onFullReview} />;
+    if (turn.surface === "MiniRevisionPreview") return <RevisionDraftMiniSurface artifact={artifact} copy={copy} onFullReview={onFullReview} />;
+    if (turn.surface === "MiniChoiceCard") return <MiniChoiceCard artifact={artifact} copy={copy} onFullReview={onFullReview} />;
+    if (turn.surface === "MiniToolPreview") return <MiniToolPreview copy={copy} />;
     return <MemoryCandidateMiniSurface artifact={artifact} copy={copy} onMemory={onMemory} onSkip={onSkipMemory} />;
   }
   if (turn.type === "attachment") {
@@ -706,6 +743,7 @@ function ChatTurnItem({
       </div>
     );
   }
+  if (!("content" in turn)) return null;
   return (
     <div className={`chat-turn ${turn.type}`}>
       <span>{turn.content}</span>
@@ -802,6 +840,69 @@ function MemoryCandidateMiniSurface({ artifact, copy, onMemory, onSkip }: { arti
   );
 }
 
+function MiniChoiceCard({ artifact, copy, onFullReview }: { artifact: Artifact; copy: DemoCopy; onFullReview: () => Promise<void> }) {
+  return (
+    <article className="mini-surface-card choice-mini">
+      <header>
+        <span className="eyebrow">MiniChoiceCard</span>
+        <h2>{copy.draftEmail}</h2>
+      </header>
+      <p>{copy.followupReplies.draft_email}</p>
+      <div className="mini-surface-actions">
+        <button className="secondary-action">{copy.makeSofter}</button>
+        <button className="secondary-action">{copy.makeStricter}</button>
+        <button className="secondary-action" onClick={() => void onFullReview()}><ArrowUpRight size={14} /> {copy.openArtifact}</button>
+      </div>
+      <small>{artifact.title}</small>
+    </article>
+  );
+}
+
+function MiniToolPreview({ copy }: { copy: DemoCopy }) {
+  return (
+    <article className="mini-surface-card tool-mini">
+      <header>
+        <span className="eyebrow">MiniToolPreview</span>
+        <h2>{copy.approveRevision}</h2>
+      </header>
+      <p>{copy.rendering}</p>
+    </article>
+  );
+}
+
+function FullReviewDrawer({ artifact, copy, onClose }: { artifact: Artifact; copy: DemoCopy; onClose: () => void }) {
+  const risks = risksForArtifact(artifact);
+  return (
+    <div className="inspector-overlay">
+      <aside className="inspector-drawer full-review-drawer">
+        <header>
+          <div><span className="eyebrow">{copy.openFullReview}</span><h2>{artifact.title}</h2></div>
+          <button onClick={onClose}><X size={16} /></button>
+        </header>
+        <section className="inspector-card">
+          <header><FileText size={16} /><strong>{copy.riskSummary}</strong></header>
+          <div>
+            <span>{copy.activeRisk}: 8.1 / 8.2</span>
+            <a className="secondary-action" href={`/artifacts/${artifact.id}?channel=telegram-demo`}><ArrowUpRight size={14} /> {copy.openArtifact}</a>
+          </div>
+        </section>
+        <section className="full-review-list">
+          {risks.map((risk) => (
+            <article className="risk-block" key={String(risk.id || risk.clause)}>
+              <div>
+                <strong>{String(risk.clause || "Risk")}</strong>
+                <span className={`risk-level ${String(risk.risk_level || "medium")}`}>{String(risk.risk_level || "medium")}</span>
+              </div>
+              <p>{String(risk.issue || "")}</p>
+              <small>{String(risk.evidence || risk.suggested_revision || "")}</small>
+            </article>
+          ))}
+        </section>
+      </aside>
+    </div>
+  );
+}
+
 function DeveloperInspectorDrawer({
   capabilities,
   confirmations,
@@ -809,6 +910,7 @@ function DeveloperInspectorDrawer({
   diagnostics,
   interactions,
   lastIntent,
+  lastPolicyDecision,
   liveEvents,
   memoryLifecycle,
   memories,
@@ -822,6 +924,7 @@ function DeveloperInspectorDrawer({
   diagnostics: ReturnType<typeof modelDiagnostics>;
   interactions: UIInteractionEvent[];
   lastIntent: FollowUpIntentResult | null;
+  lastPolicyDecision: InteractionDecision | null;
   liveEvents: LiveEvent[];
   memoryLifecycle: MemoryLifecycle;
   memories: Memory[];
@@ -848,10 +951,13 @@ function DeveloperInspectorDrawer({
           <span>{copy.noSecrets}</span>
         </InspectorCard>
         <InspectorCard icon={<FileText size={16} />} title={copy.rendererDecision}>
-          <span>{"ApprovalCard -> chat inline buttons"}</span>
-          <span>{"RiskReviewPanel -> mini summary + Open Full Review"}</span>
-          <span>{"EditableDocument -> revision preview + Open Artifact"}</span>
-          <span>{"MemoryCandidateCard -> inline memory card"}</span>
+          {lastPolicyDecision ? (
+            <span>{lastPolicyDecision.decision}: {lastPolicyDecision.surfaceType || "none"} · {lastPolicyDecision.reason}</span>
+          ) : null}
+          {Object.values(["MiniIssueCard", "MiniApprovalCard", "MiniRevisionPreview", "MiniMemoryCard", "MiniToolPreview", "MiniChoiceCard"] as MiniSurfaceType[]).map((type) => {
+            const registration = getMiniSurfaceRegistration(type);
+            return <span key={type}>{`${registration.type} -> ${registration.supportedChannels.join(", ")} · fallback ${registration.fallback}`}</span>;
+          })}
         </InspectorCard>
         <details className="inspector-card inspector-collapsible">
           <summary data-show-label="show" data-hide-label="hide"><Code2 size={16} /><strong>{copy.interactionContract}</strong></summary>
@@ -912,6 +1018,27 @@ function primaryRiskForArtifact(artifact: Artifact) {
 function riskSummary(artifact: Artifact | null) {
   const block = artifact?.schema_json.blocks.find((item) => item.id === "risk_summary");
   return Number(block?.data.high_count || 3);
+}
+
+function countVisibleMiniSurfaces(turns: ChatTurn[]) {
+  return turns.filter((turn) => turn.type === "mini_surface" || turn.type === "memory_candidate").length;
+}
+
+function eventsForDecision(decision: InteractionDecision, context: "review" | "revision" | "memory", copy: DemoCopy): ChatTurn[] {
+  if (decision.decision !== "mini_surface" || !decision.surfaceType) {
+    if (decision.decision === "rich_surface_link") {
+      return [{ id: id(`rich-${context}`), type: "rich_surface_link", content: copy.openFullReview, metadata: { reason: decision.reason } }];
+    }
+    return [];
+  }
+  return [
+    {
+      id: id(`surface-${context}`),
+      type: decision.surfaceType === "MiniMemoryCard" ? "memory_candidate" : "mini_surface",
+      surface: decision.surfaceType,
+      metadata: { reason: decision.reason, priority: decision.priority },
+    },
+  ];
 }
 
 function stageLabel(stage: DemoStage, copy: DemoCopy) {
