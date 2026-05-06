@@ -83,3 +83,10 @@ export async function appendConversationTurn(sessionId: string, payload: {
     body: JSON.stringify(payload)
   });
 }
+
+export async function appendObservationForInteraction(sessionId: string, interactionId: string) {
+  return apiFetch<ConversationTurn>(`/api/conversations/${sessionId}/observations/from-interaction`, {
+    method: "POST",
+    body: JSON.stringify({ interaction_id: interactionId })
+  });
+}

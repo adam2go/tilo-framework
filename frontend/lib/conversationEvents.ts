@@ -8,6 +8,24 @@ export type ConversationEventType =
   | "system_event"
   | "rich_surface_link";
 
+export const ConversationTurnTypes = {
+  userMessage: "user_message",
+  agentMessage: "agent_message",
+  attachment: "attachment",
+  miniSurface: "mini_surface",
+  observation: "observation",
+  memoryCandidate: "memory_candidate",
+  memoryConfirmed: "memory_confirmed",
+  systemEvent: "system_event",
+  richSurfaceLink: "rich_surface_link",
+} as const satisfies Record<string, ConversationEventType | "memory_confirmed">;
+
+export const ConversationChannels = {
+  web: "web",
+  telegram: "telegram",
+  api: "api",
+} as const;
+
 export type ConversationEventStatus = "typing" | "rendering";
 
 export type ConversationEvent =

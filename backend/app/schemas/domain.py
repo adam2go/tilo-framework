@@ -3,6 +3,9 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.services.conversations.constants import ConversationChannel, ConversationRole, ConversationTurnType
+from app.services.surfaces.constants import RichSurfaceSource, RichSurfaceTargetType
+
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -301,11 +304,11 @@ class UIInteractionEventRead(ORMModel):
 
 
 class RichSurfaceTarget(BaseModel):
-    type: str
+    type: RichSurfaceTargetType
     artifactId: str | None = None
     url: str | None = None
     title: str | None = None
-    source: str = "policy"
+    source: RichSurfaceSource = RichSurfaceSource.policy
 
 
 class RichSurfaceLink(BaseModel):
@@ -321,7 +324,7 @@ class ConversationSessionCreate(BaseModel):
     workspace_id: str
     project_id: str | None = None
     agent_id: str | None = None
-    channel: str = "web"
+    channel: ConversationChannel = ConversationChannel.web
     external_thread_id: str | None = None
     external_user_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -343,8 +346,8 @@ class ConversationSessionRead(ORMModel):
 
 
 class ConversationTurnCreate(BaseModel):
-    turn_type: str
-    role: str | None = None
+    turn_type: ConversationTurnType
+    role: ConversationRole | None = None
     content: str | None = None
     surface_type: str | None = None
     surface_payload: dict[str, Any] | None = None
@@ -356,6 +359,10 @@ class ConversationTurnCreate(BaseModel):
     confirmation_id: str | None = None
     memory_id: str | None = None
     policy_decision: dict[str, Any] | None = None
+
+
+class ConversationObservationCreate(BaseModel):
+    interaction_id: str
 
 
 class ConversationTurnRead(ORMModel):

@@ -55,11 +55,13 @@ class AgentAppLoader:
     def _resolve_sample_file(self, app_dir: Path, relative_path: str) -> Path:
         resolved = (app_dir / relative_path).resolve()
         allowed_contracts = (repo_root() / "examples" / "contracts").resolve()
+        allowed_fixtures = (repo_root() / "examples" / "fixtures").resolve()
         app_dir = app_dir.resolve()
         is_inside_app = app_dir in resolved.parents or resolved == app_dir
         is_contract_fixture = allowed_contracts in resolved.parents or resolved == allowed_contracts
-        if not is_inside_app and not is_contract_fixture:
-            raise ValueError(f"Sample input must be inside the app directory or examples/contracts: {relative_path}")
+        is_shared_fixture = allowed_fixtures in resolved.parents or resolved == allowed_fixtures
+        if not is_inside_app and not is_contract_fixture and not is_shared_fixture:
+            raise ValueError(f"Sample input must be inside the app directory, examples/contracts, or examples/fixtures: {relative_path}")
         if not resolved.exists():
             raise FileNotFoundError(relative_path)
         return resolved

@@ -19,11 +19,23 @@ The policy describes when UI should appear:
 no_ui | mini_surface | rich_surface | ask_text
 ```
 
+The two included apps prove the runtime is reusable:
+- `contract-review-agent` exercises risk review, approval, rich artifact escalation, and memory candidate flow.
+- `sales-followup-agent` exercises a different domain with a choice card, preference memory signal, and on-demand rich draft surface.
+
+Core runtime concepts:
+- Agent App Manifest
+- Interaction Policy
+- Mini Surface Registry
+- Conversation Runtime
+- Observation Context
+- Memory Lifecycle
+
 To add another app:
 
 1. Create `examples/apps/{app_id}/app.yaml`.
 2. Create `examples/apps/{app_id}/interaction.policy.yaml`.
-3. Keep sample inputs inside the app directory, or under `examples/contracts` for shared contract fixtures.
+3. Keep sample inputs inside the app directory, under `examples/contracts`, or under `examples/fixtures`.
 4. Add only the mini surfaces needed for meaningful human decisions.
 5. Verify the app appears in `GET /api/apps`.
 
@@ -33,6 +45,20 @@ The sales follow-up app includes minimal fixture data at:
 
 ```text
 examples/apps/sales-followup-agent/fixtures/lead-summary.md
+examples/fixtures/sales-followup-sample.json
 ```
 
 It is intentionally small so the same app runtime can be tested without becoming a second custom demo.
+
+Useful local API checks:
+
+```bash
+curl http://localhost:8000/api/apps
+curl http://localhost:8000/api/apps/sales-followup-agent
+curl -X POST http://localhost:8000/api/apps/sales-followup-agent/interaction-policy/evaluate \
+  -H 'Content-Type: application/json' \
+  -d '{"signal":"followup_tone_needed"}'
+curl -X POST http://localhost:8000/api/conversations \
+  -H 'Content-Type: application/json' \
+  -d '{"app_id":"sales-followup-agent","workspace_id":"workspace-id","channel":"web"}'
+```

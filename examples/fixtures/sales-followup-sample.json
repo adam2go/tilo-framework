@@ -1,0 +1,17 @@
+{
+  "lead": {
+    "account": "Acme Procurement Team",
+    "contact_role": "Procurement lead",
+    "stage": "post-demo follow-up"
+  },
+  "context": {
+    "asked_for": ["pricing summary", "security one-pager"],
+    "preferred_style": "concise, practical, no hype",
+    "next_step_target": "schedule a 20-minute procurement handoff call this week"
+  },
+  "decision_point": {
+    "question": "Which tone should the follow-up use?",
+    "choices": ["concise", "consultative", "executive brief"]
+  },
+  "memory_candidate_signal": "Remember concise, practical follow-ups for procurement contacts when the user confirms it."
+}

@@ -1,4 +1,5 @@
 import os
+import json
 import tempfile
 from pathlib import Path
 
@@ -33,10 +34,14 @@ from app.services.models.client import ModelClient  # noqa: E402
 from app.services.models.errors import ModelDisabledError, ModelInvalidJSONError  # noqa: E402
 from app.services.demo import classify_followup_deterministic, load_problematic_ai_service_agreement  # noqa: E402
 from app.services.apps.loader import AgentAppLoader, get_app_loader  # noqa: E402
+from app.services.conversations.constants import ConversationChannel, ConversationTurnType  # noqa: E402
+from app.services.conversations.service import ConversationService  # noqa: E402
 from app.services.interaction_policy.schemas import InteractionContext, InteractionDecisionType  # noqa: E402
 from app.services.interaction_policy.service import InteractionPolicyService  # noqa: E402
 from app.schemas import RichSurfaceLink  # noqa: E402
 from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
+from app.services.surfaces.constants import RichSurfaceSource, RichSurfaceTargetType  # noqa: E402
+from app.services.surfaces.rich_links import create_rich_surface_link  # noqa: E402
 from app.services.trace.recorder import TraceRecorder  # noqa: E402
 
 
@@ -109,10 +114,13 @@ def test_sales_followup_app_manifest_and_policy_are_loadable() -> None:
         "sales-followup-agent",
         InteractionContext(user_action="open_full_review"),
     )
+    fixture_path = Path(__file__).resolve().parents[2] / app_manifest.sample_inputs[0].resolved_path
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
 
     assert app_manifest.id == "sales-followup-agent"
     assert app_manifest.entry.type == "conversation"
-    assert app_manifest.sample_inputs[0].resolved_path == "examples/apps/sales-followup-agent/fixtures/lead-summary.md"
+    assert app_manifest.sample_inputs[0].resolved_path == "examples/fixtures/sales-followup-sample.json"
+    assert fixture["lead"]["account"] == "Acme Procurement Team"
     assert decision.decision == InteractionDecisionType.mini_surface
     assert decision.surface == "MiniChoiceCard"
     assert rich.decision == InteractionDecisionType.rich_surface
@@ -228,6 +236,57 @@ rules:
 
     with pytest.raises(ValueError, match="undeclared mini surface"):
         service.validate_for_app(loader.load_manifest("bad-agent"), policy)
+
+
+def test_policy_surface_validation_rejects_undeclared_rich_surface(tmp_path: Path) -> None:
+    app_dir = tmp_path / "bad-rich-agent"
+    app_dir.mkdir()
+    (app_dir / "app.yaml").write_text(
+        """
+id: bad-rich-agent
+version: "0.1"
+name: Bad Rich Agent
+description: Bad manifest
+entry:
+  type: conversation
+  default_prompt: Hello
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: interaction.policy.yaml
+surfaces:
+  mini: []
+  rich:
+    - DeclaredArtifact
+sample_inputs: []
+tools: []
+channels:
+  - web
+""",
+        encoding="utf-8",
+    )
+    (app_dir / "interaction.policy.yaml").write_text(
+        """
+id: bad-rich-policy
+version: "0.1"
+rules:
+  - id: missing-rich-surface
+    when:
+      user_action: open_full_review
+    decision: rich_surface
+    surface: MissingArtifact
+    reason: missing
+""",
+        encoding="utf-8",
+    )
+
+    loader = AgentAppLoader(tmp_path)
+    service = InteractionPolicyService()
+    policy = service.load_file(loader.load_policy_path("bad-rich-agent"))
+
+    with pytest.raises(ValueError, match="undeclared rich surface"):
+        service.validate_for_app(loader.load_manifest("bad-rich-agent"), policy)
 
 
 def test_manifest_loader_restricts_sample_paths(tmp_path: Path) -> None:
@@ -588,8 +647,22 @@ def test_prompt_builder_includes_recent_ui_observations_without_turning_them_int
 
     assert prompt["recent_ui_observations"][0]["event_type"] == "artifact.action.approved"
     assert prompt["recent_ui_observations"][0]["payload"] == {"choice": "approve"}
+    assert prompt["conversation_context"]["recent_observations"][0]["event_type"] == "artifact.action.approved"
     assert prompt["memories"] == []
     assert prompt["recent_conversation_turns"] == []
+
+
+def test_prompt_builder_includes_and_caps_recent_conversation_turns() -> None:
+    task = Task(workspace_id="workspace", title="Follow-up", input_message="Continue.")
+    long_content = "x" * 700
+    turns = [{"turn_type": "user_message", "role": "user", "content": f"turn {index} {long_content}"} for index in range(14)]
+
+    prompt = PromptBuilder().build(task, None, [], [], [], [], turns)
+
+    assert len(prompt["conversation_context"]["recent_turns"]) == 12
+    assert prompt["conversation_context"]["recent_turns"][0]["content"].startswith("turn 2")
+    assert len(prompt["conversation_context"]["recent_turns"][0]["content"]) < 560
+    assert prompt["memories"] == []
 
 
 def test_conversation_session_and_turn_apis_and_lookup() -> None:
@@ -613,20 +686,79 @@ def test_conversation_session_and_turn_apis_and_lookup() -> None:
     assert turns.json()[0]["content"] == "hello"
 
 
+def test_conversation_service_create_lookup_append_and_observation_linkage() -> None:
+    with TestClient(app):
+        with SessionLocal() as db:
+            service = ConversationService(db)
+            session = service.create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id="conversation-service-workspace",
+                channel=ConversationChannel.telegram,
+                external_thread_id="thread-42",
+                external_user_id="user-42",
+            )
+            same = service.create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id="conversation-service-workspace",
+                channel=ConversationChannel.telegram,
+                external_thread_id="thread-42",
+            )
+            event = UIInteractionEvent(
+                workspace_id="conversation-service-workspace",
+                event_type="artifact.action.approved",
+                artifact_id="artifact-42",
+                action_id="approve",
+                run_id="run-42",
+                payload_json={"token": "secret-value", "choice": "approve"},
+            )
+            db.add(event)
+            db.commit()
+            db.refresh(event)
+
+            service.append_user_message(session.id, "hello")
+            service.append_agent_message(session.id, "hi")
+            service.append_attachment(session.id, content="lead.json", payload={"kind": "fixture"})
+            service.append_mini_surface(session.id, surface_type="MiniChoiceCard", payload={"question": "Tone?"})
+            observation = service.append_observation_for_interaction(session.id, event)
+            turns = service.list_turns(session.id)
+            session_id = session.id
+            same_id = same.id
+            found_id = service.find_by_external_thread(
+                channel=ConversationChannel.telegram,
+                external_thread_id="thread-42",
+                workspace_id="conversation-service-workspace",
+            ).id
+            turn_types = [turn.turn_type for turn in turns]
+            observation_interaction_id = observation.interaction_id
+            observation_payload = observation.observation_payload_json
+            event_id = event.id
+
+    assert same_id == session_id
+    assert found_id == session_id
+    assert turn_types == ["user_message", "agent_message", "attachment", "mini_surface", "observation"]
+    assert observation_interaction_id == event_id
+    assert observation_payload["payload"]["token"] == "[REDACTED]"
+
+
+def test_conversation_api_rejects_invalid_turn_type() -> None:
+    with TestClient(app) as client:
+        workspace_id = client.get("/api/bootstrap").json()["workspace"]["id"]
+        session = client.post("/api/conversations", json={"app_id": "contract-review-agent", "workspace_id": workspace_id}).json()
+        response = client.post(f"/api/conversations/{session['id']}/turns", json={"turn_type": "unknown_turn", "content": "bad"})
+
+    assert response.status_code == 422
+
+
 def test_rich_surface_link_turn_uses_standard_target_payload() -> None:
-    link = RichSurfaceLink.model_validate(
-        {
-            "surface": "ContractReviewArtifact",
-            "title": "Open Full Review",
-            "target": {
-                "type": "drawer",
-                "artifactId": "artifact-1",
-                "title": "Contract Review",
-                "source": "user_action",
-            },
-            "channel": "web",
-            "metadata": {"interaction_id": "interaction-1"},
-        }
+    link = create_rich_surface_link(
+        surface="ContractReviewArtifact",
+        title="Open Full Review",
+        target_type=RichSurfaceTargetType.drawer,
+        source=RichSurfaceSource.user_action,
+        artifact_id="artifact-1",
+        target_title="Contract Review",
+        channel="web",
+        metadata={"interaction_id": "interaction-1"},
     )
 
     with TestClient(app) as client:
@@ -649,6 +781,15 @@ def test_rich_surface_link_turn_uses_standard_target_payload() -> None:
     assert turn.json()["turn_type"] == "rich_surface_link"
     assert turn.json()["surface_payload_json"]["target"]["type"] == "drawer"
     assert turn.json()["surface_payload_json"]["target"]["source"] == "user_action"
+
+    with pytest.raises(ValueError):
+        RichSurfaceLink.model_validate(
+            {
+                "surface": "ContractReviewArtifact",
+                "title": "Open Full Review",
+                "target": {"type": "modal", "source": "automatic"},
+            }
+        )
 
 
 def test_agent_context_builder_includes_ui_events_confirmed_memories_and_policy_decision() -> None:
@@ -689,11 +830,13 @@ def test_agent_context_builder_includes_ui_events_confirmed_memories_and_policy_
             db.add_all([artifact, memory, interaction, confirmation])
             db.commit()
             db.refresh(artifact)
+            interaction_id = interaction.id
             session = ConversationSession(app_id="contract-review-agent", workspace_id=workspace_id, project_id=project_id, channel="web")
             db.add(session)
             db.commit()
             db.refresh(session)
             db.add(ConversationTurn(session_id=session.id, turn_type="user_message", role="user", content="Need safer language"))
+            db.add(ConversationTurn(session_id=session.id, turn_type="observation", role="system", content="artifact.action.approved", interaction_id=interaction_id))
             db.commit()
 
             context = AgentContextBuilder(db).build(
@@ -712,6 +855,8 @@ def test_agent_context_builder_includes_ui_events_confirmed_memories_and_policy_
     assert context["last_policy_decision"]["rule_id"] == "revision-approved-preview"
     assert context["recent_conversation_turns"][0]["content"] == "Need safer language"
     assert context["recent_user_messages"][0]["content"] == "Need safer language"
+    assert context["recent_observation_turns"][0]["interaction_id"] == interaction_id
+    assert context["context_budget"]["max_turn_content_chars"] == 500
 
 
 def test_telegram_normalizes_text_message_and_callback_query() -> None:
@@ -779,6 +924,7 @@ def test_telegram_webhook_text_message_creates_task_run_and_artifact_link() -> N
         session = db.query(ConversationSession).filter(ConversationSession.channel == "telegram", ConversationSession.external_thread_id == "8001").first()
         assert session is not None
         assert db.query(ConversationTurn).filter(ConversationTurn.session_id == session.id, ConversationTurn.turn_type == "user_message").count() >= 1
+        assert db.query(ConversationTurn).filter(ConversationTurn.session_id == session.id, ConversationTurn.turn_type == "rich_surface_link").count() >= 1
 
 
 def test_telegram_callback_approves_confirmation_and_records_interaction() -> None:
@@ -786,6 +932,13 @@ def test_telegram_callback_approves_confirmation_and_records_interaction() -> No
         bootstrap = client.get("/api/bootstrap").json()
         workspace = bootstrap["workspace"]
         with SessionLocal() as db:
+            ConversationService(db).create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id=workspace["id"],
+                channel=ConversationChannel.telegram,
+                external_thread_id="8001",
+                external_user_id="9001",
+            )
             confirmation = Confirmation(
                 workspace_id=workspace["id"],
                 type="approval",
@@ -838,6 +991,13 @@ def test_telegram_callback_confirms_memory_candidate() -> None:
         bootstrap = client.get("/api/bootstrap").json()
         workspace = bootstrap["workspace"]
         with SessionLocal() as db:
+            ConversationService(db).create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id=workspace["id"],
+                channel=ConversationChannel.telegram,
+                external_thread_id="8001",
+                external_user_id="9001",
+            )
             memory = Memory(
                 workspace_id=workspace["id"],
                 type="preference",
@@ -866,11 +1026,13 @@ def test_telegram_callback_confirms_memory_candidate() -> None:
 
         with SessionLocal() as db:
             updated = db.get(Memory, memory_id)
+            observation_turn = db.query(ConversationTurn).filter(ConversationTurn.turn_type == "observation", ConversationTurn.memory_id.is_(None)).order_by(ConversationTurn.created_at.desc()).first()
 
     assert response.status_code == 200
     assert response.json()["memory_id"] == memory_id
     assert updated.status == "confirmed"
     assert updated.is_confirmed is True
+    assert observation_turn is not None
 
 
 def test_artifact_schema_accepts_roam_actions_and_state_binding() -> None:

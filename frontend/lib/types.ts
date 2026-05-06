@@ -196,6 +196,18 @@ export type RichSurfaceTarget = {
   source: "policy" | "user_action" | "channel_fallback";
 };
 
+export const RichSurfaceTargetTypes = {
+  drawer: "drawer",
+  page: "page",
+  webview: "webview",
+} as const;
+
+export const RichSurfaceSources = {
+  policy: "policy",
+  userAction: "user_action",
+  channelFallback: "channel_fallback",
+} as const;
+
 export type RichSurfaceLink = {
   surface: string;
   title: string;

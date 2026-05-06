@@ -18,8 +18,8 @@ surfaces:
     - FollowupDraftArtifact
 sample_inputs:
   - type: fixture
-    name: lead-summary
-    path: fixtures/lead-summary.md
+    name: sales-followup-sample
+    path: ../../fixtures/sales-followup-sample.json
 tools: []
 channels:
   - web

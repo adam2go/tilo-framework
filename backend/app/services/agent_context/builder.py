@@ -3,10 +3,16 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Artifact, Confirmation, ConversationTurn, Memory
+from app.models import Artifact, Confirmation, Memory
+from app.services.conversations.constants import ConversationTurnType
+from app.services.conversations.service import ConversationService
 from app.services.interactions.events import UIInteractionEventService
 from app.services.interaction_policy.schemas import InteractionContext, InteractionDecision
 from app.services.interaction_policy.service import InteractionPolicyService
+
+MAX_CONTEXT_TURNS = 12
+MAX_UI_OBSERVATIONS = 5
+MAX_TURN_CONTENT_CHARS = 500
 
 
 class AgentContextBuilder:
@@ -26,6 +32,7 @@ class AgentContextBuilder:
         artifact = self.db.get(Artifact, artifact_id) if artifact_id else self._latest_artifact(workspace_id, project_id)
         last_policy_decision = InteractionPolicyService().evaluate_for_app(app_id, policy_context) if policy_context else None
         recent_conversation_turns = self._recent_conversation_turns(session_id)
+        recent_observation_turns = [turn for turn in recent_conversation_turns if turn["turn_type"] == ConversationTurnType.observation]
         return {
             "app_id": app_id,
             "workspace_id": workspace_id,
@@ -39,45 +46,54 @@ class AgentContextBuilder:
                     "payload": event.payload_json,
                     "created_at": event.created_at.isoformat(),
                 }
-                for event in UIInteractionEventService(self.db).recent_for_context(workspace_id=workspace_id, project_id=project_id)
+                for event in UIInteractionEventService(self.db).recent_for_context(workspace_id=workspace_id, project_id=project_id, limit=MAX_UI_OBSERVATIONS)
             ],
             "pending_confirmations": [
                 {"id": item.id, "type": item.type, "title": item.title, "run_id": item.run_id}
                 for item in self._pending_confirmations(workspace_id)
             ],
             "recent_conversation_turns": recent_conversation_turns,
-            "recent_user_messages": [turn for turn in recent_conversation_turns if turn["turn_type"] == "user_message"],
-            "recent_agent_messages": [turn for turn in recent_conversation_turns if turn["turn_type"] == "agent_message"],
+            "recent_user_messages": [turn for turn in recent_conversation_turns if turn["turn_type"] == ConversationTurnType.user_message],
+            "recent_agent_messages": [turn for turn in recent_conversation_turns if turn["turn_type"] == ConversationTurnType.agent_message],
+            "recent_observation_turns": recent_observation_turns,
             "confirmed_memories": [
                 {"id": item.id, "type": item.type, "content": item.content, "confidence": item.confidence}
                 for item in self._confirmed_memories(workspace_id, project_id)
             ],
             "active_artifact_summary": self._artifact_summary(artifact),
             "last_policy_decision": last_policy_decision.model_dump() if isinstance(last_policy_decision, InteractionDecision) else None,
+            "context_budget": {
+                "recent_conversation_turn_limit": MAX_CONTEXT_TURNS,
+                "recent_ui_observation_limit": MAX_UI_OBSERVATIONS,
+                "max_turn_content_chars": MAX_TURN_CONTENT_CHARS,
+            },
             "budget_counters_source": "caller_supplied_round_1_5",
         }
 
     def _recent_conversation_turns(self, session_id: str | None) -> list[dict[str, Any]]:
         if not session_id:
             return []
-        stmt = select(ConversationTurn).where(ConversationTurn.session_id == session_id).order_by(ConversationTurn.created_at.desc()).limit(12)
-        return list(
-            reversed(
-                [
-                    {
-                        "turn_type": t.turn_type,
-                        "role": t.role,
-                        "content": t.content,
-                        "surface_type": t.surface_type,
-                        "artifact_id": t.artifact_id,
-                        "run_id": t.run_id,
-                        "interaction_id": t.interaction_id,
-                        "created_at": t.created_at.isoformat(),
-                    }
-                    for t in self.db.scalars(stmt).all()
-                ]
-            )
-        )
+        turns = ConversationService(self.db).list_turns(session_id, limit=MAX_CONTEXT_TURNS)
+        return [
+            {
+                "turn_type": t.turn_type,
+                "role": t.role,
+                "content": self._truncate(t.content),
+                "surface_type": t.surface_type,
+                "artifact_id": t.artifact_id,
+                "run_id": t.run_id,
+                "interaction_id": t.interaction_id,
+                "observation": t.observation_payload_json if t.turn_type == ConversationTurnType.observation else None,
+                "created_at": t.created_at.isoformat(),
+            }
+            for t in turns
+        ]
+
+    @staticmethod
+    def _truncate(content: str | None) -> str | None:
+        if content is None or len(content) <= MAX_TURN_CONTENT_CHARS:
+            return content
+        return f"{content[:MAX_TURN_CONTENT_CHARS]}... [truncated {len(content) - MAX_TURN_CONTENT_CHARS} chars]"
 
     def _latest_artifact(self, workspace_id: str, project_id: str | None) -> Artifact | None:
         stmt = select(Artifact).where(Artifact.workspace_id == workspace_id)
