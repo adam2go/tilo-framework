@@ -40,6 +40,74 @@ The next version should focus on backend conversation persistence and multi-app 
 
 ---
 
+## 1.1 Round 1.5 Code Review Notes
+
+A strict review of the latest Round 1.5 implementation found that the previous blocking issues have mostly been addressed.
+
+### What is now solid
+
+1. **Manifest and path safety improved**
+   - `interaction_policy` is resolved inside the app directory.
+   - sample inputs are restricted to the app directory or `examples/contracts`.
+   - this is good enough for example-app loading in the current open-source milestone.
+
+2. **Interaction policy validates against app manifest**
+   - mini-surface policy outputs must be declared in `app.yaml` under `surfaces.mini`.
+   - rich-surface policy outputs must be declared in `app.yaml` under `surfaces.rich`.
+   - this prevents policy files from returning unknown frontend components.
+
+3. **Backend policy is becoming the source of truth**
+   - the backend now exposes interaction policy evaluation.
+   - the frontend fallback can remain, but it should stay fallback-only.
+   - future work should avoid adding new primary decision logic only in frontend code.
+
+4. **Agent context bridge exists**
+   - `AgentContextBuilder` now aggregates recent UI observations, pending confirmations, confirmed memories, active artifact summary, and the last policy decision.
+   - this is a critical step toward making UI interactions visible to the agent runtime.
+
+5. **Prompt context includes UI observations**
+   - `PromptBuilder` accepts recent UI observations.
+   - `RunManager` fetches recent UI observations and includes them in prompt construction.
+   - this moves Tilo beyond a widget/demo model: UI actions can begin to affect future agent behavior.
+
+6. **Tests now cover important runtime primitives**
+   - manifest loading
+   - apps API
+   - policy evaluation
+   - undeclared surface validation
+   - unsafe sample path rejection
+   - unsafe policy path rejection
+   - prompt builder with UI observations
+   - agent context builder with UI events, confirmed memories, and policy decision
+
+### Remaining gaps before Tilo feels like a complete runtime
+
+1. **Conversation is still not a backend runtime object**
+   - The demo has a conversation-first UX, but conversation turns are not yet first-class backend state.
+   - This blocks reliable reload, cross-channel continuity, Telegram thread mapping, and persistent multi-turn agent context.
+
+2. **AgentContextBuilder is not yet session-aware**
+   - It can aggregate workspace/project-level UI observations and memories.
+   - It still needs to accept `session_id` and include recent conversation turns.
+
+3. **Policy budgets are still caller-provided**
+   - The code honestly marks the current budget counter source as caller supplied.
+   - Round 2 should move toward backend-computed counters using `ConversationTurn` and/or `UIInteractionEvent`.
+
+4. **The second app is still missing**
+   - Contract review proves the idea.
+   - A second app, such as Sales Follow-up Agent, is needed to prove that Tilo is reusable and not a contract-review-only framework.
+
+### Decision
+
+Round 1.5 is good enough to proceed to Round 2.
+
+Do not do another UI redesign before Round 2.
+
+The next milestone should focus on durable conversation runtime, session-aware agent context, rich surface escalation, Telegram mapping, and the second app example.
+
+---
+
 ## 2. Product Principle
 
 Keep the core thesis:
