@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
-from app.models import Agent, Artifact, Confirmation, Memory, Project, UIInteractionEvent, Workspace
+from app.models import Agent, Artifact, Confirmation, ConversationSession, ConversationTurn, Memory, Project, UIInteractionEvent, Workspace
 from app.services.agent_runtime.message_flow import MessageFlowService
 from app.services.channels.telegram.renderer import TelegramRenderer
 from app.services.channels.types import ChannelRenderResult, TiloChannelEvent
@@ -42,6 +42,8 @@ class TelegramWebhookService:
             return self._response(event, rendered, status="configuration_missing")
 
         workspace, project, agent = context
+        session = self._get_or_create_session(workspace_id=workspace.id, project_id=project.id if project else None, agent_id=agent.id if agent else None, event=event)
+        self._append_turn(session.id, turn_type="user_message", role="user", content=event.text or "")
         task, run = MessageFlowService(self.db).create_task_run(
             workspace_id=workspace.id,
             project_id=project.id if project else None,
@@ -50,6 +52,27 @@ class TelegramWebhookService:
         )
         artifact = self.db.scalar(select(Artifact).where(Artifact.task_id == task.id).order_by(Artifact.created_at.desc()))
         if artifact:
+            self._append_turn(session.id, turn_type="agent_message", role="assistant", content=f"Task created for: {event.text}")
+            self._append_turn(
+                session.id,
+                turn_type="rich_surface_link",
+                surface_type="ContractReviewArtifact",
+                surface_payload_json={
+                    "surface": "ContractReviewArtifact",
+                    "title": "Open Artifact",
+                    "target": {
+                        "type": "page",
+                        "artifactId": artifact.id,
+                        "title": artifact.title,
+                        "source": "channel_fallback",
+                    },
+                    "channel": "telegram",
+                    "metadata": {"external_chat_id": event.external_chat_id},
+                },
+                artifact_id=artifact.id,
+                run_id=run.id,
+                task_id=task.id,
+            )
             rendered = self.renderer.artifact_link_button(
                 event.external_chat_id,
                 f"Task created. {artifact.title} is ready as a rich Artifact Surface.",
@@ -77,6 +100,7 @@ class TelegramWebhookService:
             artifact = self._resolve_by_id_prefix(Artifact, target_id)
             if artifact:
                 interaction = self._record_interaction(event, artifact.workspace_id, action, artifact_id=artifact.id)
+                self._append_observation_turn_for_interaction(interaction.id, artifact.workspace_id, event, {"action": action, "artifact_id": artifact.id})
                 rendered = self.renderer.artifact_link_button(event.external_chat_id, f"Open {artifact.title}.", artifact.id, self.settings.public_app_url)
                 return {**self._response(event, rendered), "interaction_id": interaction.id, "artifact_id": artifact.id}
         rendered = self.renderer.plain_text(event.external_chat_id, "Tilo could not resolve that Telegram action.")
@@ -100,6 +124,7 @@ class TelegramWebhookService:
             payload={"confirmation_id": confirmation.id, "status": confirmation.status},
         )
         rendered = self.renderer.plain_text(event.external_chat_id, f"Confirmation {confirmation.status}.")
+        self._append_observation_turn_for_interaction(interaction.id, confirmation.workspace_id, event, {"action": action, "confirmation_id": confirmation.id})
         return {**self._response(event, rendered), "confirmation_id": confirmation.id, "interaction_id": interaction.id}
 
     def _handle_memory_callback(self, event: TiloChannelEvent, action: str, target_id: str) -> dict[str, Any]:
@@ -123,7 +148,50 @@ class TelegramWebhookService:
             payload={"memory_id": memory.id, "status": memory.status},
         )
         rendered = self.renderer.plain_text(event.external_chat_id, f"Memory {memory.status}.")
+        self._append_observation_turn_for_interaction(interaction.id, memory.workspace_id, event, {"action": action, "memory_id": memory.id})
         return {**self._response(event, rendered), "memory_id": memory.id, "interaction_id": interaction.id}
+
+    def _get_or_create_session(self, *, workspace_id: str, project_id: str | None, agent_id: str | None, event: TiloChannelEvent) -> ConversationSession:
+        thread_id = event.external_chat_id
+        existing = self.db.scalar(
+            select(ConversationSession).where(
+                ConversationSession.workspace_id == workspace_id,
+                ConversationSession.channel == "telegram",
+                ConversationSession.external_thread_id == thread_id,
+            )
+        )
+        if existing:
+            return existing
+        session = ConversationSession(
+            app_id="contract-review-agent",
+            workspace_id=workspace_id,
+            project_id=project_id,
+            agent_id=agent_id,
+            channel="telegram",
+            external_thread_id=thread_id,
+            external_user_id=event.external_user_id,
+            metadata_json={"source": "telegram_webhook"},
+        )
+        self.db.add(session)
+        self.db.commit()
+        self.db.refresh(session)
+        return session
+
+    def _append_turn(self, session_id: str, turn_type: str, **kwargs: Any) -> None:
+        self.db.add(ConversationTurn(session_id=session_id, turn_type=turn_type, **kwargs))
+        self.db.commit()
+
+    def _append_observation_turn_for_interaction(self, interaction_id: str, workspace_id: str, event: TiloChannelEvent, payload: dict[str, Any]) -> None:
+        session = self.db.scalar(select(ConversationSession).where(ConversationSession.workspace_id == workspace_id, ConversationSession.channel == "telegram", ConversationSession.external_thread_id == event.external_chat_id))
+        if not session:
+            return
+        self._append_turn(
+            session.id,
+            turn_type="observation",
+            role="system",
+            interaction_id=interaction_id,
+            observation_payload_json={"channel": "telegram", "external_user_id": event.external_user_id, **payload},
+        )
 
     def _record_interaction(
         self,

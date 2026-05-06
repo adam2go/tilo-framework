@@ -10,6 +10,7 @@ class PromptBuilder:
         skills: list[Skill],
         tools: list[Tool],
         recent_ui_observations: list[UIInteractionEvent] | None = None,
+        recent_conversation_turns: list[dict] | None = None,
     ) -> dict:
         return {
             "system_prompt": agent.system_prompt if agent else "",
@@ -24,6 +25,7 @@ class PromptBuilder:
                 }
                 for observation in (recent_ui_observations or [])
             ],
+            "recent_conversation_turns": (recent_conversation_turns or [])[-12:],
             "skills": [{"name": skill.name, "trigger": skill.trigger_description} for skill in skills],
             "tools": [{"name": tool.name, "type": tool.type, "permission_level": tool.permission_level} for tool in tools],
             "artifact_requirements": {"schema_driven": True},

@@ -1,0 +1,26 @@
+id: sales-followup-agent
+version: "0.1"
+name: Sales Follow-up Agent
+description: Agent app for follow-up drafting and next-step confirmation.
+entry:
+  type: conversation
+  default_prompt: Help me draft and prioritize a sales follow-up.
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: interaction.policy.yaml
+surfaces:
+  mini:
+    - MiniChoiceCard
+    - MiniMemoryCard
+  rich:
+    - FollowupDraftArtifact
+sample_inputs:
+  - type: fixture
+    name: lead-summary
+    path: fixtures/lead-summary.md
+tools: []
+channels:
+  - web
+  - telegram

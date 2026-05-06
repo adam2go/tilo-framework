@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import { ContractReviewMiniSurfaceAdapter } from "./ContractReviewMiniSurfaceAdapter";
-import { apiFetch, getBootstrap, sendMessage } from "../../lib/api";
+import { apiFetch, appendConversationTurn, createConversationSession, getBootstrap, getConversationSession, getConversationTurns, sendMessage } from "../../lib/api";
 import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
 import type { ConversationEvent } from "../../lib/conversationEvents";
 import { settlePendingConversationEvents } from "../../lib/conversationEvents";
@@ -13,7 +13,7 @@ import { interactionPolicyService, normalizePolicyDecision } from "../../lib/int
 import type { InteractionDecision } from "../../lib/interactionPolicy";
 import { getMiniSurfaceRegistration } from "../../lib/miniSurfaceRegistry";
 import type { MiniSurfaceType } from "../../lib/miniSurfaceRegistry";
-import type { Agent, AgentAppManifest, Artifact, ArtifactAction, Confirmation, Memory, Project, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
+import type { Agent, AgentAppManifest, Artifact, ArtifactAction, Confirmation, ConversationSession, ConversationTurn, Memory, Project, RichSurfaceLink, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
 
 type Locale = "en" | "zh";
 type InputMode = "sample" | "paste";
@@ -318,6 +318,8 @@ export function TelegramDemoPage() {
   const [lastIntent, setLastIntent] = useState<FollowUpIntentResult | null>(null);
   const [memoryLifecycle, setMemoryLifecycle] = useState<MemoryLifecycle>("none");
   const [lastPolicyDecision, setLastPolicyDecision] = useState<InteractionDecision | null>(null);
+  const [conversationSession, setConversationSession] = useState<ConversationSession | null>(null);
+  const [conversationWarnings, setConversationWarnings] = useState<string[]>([]);
   const [fullReviewOpen, setFullReviewOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -341,9 +343,44 @@ export function TelegramDemoPage() {
     setAppManifest(manifest);
     setComposer(defaultPrompt(copy, manifest, locale));
     if (bootstrap.workspace) {
+      await bootConversationSession(bootstrap.workspace, bootstrap.projects[0] || null, bootstrap.agents[0] || null, copy);
       setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${bootstrap.workspace.id}`));
       setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${bootstrap.workspace.id}`));
       setConfirmations(await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${bootstrap.workspace.id}&status=pending`));
+    }
+  }
+
+  async function bootConversationSession(workspaceValue: Workspace, projectValue: Project | null, agentValue: Agent | null, currentCopy: DemoCopy) {
+    try {
+      const requestedSessionId = new URLSearchParams(window.location.search).get("session_id");
+      let session: ConversationSession | null = null;
+      if (requestedSessionId) {
+        try {
+          session = await getConversationSession(requestedSessionId);
+        } catch {
+          session = null;
+        }
+      }
+      if (!session) {
+        session = await createConversationSession({
+          app_id: "contract-review-agent",
+          workspace_id: workspaceValue.id,
+          project_id: projectValue?.id || null,
+          agent_id: agentValue?.id || null,
+          channel: "web",
+          metadata: { source: "telegram_demo" }
+        });
+      }
+      setConversationSession(session);
+      if (!requestedSessionId || requestedSessionId !== session.id) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("session_id", session.id);
+        window.history.replaceState(null, "", url.toString());
+      }
+      const storedTurns = await getConversationTurns(session.id);
+      if (storedTurns.length) setTurns([...initialTurns(currentCopy), ...storedTurns.map((turn) => conversationTurnToChatTurn(turn))]);
+    } catch (error) {
+      setConversationWarnings((items) => [...items, `Conversation runtime unavailable: ${error instanceof Error ? error.message : "unknown error"}`]);
     }
   }
 
@@ -362,6 +399,7 @@ export function TelegramDemoPage() {
     setLastIntent(null);
     setMemoryLifecycle("none");
     setLastPolicyDecision(null);
+    setConversationWarnings([]);
     setFullReviewOpen(false);
   }
 
@@ -377,6 +415,7 @@ export function TelegramDemoPage() {
     setLastIntent(null);
     setMemoryLifecycle("none");
     setLastPolicyDecision(null);
+    setConversationWarnings([]);
     setFullReviewOpen(false);
   }
 
@@ -398,10 +437,17 @@ export function TelegramDemoPage() {
     setBusy(true);
     setStage("Intent");
     setLiveEvents((items) => advanceLiveEvent(items, "channel.message.received", copy.live.goalReceived));
+    void appendTurn({
+      turn_type: "user_message",
+      role: "user",
+      content: preview,
+    });
+    const attachmentTurn = contractAttachmentTurn(copy, sourceMode, content, sampleContract);
+    void appendChatTurn(attachmentTurn);
     setTurns((items) => [
       ...items,
       { id: id("user"), type: "user_message", content: preview },
-      contractAttachmentTurn(copy, sourceMode, content, sampleContract),
+      attachmentTurn,
       { id: id("bot-task"), type: "agent_message", content: copy.received, status: "typing" },
       { id: id("bot-read-contract"), type: "agent_message", content: copy.readingContract, status: "typing" },
       { id: id("bot-identify-sections"), type: "agent_message", content: copy.identifyingSections, status: "typing" },
@@ -450,10 +496,27 @@ export function TelegramDemoPage() {
         }
       );
       setLastPolicyDecision(decision);
+      const decisionTurns = eventsForDecision(decision, "review", copy, appManifest);
+      void appendTurn({
+        turn_type: "agent_message",
+        role: "assistant",
+        content: copy.ready(riskSummary(nextArtifact)),
+        artifact_id: nextArtifact?.id || null,
+        run_id: response.run_id,
+        task_id: response.task_id,
+      });
+      decisionTurns.forEach((turn) => {
+        void appendChatTurn(turn, {
+          artifact_id: nextArtifact?.id || null,
+          run_id: response.run_id,
+          task_id: response.task_id,
+          policy_decision: decision as unknown as Record<string, unknown>,
+        });
+      });
       setTurns((items) => [
         ...settlePendingConversationEvents(items),
         { id: id("bot-ready"), type: "agent_message", content: copy.ready(riskSummary(nextArtifact)) },
-        ...eventsForDecision(decision, "review", copy, appManifest)
+        ...decisionTurns
       ]);
       setComposer("");
     } finally {
@@ -465,6 +528,7 @@ export function TelegramDemoPage() {
     if (!workspace || !artifact || !content) return;
     const intent = await classifyFollowUp(content, locale, artifact);
     setLastIntent(intent);
+    void appendTurn({ turn_type: "user_message", role: "user", content, artifact_id: artifact.id, run_id: artifact.run_id });
     const event = await persistInteraction("channel.telegram_demo.text_followup", {
       content,
       intent: intent.intent,
@@ -484,6 +548,17 @@ export function TelegramDemoPage() {
       );
     setLastPolicyDecision(decision);
     if (shouldProposeMemory) setMemoryLifecycle("candidate");
+    void appendTurn({ turn_type: "agent_message", role: "assistant", content: copy.followupReplies[intent.intent], artifact_id: artifact.id, run_id: artifact.run_id });
+    if (shouldProposeMemory) {
+      eventsForDecision(decision, "memory", copy, appManifest).forEach((turn) => {
+        void appendChatTurn(turn, {
+          artifact_id: artifact.id,
+          run_id: artifact.run_id,
+          interaction_id: event.id,
+          policy_decision: decision as unknown as Record<string, unknown>,
+        });
+      });
+    }
     setTurns((items) => [
       ...items,
       { id: id("user-followup"), type: "user_message", content },
@@ -503,6 +578,7 @@ export function TelegramDemoPage() {
     if (!artifact) return;
     const event = await persistInteraction("channel.telegram_demo.revision_direction_requested", {});
     setInteractions((items) => [event, ...items]);
+    void appendTurn({ turn_type: "agent_message", role: "assistant", content: copy.editReply, artifact_id: artifact.id, run_id: artifact.run_id, interaction_id: event.id });
     setTurns((items) => [
       ...items,
       { id: id("observe-edit"), type: "observation", content: copy.editObservation },
@@ -521,6 +597,17 @@ export function TelegramDemoPage() {
     );
     setLastPolicyDecision(decision);
     setFullReviewOpen(true);
+    void appendTurn({
+      turn_type: "rich_surface_link",
+      role: "assistant",
+      content: copy.openFullReview,
+      surface_type: "ContractReviewArtifact",
+      surface_payload: richSurfaceLinkPayload(artifact, copy, "user_action", event.id) as unknown as Record<string, unknown>,
+      artifact_id: artifact.id,
+      run_id: artifact.run_id,
+      interaction_id: event.id,
+      policy_decision: decision as unknown as Record<string, unknown>,
+    });
     setTurns((items) => [
       ...items,
       { id: id("observe-full-review"), type: "observation", content: `${copy.fullReviewObservation} (${decision.reason})` },
@@ -553,6 +640,17 @@ export function TelegramDemoPage() {
       { event: "revision_approved", artifact, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
     );
     setLastPolicyDecision(decision);
+    const revisionTurns = eventsForDecision(decision, "revision", copy, appManifest);
+    void appendTurn({ turn_type: "agent_message", role: "assistant", content: copy.approvedReply, artifact_id: artifact.id, run_id: artifact.run_id, interaction_id: event.id });
+    revisionTurns.forEach((turn) => {
+      void appendChatTurn(turn, {
+        artifact_id: artifact.id,
+        run_id: artifact.run_id,
+        interaction_id: event.id,
+        confirmation_id: action?.confirmation_id || null,
+        policy_decision: decision as unknown as Record<string, unknown>,
+      });
+    });
     setLiveEvents((items) =>
       advanceLiveEvent(
         advanceLiveEvent(items, "artifact.action.clicked", copy.live.approvalClicked),
@@ -564,7 +662,7 @@ export function TelegramDemoPage() {
       ...items,
       { id: id("observe-approve"), type: "observation", content: copy.approvedObservation },
       { id: id("bot-approved"), type: "agent_message", content: copy.approvedReply },
-      ...eventsForDecision(decision, "revision", copy, appManifest)
+      ...revisionTurns
     ]);
     setComposer(copy.followupSuggestion);
   }
@@ -593,6 +691,16 @@ export function TelegramDemoPage() {
         })
       });
       setMemories((items) => [memory, ...items]);
+      void appendTurn({
+        turn_type: "memory_confirmed",
+        role: "system",
+        content: String(block.data.content || copy.rememberedReply),
+        artifact_id: artifact.id,
+        run_id: artifact.run_id,
+        interaction_id: event.id,
+        memory_id: memory.id,
+        observation_payload: { source: "telegram_demo", memory_id: memory.id },
+      });
     }
     setMemoryLifecycle("saved");
     setStage("Memory");
@@ -615,7 +723,7 @@ export function TelegramDemoPage() {
 
   async function persistInteraction(eventType: string, payload: Record<string, unknown>) {
     if (!workspace || !artifact) throw new Error("Missing artifact");
-    return apiFetch<UIInteractionEvent>("/api/interactions", {
+    const event = await apiFetch<UIInteractionEvent>("/api/interactions", {
       method: "POST",
       body: JSON.stringify({
         workspace_id: workspace.id,
@@ -626,6 +734,34 @@ export function TelegramDemoPage() {
         payload: { channel: "telegram-demo", ...payload }
       })
     });
+    await appendTurn({
+      turn_type: "observation",
+      role: "system",
+      content: eventType,
+      artifact_id: artifact.id,
+      run_id: artifact.run_id,
+      interaction_id: event.id,
+      observation_payload: {
+        event_type: eventType,
+        channel: "telegram-demo",
+        payload: event.payload_json,
+      },
+    });
+    return event;
+  }
+
+  async function appendTurn(payload: Parameters<typeof appendConversationTurn>[1]) {
+    if (!conversationSession) return null;
+    try {
+      return await appendConversationTurn(conversationSession.id, payload);
+    } catch (error) {
+      setConversationWarnings((items) => [...items.slice(-3), `Could not persist conversation turn: ${error instanceof Error ? error.message : "unknown error"}`]);
+      return null;
+    }
+  }
+
+  async function appendChatTurn(turn: ChatTurn, extra: Partial<Parameters<typeof appendConversationTurn>[1]> = {}) {
+    return appendTurn({ ...conversationPayloadFromChatTurn(turn), ...extra });
   }
 
   async function evaluateAppPolicy(context: Record<string, unknown>, fallbackContext: Parameters<typeof interactionPolicyService.evaluate>[0]) {
@@ -729,7 +865,9 @@ export function TelegramDemoPage() {
           memories={memories}
           modeLabel={modeLabel}
           onClose={() => setInspectorOpen(false)}
+          session={conversationSession}
           trace={trace}
+          warnings={conversationWarnings}
         />
       ) : null}
 
@@ -847,6 +985,8 @@ function DeveloperInspectorDrawer({
   memories,
   modeLabel,
   onClose,
+  session,
+  warnings,
   trace
 }: {
   appManifest: AgentAppManifest | null;
@@ -862,7 +1002,9 @@ function DeveloperInspectorDrawer({
   memories: Memory[];
   modeLabel: string;
   onClose: () => void;
+  session: ConversationSession | null;
   trace: TraceStep[];
+  warnings: string[];
 }) {
   return (
     <div className="inspector-overlay">
@@ -910,6 +1052,8 @@ function DeveloperInspectorDrawer({
           <span>{copy.confirmations}: {confirmations.length}</span>
           <span>{copy.memories}: {memories.length}</span>
           <span>{copy.traceSteps}: {trace.length}</span>
+          {session ? <span>conversation session: {session.id}</span> : null}
+          {warnings.map((warning) => <span key={warning}>{warning}</span>)}
           <span>Telegram live bot: {capabilities?.telegram_enabled ? "configured" : "not configured"}</span>
         </InspectorCard>
       </aside>
@@ -973,6 +1117,93 @@ function eventsForDecision(decision: InteractionDecision, context: "review" | "r
       metadata: { reason: decision.reason, priority: decision.priority },
     },
   ];
+}
+
+function conversationPayloadFromChatTurn(turn: ChatTurn): Parameters<typeof appendConversationTurn>[1] {
+  if (turn.type === "attachment") {
+    return {
+      turn_type: "attachment",
+      content: turn.fileName,
+      surface_payload: { fileName: turn.fileName, detail: turn.detail, ...(turn.metadata || {}) },
+    };
+  }
+  if (turn.type === "mini_surface" || turn.type === "memory_candidate") {
+    return {
+      turn_type: turn.type,
+      role: "assistant",
+      surface_type: turn.surface,
+      surface_payload: turn.metadata || {},
+    };
+  }
+  return {
+    turn_type: turn.type,
+    role: turn.type === "user_message" ? "user" : turn.type === "agent_message" || turn.type === "rich_surface_link" ? "assistant" : "system",
+    content: turn.content,
+    surface_payload: turn.metadata || null,
+  };
+}
+
+function conversationTurnToChatTurn(turn: ConversationTurn): ChatTurn {
+  if (turn.turn_type === "attachment") {
+    return {
+      id: turn.id,
+      type: "attachment",
+      fileName: String(turn.surface_payload_json?.fileName || turn.content || "Attachment"),
+      detail: String(turn.surface_payload_json?.detail || ""),
+      metadata: turn.surface_payload_json || undefined,
+    };
+  }
+  if (turn.turn_type === "mini_surface" || turn.turn_type === "memory_candidate") {
+    return {
+      id: turn.id,
+      type: turn.turn_type,
+      surface: turn.surface_type || "MiniIssueCard",
+      metadata: {
+        ...(turn.surface_payload_json || {}),
+        policy_decision: turn.policy_decision_json || undefined,
+      },
+    };
+  }
+  if (turn.turn_type === "rich_surface_link") {
+    return {
+      id: turn.id,
+      type: "rich_surface_link",
+      content: turn.content || String(turn.surface_payload_json?.title || "Open Artifact"),
+      metadata: turn.surface_payload_json || undefined,
+    };
+  }
+  if (turn.turn_type === "user_message" || turn.turn_type === "agent_message" || turn.turn_type === "observation" || turn.turn_type === "system_event") {
+    return {
+      id: turn.id,
+      type: turn.turn_type,
+      content: turn.content || String(turn.observation_payload_json?.event_type || ""),
+      metadata: turn.observation_payload_json || undefined,
+    };
+  }
+  return {
+    id: turn.id,
+    type: "system_event",
+    content: turn.content || turn.turn_type,
+    metadata: turn.observation_payload_json || turn.surface_payload_json || undefined,
+  };
+}
+
+function richSurfaceLinkPayload(artifact: Artifact, copy: DemoCopy, source: RichSurfaceLink["target"]["source"], interactionId?: string): RichSurfaceLink {
+  return {
+    surface: "ContractReviewArtifact",
+    title: copy.openFullReview,
+    target: {
+      type: "drawer",
+      artifactId: artifact.id,
+      title: artifact.title,
+      source,
+    },
+    channel: "web",
+    metadata: {
+      interaction_id: interactionId,
+      artifact_id: artifact.id,
+    },
+  };
 }
 
 function isMiniSurfaceType(surface: string): surface is MiniSurfaceType {

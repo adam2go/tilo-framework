@@ -241,6 +241,42 @@ class UIInteractionEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ConversationSession(Base, TimestampMixin):
+    __tablename__ = "conversation_sessions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    app_id: Mapped[str] = mapped_column(String, index=True)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    agent_id: Mapped[str | None] = mapped_column(String, ForeignKey("agents.id"), nullable=True, index=True)
+    channel: Mapped[str] = mapped_column(String, index=True, default="web")
+    external_thread_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    external_user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String, default="active")
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class ConversationTurn(Base):
+    __tablename__ = "conversation_turns"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    session_id: Mapped[str] = mapped_column(String, ForeignKey("conversation_sessions.id"), index=True)
+    turn_type: Mapped[str] = mapped_column(String, index=True)
+    role: Mapped[str | None] = mapped_column(String, nullable=True)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    surface_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    surface_payload_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    observation_payload_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    artifact_id: Mapped[str | None] = mapped_column(String, ForeignKey("artifacts.id"), nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
+    task_id: Mapped[str | None] = mapped_column(String, ForeignKey("tasks.id"), nullable=True, index=True)
+    interaction_id: Mapped[str | None] = mapped_column(String, ForeignKey("ui_interaction_events.id"), nullable=True, index=True)
+    confirmation_id: Mapped[str | None] = mapped_column(String, ForeignKey("confirmations.id"), nullable=True, index=True)
+    memory_id: Mapped[str | None] = mapped_column(String, ForeignKey("memories.id"), nullable=True, index=True)
+    policy_decision_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class SkillCandidate(Base, TimestampMixin):
     __tablename__ = "skill_candidates"
 

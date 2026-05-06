@@ -300,6 +300,82 @@ class UIInteractionEventRead(ORMModel):
     created_at: datetime
 
 
+class RichSurfaceTarget(BaseModel):
+    type: str
+    artifactId: str | None = None
+    url: str | None = None
+    title: str | None = None
+    source: str = "policy"
+
+
+class RichSurfaceLink(BaseModel):
+    surface: str
+    title: str
+    target: RichSurfaceTarget
+    channel: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConversationSessionCreate(BaseModel):
+    app_id: str
+    workspace_id: str
+    project_id: str | None = None
+    agent_id: str | None = None
+    channel: str = "web"
+    external_thread_id: str | None = None
+    external_user_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConversationSessionRead(ORMModel):
+    id: str
+    app_id: str
+    workspace_id: str
+    project_id: str | None
+    agent_id: str | None
+    channel: str
+    external_thread_id: str | None
+    external_user_id: str | None
+    status: str
+    metadata_json: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationTurnCreate(BaseModel):
+    turn_type: str
+    role: str | None = None
+    content: str | None = None
+    surface_type: str | None = None
+    surface_payload: dict[str, Any] | None = None
+    observation_payload: dict[str, Any] | None = None
+    artifact_id: str | None = None
+    run_id: str | None = None
+    task_id: str | None = None
+    interaction_id: str | None = None
+    confirmation_id: str | None = None
+    memory_id: str | None = None
+    policy_decision: dict[str, Any] | None = None
+
+
+class ConversationTurnRead(ORMModel):
+    id: str
+    session_id: str
+    turn_type: str
+    role: str | None
+    content: str | None
+    surface_type: str | None
+    surface_payload_json: dict[str, Any] | None
+    observation_payload_json: dict[str, Any] | None
+    artifact_id: str | None
+    run_id: str | None
+    task_id: str | None
+    interaction_id: str | None
+    confirmation_id: str | None
+    memory_id: str | None
+    policy_decision_json: dict[str, Any] | None
+    created_at: datetime
+
 class SkillCandidateCreate(BaseModel):
     workspace_id: str
     project_id: str | None = None

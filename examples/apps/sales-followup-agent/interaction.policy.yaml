@@ -1,0 +1,21 @@
+id: sales-followup-agent-policy
+version: "0.1"
+rules:
+  - id: choose-followup-tone
+    when:
+      signal: followup_tone_needed
+    decision: mini_surface
+    surface: MiniChoiceCard
+    reason: choose_tone_before_sending
+  - id: open-full-draft
+    when:
+      user_action: open_full_review
+    decision: rich_surface
+    surface: FollowupDraftArtifact
+    reason: explicit_escalation
+  - id: capture-preference-memory
+    when:
+      signal: user_preference_detected
+    decision: mini_surface
+    surface: MiniMemoryCard
+    reason: confirm_preference_memory

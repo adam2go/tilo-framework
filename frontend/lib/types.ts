@@ -188,6 +188,56 @@ export type UIInteractionEvent = {
   created_at: string;
 };
 
+export type RichSurfaceTarget = {
+  type: "drawer" | "page" | "webview";
+  artifactId?: string | null;
+  url?: string | null;
+  title?: string | null;
+  source: "policy" | "user_action" | "channel_fallback";
+};
+
+export type RichSurfaceLink = {
+  surface: string;
+  title: string;
+  target: RichSurfaceTarget;
+  channel?: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type ConversationSession = {
+  id: string;
+  app_id: string;
+  workspace_id: string;
+  project_id?: string | null;
+  agent_id?: string | null;
+  channel: string;
+  external_thread_id?: string | null;
+  external_user_id?: string | null;
+  status: string;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ConversationTurn = {
+  id: string;
+  session_id: string;
+  turn_type: string;
+  role?: string | null;
+  content?: string | null;
+  surface_type?: string | null;
+  surface_payload_json?: Record<string, unknown> | null;
+  observation_payload_json?: Record<string, unknown> | null;
+  artifact_id?: string | null;
+  run_id?: string | null;
+  task_id?: string | null;
+  interaction_id?: string | null;
+  confirmation_id?: string | null;
+  memory_id?: string | null;
+  policy_decision_json?: Record<string, unknown> | null;
+  created_at: string;
+};
+
 export type RuntimeCapabilities = {
   llm_enabled: boolean;
   llm_configured: boolean;
