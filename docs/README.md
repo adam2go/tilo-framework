@@ -31,6 +31,7 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`INTERACTION_POLICY.md`](./INTERACTION_POLICY.md) — when the runtime should show no UI, mini UI, rich UI, or ask text.
 - [`MINI_SURFACE_REGISTRY.md`](./MINI_SURFACE_REGISTRY.md) — inline mini surface registration and rendering.
 - [`CONVERSATION_RUNTIME.md`](./CONVERSATION_RUNTIME.md) — conversation sessions, turns, messages, and observation linkage.
+- [`ARTIFACT_ACTION_RUNTIME.md`](./ARTIFACT_ACTION_RUNTIME.md) — unified backend execution path for artifact actions.
 - [`ORID_CONTEXT_REFLECTION.md`](./ORID_CONTEXT_REFLECTION.md) — deterministic reflection for explainable memory candidates.
 - [`MEMORY.md`](./MEMORY.md) — memory lifecycle and recall design.
 - [`ARTIFACTS.md`](./ARTIFACTS.md) — artifact spec and renderable output protocol.
@@ -50,8 +51,8 @@ Start with the README first. Use this page when you need deeper implementation r
 
 ## Active Plan
 
-- [`V0_8_DEMO_RELIABILITY_AND_OPEN_SOURCE_DX_PLAN.md`](./V0_8_DEMO_RELIABILITY_AND_OPEN_SOURCE_DX_PLAN.md) — next implementation milestone.
-- [`V0_8_CODEX_EXECUTION_PROMPT.md`](./V0_8_CODEX_EXECUTION_PROMPT.md) — copy-paste prompt for Codex.
+- [`V0_9_ARTIFACT_ACTION_RUNTIME_PLAN.md`](./V0_9_ARTIFACT_ACTION_RUNTIME_PLAN.md) — next implementation milestone.
+- [`V0_9_CODEX_EXECUTION_PROMPT.md`](./V0_9_CODEX_EXECUTION_PROMPT.md) — copy-paste prompt for Codex.
 
 ---
 
