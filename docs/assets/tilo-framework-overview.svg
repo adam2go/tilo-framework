@@ -1,0 +1,100 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 160) rotate(38) scale(520)">
+      <stop stop-color="#1A5E9A" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#070A12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1340 250) rotate(136) scale(500)">
+      <stop stop-color="#1F7A72" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#070A12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(850 830) rotate(90) scale(620)">
+      <stop stop-color="#6A41A5" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#070A12" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="70" y1="230" x2="850" y2="230" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5F7FB"/>
+      <stop offset="1" stop-color="#8BD7FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="#070A12"/>
+  <rect width="1600" height="900" fill="url(#g1)"/>
+  <rect width="1600" height="900" fill="url(#g2)"/>
+  <rect width="1600" height="900" fill="url(#g3)"/>
+
+  <rect x="70" y="58" width="278" height="56" rx="28" fill="#101827" stroke="#2B3F5C" stroke-width="2"/>
+  <text x="100" y="94" fill="#DCEAFF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="26">Tilo Framework</text>
+
+  <text x="70" y="216" fill="#F5F7FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="86" font-weight="800">AI-native SaaS</text>
+  <text x="70" y="310" fill="#8BD7FF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="86" font-weight="800">Agent Runtime</text>
+  <text x="74" y="374" fill="#B7C5D9" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="34">Render interfaces. Observe human decisions. Act safely. Memorize confirmed learning.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="585" y="462" width="430" height="206" rx="34" fill="#0F1726" stroke="#2D6F99" stroke-width="3"/>
+    <text x="642" y="526" fill="#F2F7FF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="50" font-weight="800">ROAM Loop</text>
+    <text x="634" y="594" fill="#9FDCFF" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="25">Render → Observe → Act → Memorize</text>
+  </g>
+
+  <g stroke="#34506F" stroke-width="5" stroke-linecap="round" opacity="0.85">
+    <path d="M465 560H585"/>
+    <path d="M1015 560H1110"/>
+    <path d="M1290 632V682"/>
+    <path d="M1110 738C1040 708 1015 640 1015 640"/>
+    <path d="M585 640C560 700 498 738 465 738"/>
+    <path d="M335 682V610"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="125" y="475" width="340" height="170" rx="28" fill="#0F1726" stroke="#29384F" stroke-width="2"/>
+    <rect x="155" y="500" width="126" height="40" rx="18" fill="#173451"/>
+    <text x="176" y="527" fill="#DFF3FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24">Render</text>
+    <text x="156" y="586" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Interactive</text>
+    <text x="156" y="626" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Surfaces</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1110" y="475" width="365" height="170" rx="28" fill="#0F1726" stroke="#29384F" stroke-width="2"/>
+    <rect x="1140" y="500" width="132" height="40" rx="18" fill="#164646"/>
+    <text x="1157" y="527" fill="#DFF3FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24">Observe</text>
+    <text x="1142" y="586" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">UI Events +</text>
+    <text x="1142" y="626" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Conversation Turns</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1110" y="680" width="365" height="170" rx="28" fill="#0F1726" stroke="#29384F" stroke-width="2"/>
+    <rect x="1140" y="705" width="86" height="40" rx="18" fill="#3B2F58"/>
+    <text x="1164" y="732" fill="#DFF3FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24">Act</text>
+    <text x="1142" y="791" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Tools +</text>
+    <text x="1142" y="831" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Policies</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="125" y="680" width="340" height="170" rx="28" fill="#0F1726" stroke="#29384F" stroke-width="2"/>
+    <rect x="155" y="705" width="150" height="40" rx="18" fill="#4A3240"/>
+    <text x="176" y="732" fill="#DFF3FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24">Memorize</text>
+    <text x="156" y="791" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Confirmed</text>
+    <text x="156" y="831" fill="#F1F6FF" font-family="Inter, ui-sans-serif, system-ui" font-size="36" font-weight="800">Learning</text>
+  </g>
+
+  <g>
+    <rect x="70" y="785" width="340" height="82" rx="20" fill="#0D1422" stroke="#24344C" stroke-width="2"/>
+    <text x="92" y="820" fill="#E7F0FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24" font-weight="800">Conversation Runtime</text>
+    <text x="92" y="850" fill="#9FACBF" font-family="Inter, ui-sans-serif, system-ui" font-size="22">sessions, turns, channels</text>
+
+    <rect x="440" y="785" width="340" height="82" rx="20" fill="#0D1422" stroke="#24344C" stroke-width="2"/>
+    <text x="462" y="820" fill="#E7F0FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24" font-weight="800">Interaction Policy</text>
+    <text x="462" y="850" fill="#9FACBF" font-family="Inter, ui-sans-serif, system-ui" font-size="22">UI only when necessary</text>
+
+    <rect x="810" y="785" width="340" height="82" rx="20" fill="#0D1422" stroke="#24344C" stroke-width="2"/>
+    <text x="832" y="820" fill="#E7F0FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24" font-weight="800">Context Reflection</text>
+    <text x="832" y="850" fill="#9FACBF" font-family="Inter, ui-sans-serif, system-ui" font-size="22">ORID: facts → decisions</text>
+
+    <rect x="1180" y="785" width="340" height="82" rx="20" fill="#0D1422" stroke="#24344C" stroke-width="2"/>
+    <text x="1202" y="820" fill="#E7F0FF" font-family="Inter, ui-sans-serif, system-ui" font-size="24" font-weight="800">Memory Lifecycle</text>
+    <text x="1202" y="850" fill="#9FACBF" font-family="Inter, ui-sans-serif, system-ui" font-size="22">candidate → confirmed</text>
+  </g>
+</svg>
