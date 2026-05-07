@@ -42,7 +42,33 @@ Tilo is not a chatbot wrapper. It is an **AI-native SaaS interaction runtime**.
 
 ---
 
-## Example Use Cases
+## Quick Start
+
+```bash
+git clone https://github.com/adam2go/tilo-framework.git
+cd tilo-framework
+cp .env.example .env
+
+docker compose up --build
+```
+
+Open the demo:
+
+```text
+http://localhost:3000/demo/telegram
+```
+
+Check the backend:
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+The demo works in deterministic local mode by default. You can also configure an OpenAI-compatible provider from `.env`; API keys stay backend-only and are never exposed to the frontend.
+
+---
+
+## Examples
 
 ### Contract Review Agent
 
@@ -70,32 +96,6 @@ Tilo can render a comparison matrix, evidence cards, option selection, and follo
 
 ---
 
-## Try the Demo
-
-```bash
-git clone https://github.com/adam2go/tilo-framework.git
-cd tilo-framework
-cp .env.example .env
-
-docker compose up --build
-```
-
-Open:
-
-```text
-http://localhost:3000/demo/telegram
-```
-
-Health check:
-
-```bash
-curl http://localhost:8000/api/health
-```
-
-The demo supports deterministic local mode and backend-only LLM mode through OpenAI-compatible configuration. API keys stay in `.env` on the backend and are never exposed to the frontend.
-
----
-
 ## How It Works: ROAM Loop
 
 ```text
@@ -108,15 +108,6 @@ Render -> Observe -> Act -> Memorize
 - **Memorize** — confirmed decisions, preferences, project facts, and reusable procedures become long-term memory.
 
 ROAM turns UI from a passive display layer into an active part of the agent runtime.
-
-| Traditional agent loop | Tilo ROAM loop |
-|---|---|
-| Observation is mostly tool output | Observation includes human UI interaction |
-| Output is text or tool result | Output can be an interactive artifact |
-| UI is outside the loop | UI is part of the loop |
-| Memory is optional | Memory closes the loop |
-
-Read more: [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
 
 ---
 
