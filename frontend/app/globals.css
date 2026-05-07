@@ -1394,6 +1394,39 @@ th {
   padding: 18px;
 }
 
+.telegram-demo-banner {
+  align-items: center;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  color: #7c2d12;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 14px;
+}
+
+.telegram-demo-banner strong {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.telegram-demo-banner span {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.telegram-demo-banner button {
+  border: 1px solid #fdba74;
+  border-radius: 999px;
+  background: #fff;
+  color: #7c2d12;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  margin-left: auto;
+  padding: 6px 10px;
+}
+
 .chat-turn {
   border-radius: 17px;
   box-shadow: 0 8px 26px rgba(21, 32, 57, 0.05);

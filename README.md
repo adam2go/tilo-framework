@@ -30,7 +30,7 @@
 
 ---
 
-## What is Tilo?
+## Project Positioning
 
 **Tilo is an open-source framework for building AI-native SaaS agents that render interactive product surfaces, observe human decisions, act through tools, and memorize confirmed learning.**
 
@@ -64,6 +64,12 @@ Check the backend:
 
 ```bash
 curl http://localhost:8000/api/health
+```
+
+Verify the local demo without any API key:
+
+```bash
+bash scripts/verify_local_demo.sh
 ```
 
 The demo works in deterministic local mode by default. You can also configure an OpenAI-compatible provider from `.env`; API keys stay backend-only and are never exposed to the frontend.
@@ -142,6 +148,7 @@ Create a new app:
 
 ```bash
 python scripts/create_app.py my-agent
+python scripts/validate_app.py examples/apps/my-agent
 ```
 
 Then edit `app.yaml` and `interaction.policy.yaml`. The policy decides when the agent should continue silently, ask a question, show a mini surface, or open a rich surface.
@@ -164,8 +171,8 @@ Developer references:
 - Mini surfaces and rich surface links
 - `artifact_spec.v1` artifact rendering foundation
 - Memory candidates and confirmation-before-persistence
-- ORID-inspired context reflection plan
-- Declarative example apps and scaffold script
+- ORID-inspired context reflection service
+- Declarative example apps, scaffold script, and app validation script
 
 ---
 
@@ -176,6 +183,7 @@ Developer references:
 | v0.5 | Durable conversation runtime, rich surface escalation, Telegram mapping, second app |
 | v0.6 | ConversationService, typed runtime primitives, centralized observation linkage, developer DX |
 | v0.7 | Run-to-session closure, conversation-native message endpoint, ORID reflection, explainable memory candidates |
+| v0.8 | Demo reliability, Quick Start verification, contributor docs, app validation, lightweight CI |
 | Future | MCP, browser/GUI automation, more channel adapters, permissions, skill marketplace primitives |
 
 ---
@@ -193,20 +201,18 @@ scripts/       Developer utilities
 
 ---
 
-## Documentation
+## Docs / Contributing
 
 - [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
 - [`docs/CONVERSATION_RUNTIME.md`](./docs/CONVERSATION_RUNTIME.md)
 - [`docs/MEMORY.md`](./docs/MEMORY.md)
+- [`docs/README.md`](./docs/README.md)
 - [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md)
 - [`docs/SKILLS.md`](./docs/SKILLS.md)
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`docs/DEMO_SCREENSHOTS.md`](./docs/DEMO_SCREENSHOTS.md)
 - [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)
-
----
-
-## Contributing
 
 Tilo is early. Contributions are welcome.
 

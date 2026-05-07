@@ -1,5 +1,7 @@
 import os
 import json
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -126,6 +128,20 @@ def test_sales_followup_app_manifest_and_policy_are_loadable() -> None:
     assert decision.surface == "MiniChoiceCard"
     assert rich.decision == InteractionDecisionType.rich_surface
     assert rich.surface == "FollowupDraftArtifact"
+
+
+def test_validate_app_script_accepts_existing_example_apps() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    for app_path in ("examples/apps/contract-review-agent", "examples/apps/sales-followup-agent"):
+        result = subprocess.run(
+            [sys.executable, "scripts/validate_app.py", app_path],
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "app validation passed" in result.stdout
 
 
 def test_interaction_policy_evaluates_core_decisions_and_budget() -> None:
@@ -661,6 +677,9 @@ def test_interaction_with_session_appends_observation_and_context_reflection_can
         reflection = db.query(ContextReflection).filter(ContextReflection.session_id == session["id"]).one()
         memory = db.query(Memory).filter(Memory.workspace_id == workspace_id, Memory.source_type == "context_reflection").one()
         assert reflection.orid_json["objective"]["facts"]
+        assert reflection.orid_json["reflective"]["signals"]
+        assert reflection.orid_json["interpretive"]["insights"]
+        assert reflection.orid_json["decisional"][0]["action"] == "propose_memory"
         assert memory.status == "candidate"
         assert memory.is_confirmed is False
         assert memory.structured_payload["source"] == "context_reflection"

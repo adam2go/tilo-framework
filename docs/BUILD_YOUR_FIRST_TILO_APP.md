@@ -2,7 +2,14 @@
 
 Tilo apps are small folders that describe an agent entry point, its allowed surfaces, its interaction policy, and sample inputs.
 
-The fastest path is to copy an existing app:
+The fastest path is to scaffold a starter app:
+
+```bash
+python scripts/create_app.py my-agent
+python scripts/validate_app.py examples/apps/my-agent
+```
+
+You can also copy an existing app:
 
 ```bash
 cp -R examples/apps/contract-review-agent examples/apps/my-agent
@@ -133,12 +140,30 @@ curl -X POST http://localhost:8000/api/interactions \
 
 With `session_id`, the backend appends the observation turn and may create an ORID reflection memory candidate. The policy remains the source of truth for UI decisions.
 
-## 6. Optional Scaffold
+## 6. Developer Loop
 
-You can create a minimal app folder with:
+Use this loop when building a new app:
 
 ```bash
 python scripts/create_app.py my-agent
+python scripts/validate_app.py examples/apps/my-agent
+docker compose up --build
+curl http://localhost:8000/api/apps/my-agent
 ```
 
-Review the generated files before committing them.
+Expected generated files:
+
+```text
+examples/apps/my-agent/app.yaml
+examples/apps/my-agent/interaction.policy.yaml
+examples/apps/my-agent/README.md
+```
+
+Common validation errors:
+
+- Missing `app.yaml` or `interaction.policy.yaml`.
+- A policy returns a mini or rich surface not declared in `app.yaml`.
+- A sample fixture path points outside the app, `examples/contracts`, or `examples/fixtures`.
+- A manifest, policy, fixture, or README appears to contain an API key, token, password, or secret.
+
+Review the generated files before committing them. Keep the backend policy as the source of truth and keep the app conversation-first.

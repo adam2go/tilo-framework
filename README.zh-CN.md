@@ -30,7 +30,7 @@
 
 ---
 
-## Tilo 是什么？
+## 项目定位
 
 **Tilo 是一个开源框架，用于构建 AI 原生 SaaS Agent：它可以渲染交互式产品界面，观察用户决策，继续调用工具行动，并把确认后的经验沉淀为长期记忆。**
 
@@ -64,6 +64,12 @@ http://localhost:3000/demo/telegram
 
 ```bash
 curl http://localhost:8000/api/health
+```
+
+无需 API key 验证本地 Demo：
+
+```bash
+bash scripts/verify_local_demo.sh
 ```
 
 Demo 默认支持确定性本地模式。你也可以在 `.env` 中配置 OpenAI-compatible provider 启用后端 LLM 模式；API key 只保存在后端，不会暴露到前端。
@@ -141,6 +147,7 @@ examples/apps/sales-followup-agent/
 
 ```bash
 python scripts/create_app.py my-agent
+python scripts/validate_app.py examples/apps/my-agent
 ```
 
 然后编辑 `app.yaml` 和 `interaction.policy.yaml`。Policy 决定 Agent 何时静默继续、何时追问、何时展示 mini surface、何时打开 rich surface。
@@ -163,8 +170,8 @@ python scripts/create_app.py my-agent
 - Mini surfaces 和 rich surface links
 - `artifact_spec.v1` Artifact 渲染基础
 - Memory candidates 和确认后持久化
-- ORID-inspired context reflection plan
-- 声明式 example apps 和 scaffold script
+- ORID-inspired context reflection service
+- 声明式 example apps、scaffold script 和 app validation script
 
 ---
 
@@ -175,6 +182,7 @@ python scripts/create_app.py my-agent
 | v0.5 | 持久 conversation runtime、rich surface escalation、Telegram mapping、第二个 app |
 | v0.6 | ConversationService、typed runtime primitives、centralized observation linkage、developer DX |
 | v0.7 | Run-to-session closure、conversation-native message endpoint、ORID reflection、explainable memory candidates |
+| v0.8 | Demo reliability、Quick Start verification、contributor docs、app validation、lightweight CI |
 | Future | MCP、browser/GUI automation、更多渠道适配、权限、skill marketplace primitives |
 
 ---
@@ -192,20 +200,18 @@ scripts/       开发者工具
 
 ---
 
-## 文档
+## 文档 / 贡献
 
 - [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
 - [`docs/CONVERSATION_RUNTIME.md`](./docs/CONVERSATION_RUNTIME.md)
 - [`docs/MEMORY.md`](./docs/MEMORY.md)
+- [`docs/README.md`](./docs/README.md)
 - [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md)
 - [`docs/SKILLS.md`](./docs/SKILLS.md)
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`docs/DEMO_SCREENSHOTS.md`](./docs/DEMO_SCREENSHOTS.md)
 - [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)
-
----
-
-## 贡献
 
 Tilo 还很早期，欢迎参与贡献。
 

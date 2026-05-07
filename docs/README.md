@@ -12,6 +12,7 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`../README.zh-CN.md`](../README.zh-CN.md) — Chinese README.
 - [`USER_GUIDE.md`](./USER_GUIDE.md) — using the current demo and console.
 - [`BUILD_YOUR_FIRST_TILO_APP.md`](./BUILD_YOUR_FIRST_TILO_APP.md) — build a new declarative Tilo app.
+- [`DEMO_SCREENSHOTS.md`](./DEMO_SCREENSHOTS.md) — capture real screenshots from the running demo.
 
 ---
 

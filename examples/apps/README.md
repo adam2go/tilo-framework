@@ -34,11 +34,13 @@ Core runtime concepts:
 
 To add another app:
 
-1. Create `examples/apps/{app_id}/app.yaml`.
-2. Create `examples/apps/{app_id}/interaction.policy.yaml`.
-3. Keep sample inputs inside the app directory, under `examples/contracts`, or under `examples/fixtures`.
-4. Add only the mini surfaces needed for meaningful human decisions.
-5. Verify the app appears in `GET /api/apps`.
+1. Run `python scripts/create_app.py {app_id}`.
+2. Edit `examples/apps/{app_id}/app.yaml`.
+3. Edit `examples/apps/{app_id}/interaction.policy.yaml`.
+4. Keep sample inputs inside the app directory, under `examples/contracts`, or under `examples/fixtures`.
+5. Add only the mini surfaces needed for meaningful human decisions.
+6. Run `python scripts/validate_app.py examples/apps/{app_id}`.
+7. Verify the app appears in `GET /api/apps`.
 
 Do not put secrets in manifests or policies.
 
@@ -68,4 +70,6 @@ curl -X POST http://localhost:8000/api/conversations/session-id/messages \
 curl -X POST http://localhost:8000/api/interactions \
   -H 'Content-Type: application/json' \
   -d '{"workspace_id":"workspace-id","session_id":"session-id","event_type":"sales.open_full_review","payload":{"action":"open_full_review"}}'
+python scripts/validate_app.py examples/apps/contract-review-agent
+python scripts/validate_app.py examples/apps/sales-followup-agent
 ```

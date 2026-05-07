@@ -46,6 +46,10 @@ const demoCopy = {
     runSample: "Run sample",
     replay: "Replay",
     reset: "Reset",
+    retry: "Retry",
+    demoStatus: "Demo status",
+    backendUnavailable: (message: string) => `The backend is unavailable or still starting. ${message}`,
+    demoActionFailed: (message: string) => `Demo action failed. ${message}`,
     inspector: "Inspector",
     stagePrefix: "Stage",
     stageIntent: "Intent",
@@ -172,6 +176,10 @@ const demoCopy = {
     runSample: "运行样例",
     replay: "重放",
     reset: "重置",
+    retry: "重试",
+    demoStatus: "Demo 状态",
+    backendUnavailable: (message: string) => `后端不可用或仍在启动中。${message}`,
+    demoActionFailed: (message: string) => `Demo 操作失败。${message}`,
     inspector: "Inspector",
     stagePrefix: "阶段",
     stageIntent: "意图",
@@ -322,6 +330,7 @@ export function TelegramDemoPage() {
   const [lastPolicyDecision, setLastPolicyDecision] = useState<InteractionDecision | null>(null);
   const [conversationSession, setConversationSession] = useState<ConversationSession | null>(null);
   const [conversationWarnings, setConversationWarnings] = useState<string[]>([]);
+  const [frontendError, setFrontendError] = useState<string | null>(null);
   const [fullReviewOpen, setFullReviewOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -331,24 +340,29 @@ export function TelegramDemoPage() {
   }, []);
 
   async function boot() {
-    const [bootstrap, runtime, manifest] = await Promise.all([
-      getBootstrap(),
-      apiFetch<RuntimeCapabilities>("/api/runtime/capabilities"),
-      apiFetch<AgentAppManifest>("/api/apps/contract-review-agent")
-    ]);
-    const contract = await apiFetch<DemoContractFixture>(contractEndpointForManifest(manifest));
-    setWorkspace(bootstrap.workspace);
-    setProject(bootstrap.projects[0] || null);
-    setAgent(bootstrap.agents[0] || null);
-    setCapabilities(runtime);
-    setSampleContract(contract);
-    setAppManifest(manifest);
-    setComposer(defaultPrompt(copy, manifest, locale));
-    if (bootstrap.workspace) {
-      await bootConversationSession(bootstrap.workspace, bootstrap.projects[0] || null, bootstrap.agents[0] || null, copy);
-      setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${bootstrap.workspace.id}`));
-      setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${bootstrap.workspace.id}`));
-      setConfirmations(await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${bootstrap.workspace.id}&status=pending`));
+    try {
+      setFrontendError(null);
+      const [bootstrap, runtime, manifest] = await Promise.all([
+        getBootstrap(),
+        apiFetch<RuntimeCapabilities>("/api/runtime/capabilities"),
+        apiFetch<AgentAppManifest>("/api/apps/contract-review-agent")
+      ]);
+      const contract = await apiFetch<DemoContractFixture>(contractEndpointForManifest(manifest));
+      setWorkspace(bootstrap.workspace);
+      setProject(bootstrap.projects[0] || null);
+      setAgent(bootstrap.agents[0] || null);
+      setCapabilities(runtime);
+      setSampleContract(contract);
+      setAppManifest(manifest);
+      setComposer(defaultPrompt(copy, manifest, locale));
+      if (bootstrap.workspace) {
+        await bootConversationSession(bootstrap.workspace, bootstrap.projects[0] || null, bootstrap.agents[0] || null, copy);
+        setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${bootstrap.workspace.id}`));
+        setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${bootstrap.workspace.id}`));
+        setConfirmations(await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${bootstrap.workspace.id}&status=pending`));
+      }
+    } catch (error) {
+      setFrontendError(copy.backendUnavailable(error instanceof Error ? error.message : "Unknown startup error."));
     }
   }
 
@@ -402,10 +416,11 @@ export function TelegramDemoPage() {
     setMemoryLifecycle("none");
     setLastPolicyDecision(null);
     setConversationWarnings([]);
+    setFrontendError(null);
     setFullReviewOpen(false);
   }
 
-  async function resetDemo() {
+  function resetLocalDemoState() {
     setArtifact(null);
     setConfirmations([]);
     setTrace([]);
@@ -418,12 +433,18 @@ export function TelegramDemoPage() {
     setMemoryLifecycle("none");
     setLastPolicyDecision(null);
     setConversationWarnings([]);
+    setFrontendError(null);
     setFullReviewOpen(false);
-    if (workspace) await createFreshConversationSession();
   }
 
-  async function createFreshConversationSession() {
-    if (!workspace) return;
+  async function resetDemo(): Promise<ConversationSession | null> {
+    resetLocalDemoState();
+    if (workspace) return await createFreshConversationSession();
+    return null;
+  }
+
+  async function createFreshConversationSession(): Promise<ConversationSession | null> {
+    if (!workspace) return null;
     try {
       const session = await createConversationSession({
         app_id: "contract-review-agent",
@@ -437,9 +458,25 @@ export function TelegramDemoPage() {
       const url = new URL(window.location.href);
       url.searchParams.set("session_id", session.id);
       window.history.replaceState(null, "", url.toString());
+      return session;
     } catch (error) {
       setConversationWarnings((items) => [...items.slice(-3), `Could not reset conversation session: ${error instanceof Error ? error.message : "unknown error"}`]);
+      return null;
     }
+  }
+
+  async function replayDemo() {
+    if (!workspace || busy) return;
+    if (!sampleContract) {
+      setTurns((items) => [...items, { id: id("sample-loading"), type: "agent_message", content: copy.sampleUnavailable }]);
+      return;
+    }
+    const nextSession = await resetDemo();
+    const prompt = defaultPrompt(copy, appManifest, locale);
+    const nextArtifact = await runInitialReview(buildDemoMessage(copy, "sample", prompt, sampleContract), prompt, "sample", nextSession || undefined);
+    if (!nextArtifact) return;
+    await approveRevision(nextArtifact, nextSession || undefined);
+    await handleFollowUp(copy.followupSuggestion, nextArtifact, true, nextSession || undefined);
   }
 
   async function submitMessage() {
@@ -455,18 +492,20 @@ export function TelegramDemoPage() {
     await handleFollowUp(composer.trim());
   }
 
-  async function runInitialReview(content: string, preview: string, sourceMode: InputMode) {
-    if (!workspace) return;
+  async function runInitialReview(content: string, preview: string, sourceMode: InputMode, sessionOverride?: ConversationSession): Promise<Artifact | null> {
+    if (!workspace) return null;
     setBusy(true);
+    setFrontendError(null);
     setStage("Intent");
     setLiveEvents((items) => advanceLiveEvent(items, "channel.message.received", copy.live.goalReceived));
+    const sessionForRun = sessionOverride || conversationSession;
     void appendTurn({
       turn_type: ConversationTurnTypes.userMessage,
       role: "user",
       content: preview,
-    });
+    }, sessionForRun?.id);
     const attachmentTurn = contractAttachmentTurn(copy, sourceMode, content, sampleContract);
-    void appendChatTurn(attachmentTurn);
+    void appendChatTurn(attachmentTurn, {}, sessionForRun?.id);
     setTurns((items) => [
       ...items,
       { id: id("user"), type: "user_message", content: preview },
@@ -480,8 +519,8 @@ export function TelegramDemoPage() {
     ]);
     try {
       const messagePayload = { content: withLanguageInstruction(content, copy) };
-      const response = conversationSession
-        ? await sendConversationMessage(conversationSession.id, messagePayload)
+      const response = sessionForRun
+        ? await sendConversationMessage(sessionForRun.id, messagePayload)
         : await sendMessage({
           workspace_id: workspace.id,
           project_id: project?.id,
@@ -530,14 +569,14 @@ export function TelegramDemoPage() {
         artifact_id: nextArtifact?.id || null,
         run_id: response.run_id,
         task_id: response.task_id,
-      });
+      }, sessionForRun?.id);
       decisionTurns.forEach((turn) => {
         void appendChatTurn(turn, {
           artifact_id: nextArtifact?.id || null,
           run_id: response.run_id,
           task_id: response.task_id,
           policy_decision: decision as unknown as Record<string, unknown>,
-        });
+        }, sessionForRun?.id);
       });
       setTurns((items) => [
         ...settlePendingConversationEvents(items),
@@ -545,44 +584,51 @@ export function TelegramDemoPage() {
         ...decisionTurns
       ]);
       setComposer("");
+      return nextArtifact;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error.";
+      setFrontendError(copy.demoActionFailed(message));
+      setTurns((items) => [...settlePendingConversationEvents(items), { id: id("bot-error"), type: "agent_message", content: copy.demoActionFailed(message) }]);
+      return null;
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleFollowUp(content: string) {
-    if (!workspace || !artifact || !content) return;
-    const intent = await classifyFollowUp(content, locale, artifact);
+  async function handleFollowUp(content: string, artifactOverride?: Artifact, forceMemoryCandidate = false, sessionOverride?: ConversationSession) {
+    const activeArtifact = artifactOverride || artifact;
+    if (!workspace || !activeArtifact || !content) return;
+    const intent = await classifyFollowUp(content, locale, activeArtifact);
     setLastIntent(intent);
-    void appendTurn({ turn_type: ConversationTurnTypes.userMessage, role: "user", content, artifact_id: artifact.id, run_id: artifact.run_id });
+    void appendTurn({ turn_type: ConversationTurnTypes.userMessage, role: "user", content, artifact_id: activeArtifact.id, run_id: activeArtifact.run_id }, sessionOverride?.id);
     const event = await persistInteraction("channel.telegram_demo.text_followup", {
       content,
       intent: intent.intent,
       intent_mode: intent.mode,
       intent_confidence: intent.confidence
-    });
+    }, activeArtifact, sessionOverride);
     setInteractions((items) => [event, ...items]);
-    const shouldProposeMemory = stage === "Revision Draft" && ["revise_tone", "remember_preference"].includes(intent.intent);
+    const shouldProposeMemory = forceMemoryCandidate || (stage === "Revision Draft" && ["revise_tone", "remember_preference"].includes(intent.intent));
     const decision = shouldProposeMemory
       ? await evaluateAppPolicy(
         { signal: "user_preference_detected", mini_surfaces_used: countVisibleMiniSurfaces(turns), memory_cards_used: memoryLifecycle === "none" ? 0 : 1 },
-        { event: "followup_received", artifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
+        { event: "followup_received", artifact: activeArtifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
       )
       : await evaluateAppPolicy(
         { signal: policySignalForFollowUp(intent.intent), mini_surfaces_used: countVisibleMiniSurfaces(turns), memory_cards_used: memoryLifecycle === "none" ? 0 : 1 },
-        { event: "followup_received", artifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
+        { event: "followup_received", artifact: activeArtifact, followUpIntent: intent.intent, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
       );
     setLastPolicyDecision(decision);
     if (shouldProposeMemory) setMemoryLifecycle("candidate");
-    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.followupReplies[intent.intent], artifact_id: artifact.id, run_id: artifact.run_id });
+    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.followupReplies[intent.intent], artifact_id: activeArtifact.id, run_id: activeArtifact.run_id }, sessionOverride?.id);
     if (shouldProposeMemory) {
       eventsForDecision(decision, "memory", copy, appManifest).forEach((turn) => {
         void appendChatTurn(turn, {
-          artifact_id: artifact.id,
-          run_id: artifact.run_id,
+          artifact_id: activeArtifact.id,
+          run_id: activeArtifact.run_id,
           interaction_id: event.id,
           policy_decision: decision as unknown as Record<string, unknown>,
-        });
+        }, sessionOverride?.id);
       });
     }
     setTurns((items) => [
@@ -642,17 +688,18 @@ export function TelegramDemoPage() {
     ]);
   }
 
-  async function approveRevision() {
-    if (!workspace || !artifact) return;
-    const action = findApprovalAction(artifact);
-    const block = findBlock(artifact, "summary");
-    const primaryRisk = primaryRiskForArtifact(artifact);
+  async function approveRevision(artifactOverride?: Artifact, sessionOverride?: ConversationSession) {
+    const activeArtifact = artifactOverride || artifact;
+    if (!workspace || !activeArtifact) return;
+    const action = findApprovalAction(activeArtifact);
+    const block = findBlock(activeArtifact, "summary");
+    const primaryRisk = primaryRiskForArtifact(activeArtifact);
     const event = await persistInteraction("channel.telegram_demo.approve_revision", {
       confirmation_id: action?.confirmation_id || null,
       block_id: block?.id || null,
       primary_risk_id: String(primaryRisk?.id || "risk_liability_indemnity_conflict"),
       clauses: String(primaryRisk?.clause || "8.1 / 8.2")
-    });
+    }, activeArtifact, sessionOverride);
     if (action?.confirmation_id) {
       const updated = await apiFetch<Confirmation>(`/api/confirmations/${action.confirmation_id}/approve`, {
         method: "POST",
@@ -664,19 +711,19 @@ export function TelegramDemoPage() {
     setStage("Revision Draft");
     const decision = await evaluateAppPolicy(
       { user_action: "approve_revision", mini_surfaces_used: countVisibleMiniSurfaces(turns) },
-      { event: "revision_approved", artifact, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
+      { event: "revision_approved", artifact: activeArtifact, visibleMiniSurfaceCount: countVisibleMiniSurfaces(turns), channel: "web" }
     );
     setLastPolicyDecision(decision);
     const revisionTurns = eventsForDecision(decision, "revision", copy, appManifest);
-    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.approvedReply, artifact_id: artifact.id, run_id: artifact.run_id, interaction_id: event.id });
+    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.approvedReply, artifact_id: activeArtifact.id, run_id: activeArtifact.run_id, interaction_id: event.id }, sessionOverride?.id);
     revisionTurns.forEach((turn) => {
       void appendChatTurn(turn, {
-        artifact_id: artifact.id,
-        run_id: artifact.run_id,
+        artifact_id: activeArtifact.id,
+        run_id: activeArtifact.run_id,
         interaction_id: event.id,
         confirmation_id: action?.confirmation_id || null,
         policy_decision: decision as unknown as Record<string, unknown>,
-      });
+      }, sessionOverride?.id);
     });
     setLiveEvents((items) =>
       advanceLiveEvent(
@@ -748,35 +795,37 @@ export function TelegramDemoPage() {
     setTurns((items) => [...items, { id: id("observe-skip-memory"), type: "observation", content: copy.notNowObservation }]);
   }
 
-  async function persistInteraction(eventType: string, payload: Record<string, unknown>) {
-    if (!workspace || !artifact) throw new Error("Missing artifact");
+  async function persistInteraction(eventType: string, payload: Record<string, unknown>, artifactOverride?: Artifact, sessionOverride?: ConversationSession) {
+    const activeArtifact = artifactOverride || artifact;
+    if (!workspace || !activeArtifact) throw new Error("Missing artifact");
     const event = await apiFetch<UIInteractionEvent>("/api/interactions", {
       method: "POST",
       body: JSON.stringify({
         workspace_id: workspace.id,
         project_id: project?.id || null,
-        artifact_id: artifact.id,
-        run_id: artifact.run_id,
+        artifact_id: activeArtifact.id,
+        run_id: activeArtifact.run_id,
         event_type: eventType,
-        session_id: conversationSession?.id || null,
+        session_id: sessionOverride?.id || conversationSession?.id || null,
         payload: { channel: "telegram-demo", ...payload }
       })
     });
     return event;
   }
 
-  async function appendTurn(payload: Parameters<typeof appendConversationTurn>[1]) {
-    if (!conversationSession) return null;
+  async function appendTurn(payload: Parameters<typeof appendConversationTurn>[1], sessionId?: string) {
+    const targetSessionId = sessionId || conversationSession?.id;
+    if (!targetSessionId) return null;
     try {
-      return await appendConversationTurn(conversationSession.id, payload);
+      return await appendConversationTurn(targetSessionId, payload);
     } catch (error) {
       setConversationWarnings((items) => [...items.slice(-3), `Could not persist conversation turn: ${error instanceof Error ? error.message : "unknown error"}`]);
       return null;
     }
   }
 
-  async function appendChatTurn(turn: ChatTurn, extra: Partial<Parameters<typeof appendConversationTurn>[1]> = {}) {
-    return appendTurn({ ...conversationPayloadFromChatTurn(turn), ...extra });
+  async function appendChatTurn(turn: ChatTurn, extra: Partial<Parameters<typeof appendConversationTurn>[1]> = {}, sessionId?: string) {
+    return appendTurn({ ...conversationPayloadFromChatTurn(turn), ...extra }, sessionId);
   }
 
   async function evaluateAppPolicy(context: Record<string, unknown>, fallbackContext: Parameters<typeof interactionPolicyService.evaluate>[0]) {
@@ -811,6 +860,15 @@ export function TelegramDemoPage() {
             <button className="language-toggle" onClick={() => setInspectorOpen(true)}><Code2 size={14} /> {copy.inspector}</button>
           </div>
         </header>
+
+        {frontendError || conversationWarnings.length ? (
+          <div className="telegram-demo-banner">
+            <strong>{copy.demoStatus}</strong>
+            {frontendError ? <span>{frontendError}</span> : null}
+            {conversationWarnings.slice(-2).map((warning) => <span key={warning}>{warning}</span>)}
+            <button onClick={() => void boot()} type="button">{copy.retry}</button>
+          </div>
+        ) : null}
 
         <div className="telegram-chat-thread">
           {turns.map((turn) => (
@@ -849,7 +907,8 @@ export function TelegramDemoPage() {
             }
             const prompt = defaultPrompt(copy, appManifest, locale);
             void runInitialReview(buildDemoMessage(copy, "sample", prompt, sampleContract), prompt, "sample");
-          }} disabled={busy}>{copy.runSample}</button>
+          }} disabled={busy || !workspace}>{copy.runSample}</button>
+          <button className="secondary-action" onClick={() => void replayDemo()} disabled={busy || !workspace}><RotateCcw size={14} /> {copy.replay}</button>
           <button className="secondary-action" onClick={() => void resetDemo()} disabled={busy}><RotateCcw size={14} /> {copy.reset}</button>
           {inputMode === "paste" && !artifact ? (
             <textarea placeholder={copy.pastePlaceholder} value={composer} onChange={(event) => setComposer(event.target.value)} />
@@ -1148,6 +1207,14 @@ function conversationPayloadFromChatTurn(turn: ChatTurn): Parameters<typeof appe
       role: "assistant",
       surface_type: turn.surface,
       surface_payload: turn.metadata || {},
+    };
+  }
+  if (!("content" in turn)) {
+    return {
+      turn_type: "system_event",
+      role: "system",
+      content: turn.type,
+      surface_payload: turn.metadata || null,
     };
   }
   return {
