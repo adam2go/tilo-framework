@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img alt="Tilo Framework hero: AI-native SaaS interaction runtime" src="./docs/assets/tilo-framework-hero.png" />
+  <img alt="Tilo Framework overview: AI-native SaaS agent runtime built around the ROAM Loop" src="./docs/assets/tilo-framework-overview.svg" />
 </p>
 
 ---
