@@ -10,9 +10,9 @@
   <a href="./docs/ROAM_INTERACTION_CONTRACT.md">Interaction Contract</a> ·
   <a href="./docs/INTEROPERABILITY.md">互操作性</a> ·
   <a href="./docs/AI_NATIVE_INTERACTION_COMPONENTS.md">AI 原生交互组件</a> ·
-  <a href="./docs/USER_GUIDE.md">使用指南</a> ·
-  <a href="./docs/V0_2_CODEX_PLAN.md">v0.2 开发计划</a> ·
-  <a href="./evals/README.md">Evals</a>
+  <a href="./docs/CONVERSATION_RUNTIME.md">Conversation Runtime</a> ·
+  <a href="./docs/MEMORY.md">Memory</a> ·
+  <a href="./docs/USER_GUIDE.md">使用指南</a>
 </p>
 
 <p align="center">
@@ -26,36 +26,34 @@
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-frontend-black" />
 </p>
 
+<p align="center">
+  <img alt="Tilo Framework 项目总览：围绕 ROAM Loop 构建 AI 原生 SaaS Agent Runtime" src="./docs/assets/tilo-framework-overview.svg" />
+</p>
+
 ---
 
 ## Tilo 是什么？
 
-**Tilo 是一个开源框架，用于构建 AI 原生 SaaS Agent：它可以渲染交互式产品界面，观察用户行为，继续执行任务，并把确认后的经验沉淀为长期记忆。**
+**Tilo 是一个开源框架，用于构建 AI 原生 SaaS Agent：它可以渲染交互式产品界面，观察用户决策，继续调用工具行动，并把确认后的经验沉淀为长期记忆。**
 
-Tilo 提出了一个核心框架：**ROAM Loop**。
+很多 Agent 框架关注推理、工具调用、工作流编排或多智能体协作。Tilo 更关注另一个问题：
+
+> 如果用户界面本身也成为 Agent Runtime 的一部分，会发生什么？
+
+在 Tilo 中，Agent 不只是返回文本或调用工具。它可以渲染类 SaaS 的 Artifact，观察用户如何审批、编辑、选择、拒绝和修正这些 Artifact，再基于这些观察继续行动，并把确认后的信息变成长期记忆。
+
+Tilo 不是聊天机器人外壳，而是一个 **AI 原生 SaaS 交互 Runtime**。
+
+---
+
+## 核心思想：ROAM Loop
+
+Tilo 提出了 **ROAM Loop**：
 
 ```text
 Render -> Observe -> Act -> Memorize
 渲染 -> 观察 -> 行动 -> 记忆
 ```
-
-很多 Agent 框架关注推理、工具调用、工作流编排或多智能体协作。Tilo 更关注另一个问题：
-
-> 如果用户界面本身也成为 Agent Loop 的一部分，会发生什么？
-
-在 Tilo 中，Agent 不只是返回文本或调用工具。它可以渲染类 SaaS 的交互式 Artifact，观察用户如何审批、编辑、选择、拒绝和修正这些 Artifact，再基于这些观察继续行动，并把确认后的信息变成长期记忆。
-
-Tilo 不是聊天机器人外壳，而是一个 **AI 原生 SaaS 交互框架**。
-
----
-
-## ROAM Loop
-
-传统 ReAct 类 Agent Loop 通常把 Observation 理解成工具结果或环境反馈。
-
-Tilo 扩展了这个观点：
-
-> 用户与生成界面的交互，本身也是 Observation。
 
 ```text
 Render
@@ -117,130 +115,103 @@ Tilo 探索的是 AI 原生 SaaS 交付：
 
 ---
 
-## ROAM Interaction Contract
+## Runtime 架构
 
-Tilo 提供一个轻量的声明式 interaction contract 层，用来连接 AI 原生 SaaS Agent、界面、人类操作、结构化观察和长期记忆。Contract 描述 Agent 应该渲染什么、哪些用户动作需要被观察、哪些动作需要确认，以及哪些结果可以进入记忆候选。
+```text
+Agent App Manifest
+        ↓
+Interaction Policy
+        ↓
+Mini / Rich Surface
+        ↓
+UIInteractionEvent
+        ↓
+ConversationTurn(observation)
+        ↓
+AgentContextBuilder
+        ↓
+PromptBuilder
+        ↓
+Agent Runtime
+        ↓
+Memory Candidate -> Human Confirmation -> Confirmed Memory
+```
 
-它是 Tilo 内部可落地的连接层，不把自己包装成通用标准，也不替代现有 Agent 协议。
+Tilo 围绕几个核心运行时原语构建：
 
-- Contract 设计：[`docs/ROAM_INTERACTION_CONTRACT.md`](./docs/ROAM_INTERACTION_CONTRACT.md)
-- 具体示例：[`examples/interaction-contracts/contract-review.roam.yaml`](./examples/interaction-contracts/contract-review.roam.yaml)
+- **Agent App Manifest**：声明式定义应用身份、入口 prompt、可用 surfaces、样例输入、工具和渠道。
+- **Interaction Policy**：后端决策源，决定 Agent 何时继续静默执行、何时追问、何时展示 mini surface、何时打开 rich surface。
+- **Mini Surface Registry**：渲染在对话中的轻量决策卡片。
+- **Rich Surface Link**：按需打开完整 Artifact 页面、抽屉或 WebView。
+- **Conversation Runtime**：跨 Web、Telegram 和未来渠道的持久会话与 turns。
+- **UI Observations**：用户动作会变成结构化运行时观察。
+- **Context Reflection**：通过 ORID 风格反思，把原始交互转成可解释的下一步动作和记忆候选。
+- **Memory Lifecycle**：观察不会自动成为长期记忆，必须经过用户确认。
 
 ---
 
-## 互操作性
+## 当前能力
 
-Tilo 设计上应该兼容更大的 Agent 生态，而不是把自己做成孤岛：
+### Conversation-first runtime
 
-- MCP 连接工具和资源。
-- A2A 风格协议可以连接 Agent 之间的交接与协作。
-- Skills 封装可复用能力。
-- LangGraph、LlamaIndex、CrewAI、AutoGen 或自定义 Runtime 仍然可以负责编排与检索。
-- Tilo 通过 ROAM 连接 Agent、UI、人类、观察和记忆。
+- `ConversationSession` 和 `ConversationTurn`
+- Web demo 通过 `session_id` 恢复会话
+- Telegram 文本 / callback 映射
+- Append-only 持久 turns
+- Channel-friendly runtime model
 
-更多说明见：[`docs/INTEROPERABILITY.md`](./docs/INTEROPERABILITY.md)
+### ROAM-native 交互层
 
----
+- 对话内 mini surfaces
+- Rich surface escalation
+- UIInteractionEvent 持久化
+- Observation turns 与交互事件关联
+- 后端 interaction policy evaluation
 
-## 核心能力
-
-### 1. ROAM-native 交互层
-
-Tilo 把交互组件作为运行时原语。
-
-- ApprovalCard
-- RiskReviewPanel
-- ComparisonMatrix
-- MetricDashboard
-- MemoryCandidateCard
-- ToolCallPreview
-- ActionQueue
-- EditableDocument placeholder
-- UIInteractionEvent 模型方向
-
-### 2. AI 原生 Artifact 交付
-
-Agent 的输出不应该只是一段 Markdown，而应该是可用的产品界面。
+### Artifact 交付
 
 - `artifact_spec.v1`
 - Schema-driven 渲染
-- Renderer Registry
-- Artifact Actions
-- State Bindings
+- Renderer registry
+- Artifact actions
+- State bindings
 - 与 Confirmation 关联的动作
-- 持久化 Artifact 页面
 
-### 3. 长期记忆
+### 记忆与上下文
 
-Tilo 把记忆作为一等公民，而不是简单保存聊天记录。
-
-- 结构化记忆
-- 记忆候选
+- 结构化 Memory records
+- Memory candidates
 - 用户确认后才进入长期记忆
 - Workspace / Project 级别召回
-- 记忆召回事件
-- 记忆写入事件
-- 为 embedding / rerank 预留扩展空间
+- Memory recall / write events
+- ORID-inspired context reflection plan
 
-### 4. Agent 自我改进
+### 开发者体验
 
-Tilo 内置安全的自我改进原语。
-
-- Run Metrics
-- Feedback Records
-- Skill Candidates
-- Skill 晋升前需要人类审核
-- Eval 脚手架
-- 默认不允许危险的自动自我修改
-
-### 5. 人类决策 Inbox
-
-人不应该操作每一步流程，而应该确认关键决策。
-
-- 持久化 Confirmation
-- Approve / Reject / Edit 流程
-- 高风险工具调用拦截
-- 待处理决策队列
-
-### 6. 可追踪 Runtime
-
-每次运行都会产生安全、可见的执行轨迹。
-
-- Task / Run 生命周期
-- Trace Steps
-- Trace 输出脱敏
-- 失败运行处理
-- Tool Invocation Ledger
+- 声明式 example apps
+- App manifest loader
+- Policy surface validation
+- Sales Follow-up 第二个示例应用
+- 极简 app scaffold script
+- 本地 eval scaffolding
 
 ---
 
-## 架构
+## 公开 Demo
+
+运行类 Telegram 的 ROAM showcase：
+
+```bash
+docker compose up --build
+```
+
+然后打开：
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│                    Tilo Console                         │
-│ Conversation / Artifact Surface / Context / Inbox       │
-└────────────────────────────┬────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────┐
-│                    ROAM Runtime                         │
-│      Render -> Observe -> Act -> Memorize               │
-└──────────────┬─────────────┬───────────────┬────────────┘
-               │             │               │
-┌──────────────▼───┐ ┌───────▼───────┐ ┌────▼─────────────┐
-│ Artifact Engine  │ │ Observation   │ │ Agent Runtime    │
-│ Spec / Registry  │ │ UI Events     │ │ Planner/Executor │
-└──────────────┬───┘ └───────┬───────┘ └────┬─────────────┘
-               │             │              │
-┌──────────────▼─────────────▼──────────────▼─────────────┐
-│ Memory Engine / Skill System / Tool Registry / Inbox    │
-└────────────────────────────┬────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────┐
-│              PostgreSQL + pgvector + Redis              │
-└─────────────────────────────────────────────────────────┘
+http://localhost:3000/demo/telegram
 ```
+
+Demo 支持确定性本地模式，也支持通过 OpenAI-compatible 配置启用后端 LLM 模式。API key 只保存在后端 `.env`，不会暴露到前端。
 
 ---
 
@@ -284,27 +255,43 @@ python3 evals/runners/run_runtime_loop_eval.py
 
 ---
 
-## 如何使用当前 Console？
+## 构建一个 Agent App
 
-当前 UI 是一个早期单页 ROAM Console。
+Tilo app 可以用声明式方式定义，而不是硬编码在某个 demo 里。
 
-1. 打开 `http://localhost:3000`。
-2. 选择一个 Demo Prompt，或者输入自己的任务。
-3. 点击 **Send Message**。
-4. Tilo 会创建 Task 和 Run。
-5. Agent 在中间区域渲染 Artifact。
-6. 右侧区域可以查看 Trace、Memory、Skills、Files 和 Inbox。
-7. 与生成组件交互：审批动作、确认记忆、审查建议。
-8. 这些交互会成为后续运行的 Observation。
-9. 被确认的记忆可以在下次任务中被召回。
+可以从合同审查示例开始：
 
-当前内置 Demo：
+```text
+examples/apps/contract-review-agent/app.yaml
+examples/apps/contract-review-agent/interaction.policy.yaml
+```
 
-- 合同审查
-- 销售跟进
-- 竞品分析
+一个 Tilo app 通常包含：
 
-更详细说明见 [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)。
+```text
+app.yaml
+interaction.policy.yaml
+fixtures or sample inputs
+optional README
+```
+
+Manifest 定义 app 的入口 prompt、运行时 fallback 行为、允许的 mini/rich surfaces、样例输入、工具和渠道。Policy 决定 Agent 何时 `no_ui`、展示 `mini_surface`、打开 `rich_surface` 或 `ask_text`。
+
+添加新 app：
+
+1. 复制 `examples/apps/contract-review-agent/`，或运行 `python scripts/create_app.py my-agent`。
+2. 修改 `app.yaml` 中的 identity、entry prompt、surfaces、sample inputs、tools 和 channels。
+3. 修改 `interaction.policy.yaml`，让 UI 只在真正有决策价值时出现。
+4. 打开 `GET /api/apps` 确认 manifest 加载成功。
+5. 复用或新增 frontend mini surface registry 中的组件。
+
+开发者参考：
+
+- [`docs/APP_MANIFEST.md`](./docs/APP_MANIFEST.md)
+- [`docs/INTERACTION_POLICY.md`](./docs/INTERACTION_POLICY.md)
+- [`docs/MINI_SURFACE_REGISTRY.md`](./docs/MINI_SURFACE_REGISTRY.md)
+- [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`examples/apps/README.md`](./examples/apps/README.md)
 
 ---
 
@@ -316,7 +303,7 @@ python3 evals/runners/run_runtime_loop_eval.py
 Review this contract and flag risky clauses around liability, termination, and payment terms.
 ```
 
-Tilo 应该渲染合同审查界面，包括风险面板、修改建议、审批卡片和记忆候选。
+Tilo 会渲染合同审查界面，包括风险面板、修改建议、审批卡片和记忆候选。
 
 ### 销售跟进 Agent
 
@@ -324,7 +311,7 @@ Tilo 应该渲染合同审查界面，包括风险面板、修改建议、审批
 Which customers should sales follow up with this week?
 ```
 
-Tilo 应该渲染销售仪表盘和决策表，并生成待审批动作。
+Tilo 会渲染客户跟进建议、决策卡片、草稿动作和偏好记忆候选。
 
 ### 竞品分析 Agent
 
@@ -332,61 +319,64 @@ Tilo 应该渲染销售仪表盘和决策表，并生成待审批动作。
 Create a competitive analysis for memory-native AI agent frameworks.
 ```
 
-Tilo 应该渲染对比矩阵、方案选择、证据卡片和后续动作。
+Tilo 可以渲染对比矩阵、方案选择、证据卡片和后续动作。
 
 ---
 
 ## 当前状态
 
-Tilo 目前处在早期 v0.2/v0.3 设计与实现阶段。
+Tilo 还很早期，但正在从 demo 走向真正的开源 agent app runtime。
 
 | 模块 | 状态 |
 |---|---|
-| Runtime loop | 已有基础闭环 |
 | ROAM Loop concept | 已文档化 |
-| AI-native interaction components | 已设计，待实现 |
 | Artifact spec v1 | 已有基础能力 |
-| Renderer registry | 已有基础能力 |
+| Conversation runtime | 已有基础能力 |
+| UI observations | 已有基础能力 |
+| Agent context bridge | 已有基础能力 |
+| Interaction policy | 已有基础能力 |
+| Rich surface escalation | 已有基础能力 |
 | Memory candidates | 已有基础能力 |
-| Recall / write events | 已有基础能力 |
-| Human confirmation | 已有基础能力 |
-| Tool permission gate | 已有基础能力 |
-| Self-improvement primitives | 早期基础能力 |
-| Evals | 本地脚手架 |
-| UI polish | 需要大幅优化 |
-
-当前 UI 能跑通功能，但还不足以作为公开展示。下一优先级是实现 ROAM-native interaction components。
+| Telegram mapping | 早期基础能力 |
+| ORID context reflection | 规划 / 开发中 |
+| UI polish | 需要继续优化 |
 
 ---
 
 ## Roadmap
 
-### v0.3: ROAM Interaction Layer
+### v0.5: Conversation Runtime and Multi-app
 
-- 把 ROAM 写入 README 和产品文档
-- 增加 UIInteractionEvent 模型
-- 扩展 Artifact actions 和 state bindings
-- 建立交互组件注册表
-- 实现 ApprovalCard、RiskReviewPanel、ComparisonMatrix、MetricDashboard、MemoryCandidateCard、ToolCallPreview、ActionQueue
-- 围绕 conversation + generated interaction surface 重构 Console
-- 让组件动作写入持久化后端状态
+- 持久会话 sessions 和 turns
+- Session-aware agent context
+- Rich surface escalation
+- Telegram mapping
+- Sales Follow-up 示例 app
 
-### v0.4: Memory and Self-improvement
+### v0.6: Runtime Hardening and Developer Experience
 
-- Hybrid semantic memory recall
-- Memory conflict resolver
-- Skill candidate review and promotion
-- Feedback-driven improvement loop
-- 更强的 eval benchmarks
+- ConversationService
+- Typed runtime primitives
+- Centralized observation linkage
+- 更清晰的 prompt context shape
+- 开发者 app guide 和 scaffold script
 
-### v0.5+
+### v0.7: ORID Context Reflection and Runtime Closure
+
+- Run-to-session context closure
+- Conversation-native message endpoint
+- UIInteractionEvent to observation turn automation
+- ORID-style context reflection
+- Explainable memory candidates
+
+### Future
 
 - MCP integration
 - Browser and GUI automation
 - Artifact 分享与发布
-- Telegram / Slack / Discord / 微信风格适配器
+- Slack / Discord / 微信风格适配器
 - 多用户 Workspace 权限
-- Skill Marketplace 原语
+- Skill marketplace primitives
 
 ---
 
@@ -407,6 +397,8 @@ backend/       FastAPI 后端、领域模型、Runtime、Memory、Tools、Artifa
 frontend/      Next.js Console、Artifact Renderer、Memory/Trace/Inbox 面板
 docs/          产品原则、ROAM Loop、架构、使用指南、实现计划
 evals/         Memory、Artifact、Runtime loop 本地评测脚手架
+examples/      声明式 agent app examples 和 fixtures
+scripts/       小型开发者工具
 ```
 
 ---
@@ -415,14 +407,13 @@ evals/         Memory、Artifact、Runtime loop 本地评测脚手架
 
 - [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md) — Tilo 的核心交互循环
 - [`docs/AI_NATIVE_INTERACTION_COMPONENTS.md`](./docs/AI_NATIVE_INTERACTION_COMPONENTS.md) — AI 原生 SaaS 组件体系
-- [`docs/ROAM_CODEX_IMPLEMENTATION_PLAN.md`](./docs/ROAM_CODEX_IMPLEMENTATION_PLAN.md) — ROAM 的 Codex 执行计划
-- [`docs/PROJECT_CONSTITUTION.md`](./docs/PROJECT_CONSTITUTION.md) — 项目宪法
-- [`docs/PRODUCT_PRINCIPLES.md`](./docs/PRODUCT_PRINCIPLES.md) — 产品原则
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — 系统架构
+- [`docs/ROAM_INTERACTION_CONTRACT.md`](./docs/ROAM_INTERACTION_CONTRACT.md) — ROAM interaction contract
+- [`docs/CONVERSATION_RUNTIME.md`](./docs/CONVERSATION_RUNTIME.md) — Conversation runtime
 - [`docs/MEMORY.md`](./docs/MEMORY.md) — 记忆系统设计
 - [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md) — Artifact 协议
 - [`docs/SKILLS.md`](./docs/SKILLS.md) — Skill 系统
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md) — API 契约
+- [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md) — 构建你的第一个 Tilo app
 - [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md) — 使用指南
 
 ---
