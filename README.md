@@ -44,6 +44,8 @@ Tilo is not a chatbot wrapper. It is an **AI-native SaaS interaction runtime**.
 
 ## Quick Start
 
+Run the demo locally:
+
 ```bash
 git clone https://github.com/adam2go/tilo-framework.git
 cd tilo-framework
@@ -52,7 +54,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open the demo:
+Open:
 
 ```text
 http://localhost:3000/demo/telegram
@@ -68,7 +70,7 @@ The demo works in deterministic local mode by default. You can also configure an
 
 ---
 
-## Examples
+## What You Can Build
 
 ### Contract Review Agent
 
@@ -96,7 +98,7 @@ Tilo can render a comparison matrix, evidence cards, option selection, and follo
 
 ---
 
-## How It Works: ROAM Loop
+## How It Works
 
 ```text
 Render -> Observe -> Act -> Memorize
@@ -107,41 +109,14 @@ Render -> Observe -> Act -> Memorize
 - **Act** — the agent updates artifacts, invokes tools, asks questions, creates confirmations, or starts follow-up tasks.
 - **Memorize** — confirmed decisions, preferences, project facts, and reusable procedures become long-term memory.
 
-ROAM turns UI from a passive display layer into an active part of the agent runtime.
-
----
-
-## Runtime Primitives
+Core runtime flow:
 
 ```text
-Agent App Manifest
-        ↓
-Interaction Policy
-        ↓
-Mini / Rich Surface
-        ↓
-UIInteractionEvent
-        ↓
-ConversationTurn(observation)
-        ↓
-AgentContextBuilder
-        ↓
-PromptBuilder
-        ↓
-Agent Runtime
-        ↓
-Memory Candidate -> Human Confirmation -> Confirmed Memory
+Agent App Manifest -> Interaction Policy -> Mini / Rich Surface
+-> UIInteractionEvent -> ConversationTurn(observation)
+-> AgentContextBuilder -> PromptBuilder -> Agent Runtime
+-> Memory Candidate -> Human Confirmation -> Confirmed Memory
 ```
-
-Core pieces:
-
-- **Agent App Manifest** — app identity, entry prompt, surfaces, sample inputs, tools, and channels.
-- **Interaction Policy** — backend source of truth for when UI should appear.
-- **Mini / Rich Surfaces** — inline decision cards and on-demand full artifact surfaces.
-- **Conversation Runtime** — durable sessions and turns across web, Telegram, and future channels.
-- **UI Observations** — user actions become structured runtime observations.
-- **Context Reflection** — ORID-style reflection can turn raw interactions into explainable next actions and memory candidates.
-- **Memory Lifecycle** — observations do not become long-term memory until explicitly confirmed.
 
 ---
 
