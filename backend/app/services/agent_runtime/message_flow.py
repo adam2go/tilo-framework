@@ -15,6 +15,7 @@ class MessageFlowService:
         content: str,
         project_id: str | None = None,
         agent_id: str | None = None,
+        session_id: str | None = None,
     ) -> tuple[Task, Run]:
         task = Task(
             workspace_id=workspace_id,
@@ -25,14 +26,14 @@ class MessageFlowService:
         )
         self.db.add(task)
         self.db.flush()
-        run = Run(task_id=task.id)
+        run = Run(task_id=task.id, session_id=session_id)
         self.db.add(run)
         self.db.commit()
         self.db.refresh(task)
         self.db.refresh(run)
 
         agent = self.db.get(Agent, task.agent_id) if task.agent_id else None
-        RunManager(self.db).execute(task, run, agent)
+        RunManager(self.db).execute(task, run, agent, session_id=session_id)
         self.db.refresh(task)
         self.db.refresh(run)
         return task, run

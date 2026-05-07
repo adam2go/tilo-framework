@@ -5,7 +5,14 @@ from sqlalchemy.engine import Engine
 def ensure_v02_schema(engine: Engine) -> None:
     """Small compatibility bridge until the project has real migrations."""
     inspector = inspect(engine)
-    if "memories" not in inspector.get_table_names():
+    table_names = inspector.get_table_names()
+    if "runs" in table_names:
+        run_columns = {column["name"] for column in inspector.get_columns("runs")}
+        if "session_id" not in run_columns:
+            with engine.begin() as connection:
+                connection.execute(text("ALTER TABLE runs ADD COLUMN session_id VARCHAR"))
+
+    if "memories" not in table_names:
         return
 
     datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"

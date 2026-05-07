@@ -1,12 +1,14 @@
 from collections.abc import Sequence
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models import UIInteractionEvent
 from app.schemas import UIInteractionEventCreate, UIInteractionEventRead
+from app.services.context_reflection import ContextReflectionService
+from app.services.conversations.service import ConversationService
 from app.services.interactions.events import UIInteractionEventService
 
 router = APIRouter(prefix="/api/interactions", tags=["interactions"])
@@ -14,7 +16,10 @@ router = APIRouter(prefix="/api/interactions", tags=["interactions"])
 
 @router.post("", response_model=UIInteractionEventRead)
 def create_interaction(payload: UIInteractionEventCreate, db: Session = Depends(get_db)) -> UIInteractionEvent:
-    return UIInteractionEventService(db).create(
+    conversation = ConversationService(db)
+    if payload.session_id and not conversation.get_session(payload.session_id):
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+    event = UIInteractionEventService(db).create(
         workspace_id=payload.workspace_id,
         project_id=payload.project_id,
         user_id=payload.user_id,
@@ -25,6 +30,14 @@ def create_interaction(payload: UIInteractionEventCreate, db: Session = Depends(
         event_type=payload.event_type,
         payload_json=payload.payload,
     )
+    if payload.session_id:
+        conversation.append_observation_for_interaction(payload.session_id, event)
+        ContextReflectionService(db).reflect_and_persist(
+            session_id=payload.session_id,
+            trigger_event_id=event.id,
+            artifact_id=payload.artifact_id,
+        )
+    return event
 
 
 @router.get("", response_model=list[UIInteractionEventRead])

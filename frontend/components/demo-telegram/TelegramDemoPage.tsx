@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import { ContractReviewMiniSurfaceAdapter } from "./ContractReviewMiniSurfaceAdapter";
-import { apiFetch, appendConversationTurn, appendObservationForInteraction, createConversationSession, getBootstrap, getConversationSession, getConversationTurns, sendMessage } from "../../lib/api";
+import { apiFetch, appendConversationTurn, createConversationSession, getBootstrap, getConversationSession, getConversationTurns, sendConversationMessage, sendMessage } from "../../lib/api";
 import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
 import type { ConversationEvent } from "../../lib/conversationEvents";
 import { ConversationChannels, ConversationTurnTypes } from "../../lib/conversationEvents";
@@ -369,7 +369,7 @@ export function TelegramDemoPage() {
           workspace_id: workspaceValue.id,
           project_id: projectValue?.id || null,
           agent_id: agentValue?.id || null,
-            channel: ConversationChannels.web,
+          channel: ConversationChannels.web,
           metadata: { source: "telegram_demo" }
         });
       }
@@ -405,7 +405,7 @@ export function TelegramDemoPage() {
     setFullReviewOpen(false);
   }
 
-  function resetDemo() {
+  async function resetDemo() {
     setArtifact(null);
     setConfirmations([]);
     setTrace([]);
@@ -419,6 +419,27 @@ export function TelegramDemoPage() {
     setLastPolicyDecision(null);
     setConversationWarnings([]);
     setFullReviewOpen(false);
+    if (workspace) await createFreshConversationSession();
+  }
+
+  async function createFreshConversationSession() {
+    if (!workspace) return;
+    try {
+      const session = await createConversationSession({
+        app_id: "contract-review-agent",
+        workspace_id: workspace.id,
+        project_id: project?.id || null,
+        agent_id: agent?.id || null,
+        channel: ConversationChannels.web,
+        metadata: { source: "telegram_demo", reset_at: new Date().toISOString() }
+      });
+      setConversationSession(session);
+      const url = new URL(window.location.href);
+      url.searchParams.set("session_id", session.id);
+      window.history.replaceState(null, "", url.toString());
+    } catch (error) {
+      setConversationWarnings((items) => [...items.slice(-3), `Could not reset conversation session: ${error instanceof Error ? error.message : "unknown error"}`]);
+    }
   }
 
   async function submitMessage() {
@@ -458,12 +479,15 @@ export function TelegramDemoPage() {
       { id: id("bot-render"), type: "agent_message", content: copy.rendering, status: "rendering" }
     ]);
     try {
-      const response = await sendMessage({
-        workspace_id: workspace.id,
-        project_id: project?.id,
-        agent_id: agent?.id,
-        content: withLanguageInstruction(content, copy)
-      });
+      const messagePayload = { content: withLanguageInstruction(content, copy) };
+      const response = conversationSession
+        ? await sendConversationMessage(conversationSession.id, messagePayload)
+        : await sendMessage({
+          workspace_id: workspace.id,
+          project_id: project?.id,
+          agent_id: agent?.id,
+          ...messagePayload
+        });
       const [artifacts, inbox, memoryList, traceList, eventList] = await Promise.all([
         apiFetch<Artifact[]>(`/api/artifacts?workspace_id=${workspace.id}&task_id=${response.task_id}`),
         apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${workspace.id}&status=pending`),
@@ -734,16 +758,10 @@ export function TelegramDemoPage() {
         artifact_id: artifact.id,
         run_id: artifact.run_id,
         event_type: eventType,
+        session_id: conversationSession?.id || null,
         payload: { channel: "telegram-demo", ...payload }
       })
     });
-    if (conversationSession) {
-      try {
-        await appendObservationForInteraction(conversationSession.id, event.id);
-      } catch (error) {
-        setConversationWarnings((items) => [...items.slice(-3), `Could not link observation turn: ${error instanceof Error ? error.message : "unknown error"}`]);
-      }
-    }
     return event;
   }
 
@@ -832,7 +850,7 @@ export function TelegramDemoPage() {
             const prompt = defaultPrompt(copy, appManifest, locale);
             void runInitialReview(buildDemoMessage(copy, "sample", prompt, sampleContract), prompt, "sample");
           }} disabled={busy}>{copy.runSample}</button>
-          <button className="secondary-action" onClick={resetDemo} disabled={busy}><RotateCcw size={14} /> {copy.reset}</button>
+          <button className="secondary-action" onClick={() => void resetDemo()} disabled={busy}><RotateCcw size={14} /> {copy.reset}</button>
           {inputMode === "paste" && !artifact ? (
             <textarea placeholder={copy.pastePlaceholder} value={composer} onChange={(event) => setComposer(event.target.value)} />
           ) : (

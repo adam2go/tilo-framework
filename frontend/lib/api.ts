@@ -39,6 +39,22 @@ export async function sendMessage(payload: {
   });
 }
 
+export async function sendConversationMessage(sessionId: string, payload: {
+  content: string;
+  attachments?: Record<string, unknown>[];
+}) {
+  return apiFetch<{
+    session_id: string;
+    task_id: string;
+    run_id: string;
+    status: string;
+    artifact_id?: string | null;
+  }>(`/api/conversations/${sessionId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ attachments: [], ...payload })
+  });
+}
+
 export async function createConversationSession(payload: {
   app_id: string;
   workspace_id: string;

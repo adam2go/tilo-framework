@@ -3,7 +3,16 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models import ConversationSession, ConversationTurn, UIInteractionEvent
-from app.schemas import ConversationObservationCreate, ConversationSessionCreate, ConversationSessionRead, ConversationTurnCreate, ConversationTurnRead
+from app.schemas import (
+    ConversationMessageCreate,
+    ConversationMessageResponse,
+    ConversationObservationCreate,
+    ConversationSessionCreate,
+    ConversationSessionRead,
+    ConversationTurnCreate,
+    ConversationTurnRead,
+)
+from app.services.conversations.messages import ConversationMessageService
 from app.services.conversations.service import ConversationService
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
@@ -52,6 +61,14 @@ def create_turn(session_id: str, payload: ConversationTurnCreate, db: Session = 
         memory_id=payload.memory_id,
         policy_decision=payload.policy_decision,
     )
+
+
+@router.post("/{session_id}/messages", response_model=ConversationMessageResponse)
+def create_message(session_id: str, payload: ConversationMessageCreate, db: Session = Depends(get_db)) -> dict[str, str | None]:
+    try:
+        return ConversationMessageService(db).send_message(session_id, content=payload.content, attachments=payload.attachments)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/{session_id}/observations/from-interaction", response_model=ConversationTurnRead)

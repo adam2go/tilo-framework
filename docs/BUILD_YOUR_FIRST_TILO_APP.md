@@ -115,6 +115,24 @@ curl -X POST http://localhost:8000/api/conversations/session-id/turns \
   -d '{"turn_type":"user_message","role":"user","content":"Draft a concise follow-up."}'
 ```
 
+Run a conversation-native message:
+
+```bash
+curl -X POST http://localhost:8000/api/conversations/session-id/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Draft a concise follow-up.","attachments":[]}'
+```
+
+Record a UI interaction against the session:
+
+```bash
+curl -X POST http://localhost:8000/api/interactions \
+  -H 'Content-Type: application/json' \
+  -d '{"workspace_id":"workspace-id","session_id":"session-id","event_type":"demo.open_full_review","payload":{"action":"open_full_review"}}'
+```
+
+With `session_id`, the backend appends the observation turn and may create an ORID reflection memory candidate. The policy remains the source of truth for UI decisions.
+
 ## 6. Optional Scaffold
 
 You can create a minimal app folder with:

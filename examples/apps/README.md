@@ -29,6 +29,7 @@ Core runtime concepts:
 - Mini Surface Registry
 - Conversation Runtime
 - Observation Context
+- ORID Context Reflection
 - Memory Lifecycle
 
 To add another app:
@@ -61,4 +62,10 @@ curl -X POST http://localhost:8000/api/apps/sales-followup-agent/interaction-pol
 curl -X POST http://localhost:8000/api/conversations \
   -H 'Content-Type: application/json' \
   -d '{"app_id":"sales-followup-agent","workspace_id":"workspace-id","channel":"web"}'
+curl -X POST http://localhost:8000/api/conversations/session-id/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Draft a customer-friendly follow-up.","attachments":[]}'
+curl -X POST http://localhost:8000/api/interactions \
+  -H 'Content-Type: application/json' \
+  -d '{"workspace_id":"workspace-id","session_id":"session-id","event_type":"sales.open_full_review","payload":{"action":"open_full_review"}}'
 ```

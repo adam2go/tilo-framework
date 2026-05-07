@@ -17,15 +17,7 @@ class PromptBuilder:
         recent_conversation_turns: list[dict] | None = None,
     ) -> dict:
         capped_turns = [self._compact_turn(turn) for turn in (recent_conversation_turns or [])[-MAX_PROMPT_TURNS:]]
-        capped_observations = [
-            {
-                "event_type": observation.event_type,
-                "artifact_id": observation.artifact_id,
-                "run_id": observation.run_id,
-                "payload": observation.payload_json,
-            }
-            for observation in (recent_ui_observations or [])[:MAX_PROMPT_OBSERVATIONS]
-        ]
+        capped_observations = [self._compact_observation(observation) for observation in (recent_ui_observations or [])[:MAX_PROMPT_OBSERVATIONS]]
         return {
             "system_prompt": agent.system_prompt if agent else "",
             "task": {"title": task.title, "input_message": task.input_message},
@@ -54,6 +46,21 @@ class PromptBuilder:
         if turn.get("observation"):
             compact["observation"] = turn["observation"]
         return {key: value for key, value in compact.items() if value is not None}
+
+    def _compact_observation(self, observation) -> dict:
+        if isinstance(observation, dict):
+            return {
+                "event_type": observation.get("event_type"),
+                "artifact_id": observation.get("artifact_id"),
+                "run_id": observation.get("run_id"),
+                "payload": observation.get("payload", observation.get("payload_json")),
+            }
+        return {
+            "event_type": observation.event_type,
+            "artifact_id": observation.artifact_id,
+            "run_id": observation.run_id,
+            "payload": observation.payload_json,
+        }
 
     @staticmethod
     def _truncate(content) -> str | None:

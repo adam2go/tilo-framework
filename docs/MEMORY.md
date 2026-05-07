@@ -170,3 +170,18 @@ v0.2 memory is structured and auditable:
 - `MemoryRecallPipeline` ranks confirmed memories by keyword overlap, salience, recency, and scope fit. Embeddings remain optional.
 
 Candidates must remain unconfirmed until a user accepts or edits them. Rejected or archived memories must not be recalled by default.
+
+## 14. v0.7 Context Reflection
+
+ORID context reflection can propose memory candidates from durable conversation and UI interaction signals.
+
+These candidates must use:
+
+- `source_type = context_reflection`
+- `status = candidate`
+- `is_confirmed = false`
+- `structured_payload.source = context_reflection`
+- `structured_payload.why`
+- `structured_payload.orid_evidence`
+
+Reflection must not convert observations into confirmed memory automatically. Confirmation, rejection, and not-now actions suppress immediate duplicate proposals. See `docs/ORID_CONTEXT_REFLECTION.md`.

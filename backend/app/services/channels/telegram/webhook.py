@@ -5,15 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.models import Agent, Artifact, Confirmation, Memory, Project, UIInteractionEvent, Workspace
-from app.services.agent_runtime.message_flow import MessageFlowService
 from app.services.channels.telegram.renderer import TelegramRenderer
 from app.services.channels.types import ChannelRenderResult, TiloChannelEvent
+from app.services.context_reflection import ContextReflectionService
 from app.services.conversations.constants import ConversationChannel
+from app.services.conversations.messages import ConversationMessageService
 from app.services.conversations.service import ConversationService
 from app.services.interactions.events import UIInteractionEventService
 from app.services.memory.writer import MemoryWriter
-from app.services.surfaces.constants import RichSurfaceSource, RichSurfaceTargetType
-from app.services.surfaces.rich_links import create_rich_surface_link
 
 
 class TelegramWebhookService:
@@ -46,34 +45,13 @@ class TelegramWebhookService:
             return self._response(event, rendered, status="configuration_missing")
 
         workspace, project, agent = context
-        conversation = ConversationService(self.db)
         session = self._get_or_create_session(workspace_id=workspace.id, project_id=project.id if project else None, agent_id=agent.id if agent else None, event=event)
-        conversation.append_user_message(session.id, event.text or "")
-        task, run = MessageFlowService(self.db).create_task_run(
-            workspace_id=workspace.id,
-            project_id=project.id if project else None,
-            agent_id=agent.id if agent else None,
+        message = ConversationMessageService(self.db).send_message(
+            session.id,
             content=event.text or "",
         )
-        artifact = self.db.scalar(select(Artifact).where(Artifact.task_id == task.id).order_by(Artifact.created_at.desc()))
+        artifact = self.db.get(Artifact, message["artifact_id"]) if message["artifact_id"] else None
         if artifact:
-            conversation.append_agent_message(session.id, f"Task created for: {event.text}")
-            conversation.append_rich_surface_link(
-                session.id,
-                link=create_rich_surface_link(
-                    surface="ContractReviewArtifact",
-                    title="Open Artifact",
-                    target_type=RichSurfaceTargetType.page,
-                    source=RichSurfaceSource.channel_fallback,
-                    artifact_id=artifact.id,
-                    target_title=artifact.title,
-                    channel="telegram",
-                    metadata={"external_chat_id": event.external_chat_id},
-                ),
-                artifact_id=artifact.id,
-                run_id=run.id,
-                task_id=task.id,
-            )
             rendered = self.renderer.artifact_link_button(
                 event.external_chat_id,
                 f"Task created. {artifact.title} is ready as a rich Artifact Surface.",
@@ -81,11 +59,11 @@ class TelegramWebhookService:
                 self.settings.public_app_url,
             )
         else:
-            rendered = self.renderer.plain_text(event.external_chat_id, f"Task created. Run status: {run.status}.")
+            rendered = self.renderer.plain_text(event.external_chat_id, f"Task created. Run status: {message['status']}.")
         return {
             **self._response(event, rendered),
-            "task_id": task.id,
-            "run_id": run.id,
+            "task_id": message["task_id"],
+            "run_id": message["run_id"],
             "artifact_id": artifact.id if artifact else None,
         }
 
@@ -170,6 +148,11 @@ class TelegramWebhookService:
         if not session:
             return
         conversation.append_observation_for_interaction(session.id, interaction)
+        ContextReflectionService(self.db).reflect_and_persist(
+            session_id=session.id,
+            trigger_event_id=interaction.id,
+            artifact_id=interaction.artifact_id,
+        )
 
     def _record_interaction(
         self,

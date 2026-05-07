@@ -5,6 +5,7 @@ APIs:
 - `GET /api/conversations/{session_id}`
 - `POST /api/conversations/{session_id}/turns`
 - `GET /api/conversations/{session_id}/turns`
+- `POST /api/conversations/{session_id}/messages`
 - `POST /api/conversations/{session_id}/observations/from-interaction`
 
 Session lookup supports `channel + external_thread_id` for restore behavior.
@@ -20,6 +21,10 @@ Important UI actions should write both:
 
 `AgentContextBuilder` accepts `session_id` and returns recent conversation turns, recent user messages, recent agent messages, UI observations, pending confirmations, confirmed memories, active artifact summary, and the last policy decision.
 
+`POST /api/conversations/{session_id}/messages` is the preferred conversation-native entry point. It appends the user turn and attachments, creates a `Task` and `Run` with `Run.session_id`, executes the runtime, then appends the agent response and any artifact rich surface link.
+
+`RunManager.execute(..., session_id=...)` resolves the explicit session id first, then `run.session_id`. When a session is available, it bridges recent conversation turns and observation turns into `PromptBuilder` without turning observations into memory automatically.
+
 Backend code should use `ConversationService` instead of creating `ConversationSession` or `ConversationTurn` rows directly. The service owns:
 - `create_or_get_session`
 - `find_by_external_thread`
@@ -28,3 +33,5 @@ Backend code should use `ConversationService` instead of creating `ConversationS
 - `append_observation_for_interaction`
 
 Context and prompt builders cap recent conversation context to 12 turns, 5 UI observations, and 500 characters per turn.
+
+When `POST /api/interactions` receives `session_id`, the backend appends a linked observation turn and runs ORID context reflection. Reflection may create only unconfirmed memory candidates. See `docs/ORID_CONTEXT_REFLECTION.md`.

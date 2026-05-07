@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.core.config import Settings  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Artifact, Confirmation, ConversationSession, ConversationTurn, Memory, Run, Task, TraceStep, UIInteractionEvent  # noqa: E402
+from app.models import Artifact, Confirmation, ContextReflection, ConversationSession, ConversationTurn, Memory, Run, Task, TraceStep, UIInteractionEvent  # noqa: E402
 from app.services.agent_context import AgentContextBuilder  # noqa: E402
 from app.services.agent_runtime.run_manager import RunManager  # noqa: E402
 from app.services.agent_runtime.prompt_builder import PromptBuilder  # noqa: E402
@@ -36,6 +36,7 @@ from app.services.demo import classify_followup_deterministic, load_problematic_
 from app.services.apps.loader import AgentAppLoader, get_app_loader  # noqa: E402
 from app.services.conversations.constants import ConversationChannel, ConversationTurnType  # noqa: E402
 from app.services.conversations.service import ConversationService  # noqa: E402
+from app.services.context_reflection import ContextReflectionService  # noqa: E402
 from app.services.interaction_policy.schemas import InteractionContext, InteractionDecisionType  # noqa: E402
 from app.services.interaction_policy.service import InteractionPolicyService  # noqa: E402
 from app.schemas import RichSurfaceLink  # noqa: E402
@@ -633,6 +634,92 @@ def test_ui_interaction_event_api_persists_sanitized_observations() -> None:
     assert events and events[0]["block_id"] == "approval"
 
 
+def test_interaction_with_session_appends_observation_and_context_reflection_candidate() -> None:
+    workspace_id = "interaction-reflection-workspace"
+    with TestClient(app) as client:
+        session = client.post(
+            "/api/conversations",
+            json={"app_id": "contract-review-agent", "workspace_id": workspace_id, "channel": "web"},
+        ).json()
+        response = client.post(
+            "/api/interactions",
+            json={
+                "workspace_id": workspace_id,
+                "session_id": session["id"],
+                "artifact_id": "artifact-reflection",
+                "run_id": "run-reflection",
+                "event_type": "channel.telegram_demo.approve_revision",
+                "payload": {"action": "approve_revision", "clauses": "8.1 / 8.2"},
+            },
+        )
+        turns = client.get(f"/api/conversations/{session['id']}/turns").json()
+
+    assert response.status_code == 200
+    assert any(turn["turn_type"] == "observation" and turn["interaction_id"] == response.json()["id"] for turn in turns)
+    assert any(turn["turn_type"] == "memory_candidate" for turn in turns)
+    with SessionLocal() as db:
+        reflection = db.query(ContextReflection).filter(ContextReflection.session_id == session["id"]).one()
+        memory = db.query(Memory).filter(Memory.workspace_id == workspace_id, Memory.source_type == "context_reflection").one()
+        assert reflection.orid_json["objective"]["facts"]
+        assert memory.status == "candidate"
+        assert memory.is_confirmed is False
+        assert memory.structured_payload["source"] == "context_reflection"
+        assert memory.structured_payload["why"]
+        assert memory.structured_payload["orid_evidence"]["objective"]
+
+
+def test_context_reflection_orid_tone_candidate_and_memory_suppression() -> None:
+    with TestClient(app):
+        with SessionLocal() as db:
+            conversation = ConversationService(db)
+            tone_session = conversation.create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id="orid-tone-workspace",
+                channel=ConversationChannel.web,
+            )
+            conversation.append_user_message(tone_session.id, "语气不要太强硬，适合发给客户谈判")
+            tone_event = UIInteractionEvent(
+                workspace_id="orid-tone-workspace",
+                event_type="channel.telegram_demo.text_followup",
+                payload_json={"content": "语气不要太强硬，适合发给客户谈判"},
+            )
+            db.add(tone_event)
+            db.commit()
+            db.refresh(tone_event)
+            reflection = ContextReflectionService(db).reflect_and_persist(session_id=tone_session.id, trigger_event_id=tone_event.id)
+
+            skip_session = conversation.create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id="orid-skip-workspace",
+                channel=ConversationChannel.web,
+            )
+            skip_event = UIInteractionEvent(
+                workspace_id="orid-skip-workspace",
+                event_type="channel.telegram_demo.skip_memory",
+                payload_json={"action": "not_now"},
+            )
+            db.add(skip_event)
+            db.commit()
+            db.refresh(skip_event)
+            skip_reflection = ContextReflectionService(db).reflect_and_persist(session_id=skip_session.id, trigger_event_id=skip_event.id)
+            tone_memory = db.query(Memory).filter(Memory.workspace_id == "orid-tone-workspace", Memory.source_type == "context_reflection").one()
+            skip_memory_count = db.query(Memory).filter(Memory.workspace_id == "orid-skip-workspace", Memory.source_type == "context_reflection").count()
+            reflection_orid = reflection.orid_json
+            skip_actions = skip_reflection.proposed_actions_json
+            tone_memory_status = tone_memory.status
+            tone_memory_confirmed = tone_memory.is_confirmed
+            tone_memory_payload = tone_memory.structured_payload
+
+    assert reflection_orid["objective"]["facts"][0].startswith("UI event recorded:")
+    assert any("User message:" in fact for fact in reflection_orid["objective"]["facts"])
+    assert "likely" not in " ".join(reflection_orid["objective"]["facts"]).lower()
+    assert tone_memory_status == "candidate"
+    assert tone_memory_confirmed is False
+    assert tone_memory_payload["orid_evidence"]["reflective"]
+    assert skip_actions[0]["action"] == "none"
+    assert skip_memory_count == 0
+
+
 def test_prompt_builder_includes_recent_ui_observations_without_turning_them_into_memory() -> None:
     event = UIInteractionEvent(
         workspace_id="workspace",
@@ -663,6 +750,41 @@ def test_prompt_builder_includes_and_caps_recent_conversation_turns() -> None:
     assert prompt["conversation_context"]["recent_turns"][0]["content"].startswith("turn 2")
     assert len(prompt["conversation_context"]["recent_turns"][0]["content"]) < 560
     assert prompt["memories"] == []
+
+
+def test_run_manager_passes_session_turns_into_prompt_and_trace(monkeypatch) -> None:
+    captured: dict[str, list[dict]] = {}
+    original_build = PromptBuilder.build
+
+    def capture_build(self, task, agent, memories, skills, tools, recent_ui_observations=None, recent_conversation_turns=None):
+        captured["turns"] = recent_conversation_turns or []
+        return original_build(self, task, agent, memories, skills, tools, recent_ui_observations, recent_conversation_turns)
+
+    monkeypatch.setattr(PromptBuilder, "build", capture_build)
+
+    with TestClient(app):
+        with SessionLocal() as db:
+            session = ConversationService(db).create_or_get_session(
+                app_id="contract-review-agent",
+                workspace_id="run-manager-session-workspace",
+                channel=ConversationChannel.web,
+            )
+            ConversationService(db).append_user_message(session.id, "Continue with the customer-friendly revision.")
+            task = Task(workspace_id="run-manager-session-workspace", title="Session bridge", input_message="Continue the review.")
+            db.add(task)
+            db.flush()
+            run = Run(task_id=task.id, session_id=session.id)
+            db.add(run)
+            db.commit()
+            db.refresh(task)
+            db.refresh(run)
+
+            RunManager(db).execute(task, run)
+            prompt_step = db.query(TraceStep).filter(TraceStep.run_id == run.id, TraceStep.step_type == "build_prompt").one()
+
+    assert captured["turns"][0]["content"] == "Continue with the customer-friendly revision."
+    assert prompt_step.output_json["recent_conversation_turn_count"] == 1
+    assert prompt_step.output_json["recent_ui_observation_count"] == 0
 
 
 def test_conversation_session_and_turn_apis_and_lookup() -> None:
@@ -747,6 +869,43 @@ def test_conversation_api_rejects_invalid_turn_type() -> None:
         response = client.post(f"/api/conversations/{session['id']}/turns", json={"turn_type": "unknown_turn", "content": "bad"})
 
     assert response.status_code == 422
+
+
+def test_conversation_message_endpoint_creates_session_bound_run_and_turns() -> None:
+    with TestClient(app) as client:
+        bootstrap = client.get("/api/bootstrap").json()
+        workspace = bootstrap["workspace"]
+        project = bootstrap["projects"][0]
+        agent = bootstrap["agents"][0]
+        session = client.post(
+            "/api/conversations",
+            json={
+                "app_id": "contract-review-agent",
+                "workspace_id": workspace["id"],
+                "project_id": project["id"],
+                "agent_id": agent["id"],
+                "channel": "web",
+            },
+        ).json()
+        response = client.post(
+            f"/api/conversations/{session['id']}/messages",
+            json={"content": "Review this contract in the current conversation.", "attachments": [{"name": "contract.md", "type": "fixture"}]},
+        )
+        message = response.json()
+        run = client.get(f"/api/runs/{message['run_id']}").json()
+        turns = client.get(f"/api/conversations/{session['id']}/turns").json()
+        trace = client.get(f"/api/runs/{message['run_id']}/trace").json()
+
+    assert response.status_code == 200
+    assert message["session_id"] == session["id"]
+    assert run["session_id"] == session["id"]
+    assert any(turn["turn_type"] == "user_message" for turn in turns)
+    assert any(turn["turn_type"] == "attachment" for turn in turns)
+    assert any(turn["turn_type"] == "agent_message" for turn in turns)
+    assert any(turn["turn_type"] == "rich_surface_link" for turn in turns)
+    prompt_step = next(step for step in trace if step["step_type"] == "build_prompt")
+    assert prompt_step["output_json"]["recent_conversation_turn_count"] >= 2
+    assert prompt_step["output_json"]["confirmed_memory_count"] >= 0
 
 
 def test_rich_surface_link_turn_uses_standard_target_payload() -> None:
@@ -922,7 +1081,9 @@ def test_telegram_webhook_text_message_creates_task_run_and_artifact_link() -> N
     )
     with SessionLocal() as db:
         session = db.query(ConversationSession).filter(ConversationSession.channel == "telegram", ConversationSession.external_thread_id == "8001").first()
+        run = db.get(Run, body["run_id"])
         assert session is not None
+        assert run.session_id == session.id
         assert db.query(ConversationTurn).filter(ConversationTurn.session_id == session.id, ConversationTurn.turn_type == "user_message").count() >= 1
         assert db.query(ConversationTurn).filter(ConversationTurn.session_id == session.id, ConversationTurn.turn_type == "rich_surface_link").count() >= 1
 

@@ -75,6 +75,7 @@ class TaskRead(ORMModel):
 class RunRead(ORMModel):
     id: str
     task_id: str
+    session_id: str | None
     status: str
     plan_json: dict[str, Any] | None
     result_summary: str | None
@@ -281,6 +282,7 @@ class UIInteractionEventCreate(BaseModel):
     workspace_id: str
     project_id: str | None = None
     user_id: str | None = None
+    session_id: str | None = None
     artifact_id: str | None = None
     block_id: str | None = None
     action_id: str | None = None
@@ -363,6 +365,19 @@ class ConversationTurnCreate(BaseModel):
 
 class ConversationObservationCreate(BaseModel):
     interaction_id: str
+
+
+class ConversationMessageCreate(BaseModel):
+    content: str
+    attachments: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ConversationMessageResponse(BaseModel):
+    session_id: str
+    task_id: str
+    run_id: str
+    status: str
+    artifact_id: str | None = None
 
 
 class ConversationTurnRead(ORMModel):

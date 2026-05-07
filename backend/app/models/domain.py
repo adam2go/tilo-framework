@@ -74,6 +74,7 @@ class Run(Base, TimestampMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
     task_id: Mapped[str] = mapped_column(String, ForeignKey("tasks.id"), index=True)
+    session_id: Mapped[str | None] = mapped_column(String, ForeignKey("conversation_sessions.id"), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String, default="queued")
     plan_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     result_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -274,6 +275,20 @@ class ConversationTurn(Base):
     confirmation_id: Mapped[str | None] = mapped_column(String, ForeignKey("confirmations.id"), nullable=True, index=True)
     memory_id: Mapped[str | None] = mapped_column(String, ForeignKey("memories.id"), nullable=True, index=True)
     policy_decision_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ContextReflection(Base):
+    __tablename__ = "context_reflections"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id)
+    session_id: Mapped[str] = mapped_column(String, ForeignKey("conversation_sessions.id"), index=True)
+    workspace_id: Mapped[str] = mapped_column(String, ForeignKey("workspaces.id"), index=True)
+    project_id: Mapped[str | None] = mapped_column(String, ForeignKey("projects.id"), nullable=True, index=True)
+    artifact_id: Mapped[str | None] = mapped_column(String, ForeignKey("artifacts.id"), nullable=True, index=True)
+    trigger_event_id: Mapped[str | None] = mapped_column(String, ForeignKey("ui_interaction_events.id"), nullable=True, index=True)
+    orid_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    proposed_actions_json: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
