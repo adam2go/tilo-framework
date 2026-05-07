@@ -42,35 +42,9 @@ Tilo 不是聊天机器人外壳，而是一个 **AI 原生 SaaS 交互 Runtime*
 
 ---
 
-## 示例场景
+## 快速开始
 
-### 合同审查 Agent
-
-```text
-Review this contract and flag risky clauses around liability, termination, and payment terms.
-```
-
-Tilo 会渲染风险面板、修改建议、审批卡片、完整审查 Artifact 和记忆候选。
-
-### 销售跟进 Agent
-
-```text
-Which customers should sales follow up with this week?
-```
-
-Tilo 会渲染客户跟进建议、决策卡片、草稿动作和可复用语气偏好。
-
-### 竞品分析 Agent
-
-```text
-Create a competitive analysis for memory-native AI agent frameworks.
-```
-
-Tilo 可以渲染对比矩阵、证据卡片、方案选择和后续动作。
-
----
-
-## 试用 Demo
+运行本地 Demo：
 
 ```bash
 git clone https://github.com/adam2go/tilo-framework.git
@@ -80,23 +54,49 @@ cp .env.example .env
 docker compose up --build
 ```
 
-打开：
+打开类 Telegram 的 ROAM demo：
 
 ```text
 http://localhost:3000/demo/telegram
 ```
 
-健康检查：
+检查后端健康状态：
 
 ```bash
 curl http://localhost:8000/api/health
 ```
 
-Demo 支持确定性本地模式，也支持通过 OpenAI-compatible 配置启用后端 LLM 模式。API key 只保存在后端 `.env`，不会暴露到前端。
+Demo 默认支持确定性本地模式。你也可以在 `.env` 中配置 OpenAI-compatible provider 启用后端 LLM 模式；API key 只保存在后端，不会暴露到前端。
 
 ---
 
-## 工作原理：ROAM Loop
+## 可以构建什么？
+
+Tilo 适合这样的 agent app：对话是入口，但当用户决策需要结构化表达时，UI 会自然出现。
+
+| 示例 | Tilo 会渲染什么 |
+|---|---|
+| **合同审查 Agent** | 风险面板、修改建议、审批卡片、完整审查 Artifact、记忆候选 |
+| **销售跟进 Agent** | 跟进建议、决策卡片、草稿动作、可复用语气偏好 |
+| **竞品分析 Agent** | 对比矩阵、证据卡片、方案选择、后续动作 |
+
+示例 prompt：
+
+```text
+Review this contract and flag risky clauses around liability, termination, and payment terms.
+```
+
+```text
+Which customers should sales follow up with this week?
+```
+
+```text
+Create a competitive analysis for memory-native AI agent frameworks.
+```
+
+---
+
+## 工作原理
 
 ```text
 Render -> Observe -> Act -> Memorize
@@ -108,50 +108,14 @@ Render -> Observe -> Act -> Memorize
 - **Act**：Agent 更新 Artifact、调用工具、追问问题、创建确认项或启动后续任务。
 - **Memorize**：被确认的决策、偏好、项目事实和可复用流程进入长期记忆。
 
-ROAM 让 UI 不再只是展示层，而成为 Agent Runtime 的一部分。
-
-| 传统 Agent Loop | Tilo ROAM Loop |
-|---|---|
-| Observation 多来自工具结果 | Observation 也来自用户和 UI 的交互 |
-| 输出通常是文本或工具结果 | 输出可以是可交互 Artifact |
-| UI 在 Loop 外部 | UI 是 Loop 的一部分 |
-| Memory 是可选能力 | Memory 是闭环的一部分 |
-
-更多说明见：[`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
-
----
-
-## Runtime 原语
+核心运行时链路：
 
 ```text
-Agent App Manifest
-        ↓
-Interaction Policy
-        ↓
-Mini / Rich Surface
-        ↓
-UIInteractionEvent
-        ↓
-ConversationTurn(observation)
-        ↓
-AgentContextBuilder
-        ↓
-PromptBuilder
-        ↓
-Agent Runtime
-        ↓
-Memory Candidate -> Human Confirmation -> Confirmed Memory
+Agent App Manifest -> Interaction Policy -> Mini / Rich Surface
+-> UIInteractionEvent -> ConversationTurn(observation)
+-> AgentContextBuilder -> PromptBuilder -> Agent Runtime
+-> Memory Candidate -> Human Confirmation -> Confirmed Memory
 ```
-
-核心组件：
-
-- **Agent App Manifest**：应用身份、入口 prompt、surfaces、样例输入、工具和渠道。
-- **Interaction Policy**：后端决策源，决定什么时候应该出现 UI。
-- **Mini / Rich Surfaces**：对话内决策卡片和按需打开的完整 Artifact。
-- **Conversation Runtime**：跨 Web、Telegram 和未来渠道的持久会话与 turns。
-- **UI Observations**：用户动作会变成结构化运行时观察。
-- **Context Reflection**：ORID 风格反思，把原始交互转成可解释的下一步动作和记忆候选。
-- **Memory Lifecycle**：观察不会自动成为长期记忆，必须经过用户确认。
 
 ---
 
