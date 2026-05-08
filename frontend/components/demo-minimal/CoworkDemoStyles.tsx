@@ -20,11 +20,20 @@ export function CoworkDemoStyles() {
         padding: 0 22px;
       }
 
-      .cowork-brand {
+      .cowork-brand,
+      .cowork-topbar nav,
+      .cowork-actions,
+      .composer-footer,
+      .cowork-chip-row {
         align-items: center;
         display: flex;
-        gap: 10px;
       }
+
+      .cowork-brand { gap: 10px; }
+      .cowork-topbar nav { gap: 8px; }
+      .cowork-actions { flex-wrap: wrap; gap: 9px; }
+      .composer-footer { gap: 12px; justify-content: space-between; }
+      .cowork-chip-row { flex-wrap: wrap; gap: 7px; }
 
       .cowork-brand small {
         color: #707987;
@@ -33,23 +42,22 @@ export function CoworkDemoStyles() {
         margin-top: 1px;
       }
 
-      .brand-dot {
+      .brand-dot,
+      .avatar {
         align-items: center;
+        border-radius: 999px;
+        display: inline-flex;
+        justify-content: center;
+      }
+
+      .brand-dot {
         background: #151a20;
         border-radius: 11px;
         color: white;
-        display: inline-flex;
         font-size: 13px;
         font-weight: 800;
         height: 32px;
-        justify-content: center;
         width: 32px;
-      }
-
-      .cowork-topbar nav {
-        align-items: center;
-        display: flex;
-        gap: 8px;
       }
 
       .cowork-topbar nav button {
@@ -71,8 +79,8 @@ export function CoworkDemoStyles() {
 
       .cowork-shell {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
         gap: 18px;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
         margin: 0 auto;
         max-width: 1240px;
         min-height: calc(100vh - 74px);
@@ -118,6 +126,13 @@ export function CoworkDemoStyles() {
         justify-content: end;
       }
 
+      .avatar {
+        font-size: 12px;
+        font-weight: 800;
+        height: 42px;
+        width: 42px;
+      }
+
       .cowork-message.user .avatar {
         background: #e8ecef;
         color: #2d3540;
@@ -126,17 +141,6 @@ export function CoworkDemoStyles() {
       .cowork-message.assistant .avatar {
         background: #171a1f;
         color: white;
-      }
-
-      .avatar {
-        align-items: center;
-        border-radius: 999px;
-        display: inline-flex;
-        font-size: 12px;
-        font-weight: 800;
-        height: 42px;
-        justify-content: center;
-        width: 42px;
       }
 
       .bubble {
@@ -155,24 +159,108 @@ export function CoworkDemoStyles() {
         color: white;
       }
 
-      .bubble p {
-        margin: 0;
-      }
+      .bubble p { margin: 0; }
 
       .bubble.muted,
       .bubble.memory {
         color: #5c6675;
       }
 
-      .bubble.muted span {
-        align-items: center;
-        display: flex;
-        gap: 8px;
-      }
-
       .bubble.memory {
         align-items: flex-start;
         grid-template-columns: 22px 1fr;
+      }
+
+      .bubble.activity {
+        gap: 10px;
+        padding: 10px;
+      }
+
+      .activity-summary {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: #2d3540;
+        cursor: pointer;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 20px minmax(0, 1fr) auto auto;
+        padding: 4px;
+        text-align: left;
+        width: 100%;
+      }
+
+      .activity-summary strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .activity-summary small {
+        color: #7a8492;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .activity-step-list {
+        border-top: 1px solid rgba(22, 26, 32, 0.08);
+        display: grid;
+        gap: 8px;
+        padding: 10px 4px 2px;
+      }
+
+      .activity-step {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 24px 1fr;
+      }
+
+      .activity-step > span {
+        align-items: center;
+        background: #eef1f4;
+        border-radius: 999px;
+        color: #7a8492;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 800;
+        height: 22px;
+        justify-content: center;
+        margin-top: 2px;
+        width: 22px;
+      }
+
+      .activity-step.done > span {
+        background: #edf6f7;
+        color: #176f7a;
+      }
+
+      .activity-step.active > span {
+        background: #176f7a;
+        color: white;
+      }
+
+      .activity-step.pending {
+        opacity: 0.58;
+      }
+
+      .activity-step strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .activity-step p,
+      .activity-note {
+        color: #707987;
+        font-size: 12px;
+        line-height: 1.45;
+        margin: 2px 0 0;
+      }
+
+      .activity-note {
+        background: #f8f8f6;
+        border: 1px solid rgba(22, 26, 32, 0.07);
+        border-radius: 12px;
+        padding: 8px 10px;
       }
 
       .inline-decision,
@@ -198,13 +286,6 @@ export function CoworkDemoStyles() {
         color: #5f6a79;
         line-height: 1.55;
         margin: 0;
-      }
-
-      .cowork-actions {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 9px;
       }
 
       .cowork-primary,
@@ -272,20 +353,6 @@ export function CoworkDemoStyles() {
         padding: 8px 10px;
         resize: vertical;
         width: 100%;
-      }
-
-      .composer-footer {
-        align-items: center;
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .cowork-chip-row {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
       }
 
       .cowork-chip-row button {
@@ -390,13 +457,8 @@ export function CoworkDemoStyles() {
         margin-bottom: 5px;
       }
 
-      .workspace-evidence.draft {
-        background: #fbfcfd;
-      }
-
-      .workspace-open {
-        justify-content: center;
-      }
+      .workspace-evidence.draft { background: #fbfcfd; }
+      .workspace-open { justify-content: center; }
 
       .eyebrow {
         color: #687284;
@@ -534,6 +596,14 @@ export function CoworkDemoStyles() {
 
         .cowork-send {
           justify-content: center;
+        }
+
+        .activity-summary {
+          grid-template-columns: 20px minmax(0, 1fr) auto;
+        }
+
+        .activity-summary small {
+          display: none;
         }
       }
     `}</style>
