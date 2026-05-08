@@ -16,7 +16,15 @@ After v0.9, Tilo already has the main runtime pieces:
 - verification scripts;
 - CI foundation.
 
-v1.0 should not be a large feature dump. It should make Tilo feel like a coherent framework with one clean demo, one clear developer path, and one stable runtime contract.
+v1.0 should not be a large feature dump. It should make Tilo feel like a coherent AI-native framework with one clean demo, one clear developer path, and one stable runtime contract.
+
+Before implementation, read:
+
+```text
+docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md
+```
+
+That document is a hard product constraint, not optional background.
 
 ---
 
@@ -33,6 +41,8 @@ execute actions safely,
 and remember confirmed learning.
 ```
 
+Tilo must not be positioned or implemented as a traditional SaaS product with AI features attached.
+
 The public-facing product should feel simple. The framework internals should be powerful, documented, and inspectable.
 
 ---
@@ -45,11 +55,12 @@ Simple surface. Powerful runtime. Inspectable internals.
 
 This means:
 
-- users see a focused AI experience;
+- users see a focused AI-native experience;
 - developers can inspect the runtime when needed;
 - framework contracts are stable and documented;
 - demo should not look like an admin dashboard;
-- one polished example is better than many noisy examples.
+- one polished example is better than many noisy examples;
+- framework logic should live in runtime contracts, not in hand-wired UI panels.
 
 ---
 
