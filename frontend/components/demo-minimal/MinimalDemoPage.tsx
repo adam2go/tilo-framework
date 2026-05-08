@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Check, Code2, FileText, Info, Loader2, MemoryStick, Search, X } from "lucide-react";
+import { ArrowUpRight, Check, Code2, FileText, Info, Loader2, MemoryStick, Search, Sparkles, X } from "lucide-react";
 import { apiFetch, createConversationSession, getBootstrap, getConversationSession, getConversationTurns, sendConversationMessage } from "../../lib/api";
 import { executeArtifactAction } from "../../lib/artifactActions";
 import type { DemoContractFixture } from "../../lib/demoContracts";
@@ -10,13 +10,14 @@ import type { Artifact, ArtifactAction, ArtifactActionResult, ConversationSessio
 
 type DemoState = "idle" | "working" | "result" | "revision" | "memory";
 type Drawer = "why" | "trace" | "developer" | null;
+type WorkspaceView = "review" | "draft" | "memory";
 
 const SAMPLE_GOAL = "Review this AI service agreement and flag risky clauses around liability, indemnity, data, payment, and termination.";
 
-const steps = [
-  "Reading the contract",
-  "Checking whether UI is useful",
-  "Preparing one focused decision surface",
+const workingSteps = [
+  "Reading the sample agreement",
+  "Finding the decision that needs a human",
+  "Preparing a focused review workspace",
 ];
 
 export function MinimalDemoPage() {
@@ -27,6 +28,7 @@ export function MinimalDemoPage() {
   const [session, setSession] = useState<ConversationSession | null>(null);
   const [goal, setGoal] = useState(SAMPLE_GOAL);
   const [state, setState] = useState<DemoState>("idle");
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("review");
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [trace, setTrace] = useState<TraceStep[]>([]);
   const [turns, setTurns] = useState<ConversationTurn[]>([]);
@@ -35,6 +37,7 @@ export function MinimalDemoPage() {
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [developerMode, setDeveloperMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     void boot();
@@ -43,7 +46,8 @@ export function MinimalDemoPage() {
   const primaryRisk = useMemo(() => primaryRiskForArtifact(artifact), [artifact]);
   const revision = useMemo(() => findBlock(artifact, "editable_revision")?.data || null, [artifact]);
   const memoryCandidate = useMemo(() => memories.find((memory) => memory.status === "candidate" && !memory.is_confirmed) || null, [memories]);
-  const modeLabel = capabilities?.llm_enabled ? `LLM mode · ${capabilities.llm_provider}` : "Deterministic mode";
+  const modeLabel = capabilities?.llm_enabled ? `LLM · ${capabilities.llm_provider}` : "Deterministic";
+  const hasResult = Boolean(artifact);
 
   async function boot() {
     try {
@@ -73,7 +77,7 @@ export function MinimalDemoPage() {
             project_id: bootstrap.projects[0]?.id || null,
             agent_id: bootstrap.agents[0]?.id || null,
             channel: "web",
-            metadata: { source: "minimal_demo" },
+            metadata: { source: "cowork_demo" },
           });
           const url = new URL(window.location.href);
           url.searchParams.set("session_id", nextSession.id);
@@ -89,10 +93,12 @@ export function MinimalDemoPage() {
   async function runReview(nextGoal = goal) {
     if (!workspace || !session || !nextGoal.trim()) return;
     setState("working");
+    setWorkspaceView("review");
     setError(null);
     setArtifact(null);
     setActionResult(null);
     setMemories([]);
+    setIsSubmitting(true);
     try {
       const fixture = await apiFetch<DemoContractFixture>("/api/demo/contracts/problematic-ai-service-agreement");
       const message = await sendConversationMessage(session.id, {
@@ -113,6 +119,8 @@ export function MinimalDemoPage() {
     } catch (err) {
       setState("idle");
       setError(err instanceof Error ? err.message : "Contract review failed.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -124,6 +132,7 @@ export function MinimalDemoPage() {
       return;
     }
     setError(null);
+    setIsSubmitting(true);
     try {
       const result = await executeArtifactAction({
         artifactId: artifact.id,
@@ -132,7 +141,7 @@ export function MinimalDemoPage() {
         sessionId: session.id,
         runId: artifact.run_id || null,
         source: "web",
-        payload: { choice: "approve_revision", source: "minimal_demo" },
+        payload: { choice: "approve_revision", source: "cowork_demo" },
       });
       setActionResult(result);
       const [traceList, turnList, memoryList] = await Promise.all([
@@ -143,15 +152,19 @@ export function MinimalDemoPage() {
       setTrace(traceList);
       setTurns(turnList);
       setMemories(memoryList);
+      setWorkspaceView("draft");
       setState("revision");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   async function rememberPreference() {
     if (!workspace || !artifact) return;
     setError(null);
+    setIsSubmitting(true);
     try {
       let memory = memoryCandidate;
       if (!memory) {
@@ -168,7 +181,7 @@ export function MinimalDemoPage() {
           sessionId: session?.id || null,
           runId: artifact.run_id || null,
           source: "web",
-          payload: { source: "minimal_demo" },
+          payload: { source: "cowork_demo" },
         });
         setActionResult(result);
         if (!result.memory_id) {
@@ -185,197 +198,390 @@ export function MinimalDemoPage() {
       }
       const confirmed = await apiFetch<Memory>(`/api/memories/${memory.id}/confirm`, { method: "POST" });
       setMemories((items) => [confirmed, ...items.filter((item) => item.id !== confirmed.id)]);
+      setWorkspaceView("memory");
       setState("memory");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Memory confirmation failed.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   async function notNow() {
     setError(null);
+    setWorkspaceView("memory");
     setState("memory");
   }
 
-  return (
-    <main className="minimal-demo-page">
-      <section className="minimal-demo-shell">
-        <header className="minimal-demo-hero">
-          <span className="eyebrow">Tilo v1.0</span>
-          <h1>AI-native product runtime for goal-first agents.</h1>
-          <p>Describe the outcome. Tilo renders the next useful surface, observes your decision, acts safely, and remembers only what you confirm.</p>
-        </header>
+  function handleChip(kind: "contract" | "sales" | "compare") {
+    if (kind === "contract") {
+      setGoal(SAMPLE_GOAL);
+      return;
+    }
+    setGoal(kind === "sales" ? "Draft a sales follow-up plan for accounts that need attention this week." : "Compare agent frameworks for memory-native AI applications.");
+  }
 
-        <section className="minimal-prompt-panel" aria-label="Tilo demo prompt">
-          <textarea
-            aria-label="Goal"
-            disabled={state === "working"}
-            onChange={(event) => setGoal(event.target.value)}
-            placeholder="Ask Tilo to review a contract..."
-            value={goal}
-          />
-          <div className="minimal-prompt-actions">
-            <div className="minimal-chip-row">
-              <button onClick={() => setGoal(SAMPLE_GOAL)} type="button">Review a contract</button>
-              <button disabled title="Coming after v1.0" type="button">Draft sales follow-up</button>
-              <button disabled title="Coming after v1.0" type="button">Compare agent frameworks</button>
-            </div>
-            <button className="primary-button" disabled={!workspace || !session || state === "working"} onClick={() => void runReview()} type="button">
-              {state === "working" ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
-              Run demo
-            </button>
+  return (
+    <main className="cowork-demo-page">
+      <header className="cowork-topbar">
+        <div className="cowork-brand">
+          <span className="brand-dot">T</span>
+          <div>
+            <strong>Tilo</strong>
+            <small>AI-native product runtime</small>
           </div>
-          {error ? <p className="minimal-error">{error}</p> : null}
+        </div>
+        <nav>
+          <button onClick={() => setDrawer("why")} type="button">Why this UI?</button>
+          <button onClick={() => setDrawer("trace")} type="button">Trace</button>
+          <button className={developerMode ? "active" : ""} onClick={() => {
+            setDeveloperMode((value) => !value);
+            setDrawer("developer");
+          }} type="button">Developer</button>
+        </nav>
+      </header>
+
+      <section className={`cowork-shell ${hasResult ? "has-workspace" : ""}`}>
+        <section className="cowork-conversation" aria-label="Tilo cowork conversation">
+          <ConversationIntro />
+
+          {state !== "idle" ? <UserMessage goal={goal} /> : null}
+          {state === "working" ? <AssistantWorking /> : null}
+          {artifact && state !== "working" ? (
+            <AssistantReviewMessage
+              artifact={artifact}
+              isSubmitting={isSubmitting}
+              onApprove={() => void approveRevision()}
+              primaryRisk={primaryRisk}
+              state={state}
+            />
+          ) : null}
+          {artifact && (state === "revision" || state === "memory") ? (
+            <AssistantRevisionMessage revision={revision} />
+          ) : null}
+          {artifact && state === "revision" ? (
+            <AssistantMemoryMessage
+              content={memoryCandidate?.content || String(findBlock(artifact, "memory_candidate")?.data.content || "Prefer conservative but negotiation-friendly contract revisions.")}
+              isSubmitting={isSubmitting}
+              onNotNow={notNow}
+              onRemember={rememberPreference}
+            />
+          ) : null}
+          {state === "memory" ? <AssistantDoneMessage memoryConfirmed={Boolean(memories.find((memory) => memory.is_confirmed))} /> : null}
+
+          {error ? <p className="cowork-error">{error}</p> : null}
+
+          <Composer
+            disabled={!workspace || !session || isSubmitting || state === "working"}
+            goal={goal}
+            onChip={handleChip}
+            onGoalChange={setGoal}
+            onSubmit={() => void runReview()}
+            state={state}
+          />
         </section>
 
-        {state === "working" ? <WorkingState /> : null}
-
-        {artifact && state !== "working" ? (
-          <section className="focused-result" aria-label="Focused contract review result">
-            <div className="focused-result-header">
-              <div>
-                <span className="eyebrow">Contract Review</span>
-                <h2>{artifact.title}</h2>
-              </div>
-              {developerMode ? <span className="runtime-pill">{modeLabel}</span> : null}
-            </div>
-            <RiskSummary artifact={artifact} primaryRisk={primaryRisk} />
-            {state === "result" ? (
-              <div className="focused-actions">
-                <button className="primary-button" onClick={() => void approveRevision()} type="button"><Check size={16} /> Approve revision</button>
-                <button className="secondary-action" onClick={() => setGoal("Make the revision softer and more customer-friendly.")} type="button">Adjust tone</button>
-                <Link className="secondary-action" href={`/artifacts/${artifact.id}`}><ArrowUpRight size={14} /> Open artifact</Link>
-              </div>
-            ) : null}
-            {state === "revision" || state === "memory" ? <RevisionCard revision={revision} /> : null}
-            {state === "revision" ? (
-              <MemoryPrompt
-                content={memoryCandidate?.content || String(findBlock(artifact, "memory_candidate")?.data.content || "Prefer conservative but negotiation-friendly contract revisions.")}
-                onNotNow={notNow}
-                onRemember={rememberPreference}
-              />
-            ) : null}
-            {state === "memory" ? <p className="minimal-success">Preference handled. Confirmed memory is available to later runs; skipped preferences were not stored.</p> : null}
-            <div className="minimal-disclosure-row">
-              <button onClick={() => setDrawer("why")} type="button"><Info size={14} /> Why this UI?</button>
-              <button onClick={() => setDrawer("trace")} type="button"><FileText size={14} /> View trace</button>
-              <button className={developerMode ? "active" : ""} onClick={() => {
-                setDeveloperMode((value) => !value);
-                setDrawer("developer");
-              }} type="button"><Code2 size={14} /> Developer mode</button>
-            </div>
-          </section>
-        ) : null}
+        <aside className="cowork-workspace" aria-label="Tilo workspace">
+          <WorkspacePanel
+            actionResult={actionResult}
+            artifact={artifact}
+            modeLabel={modeLabel}
+            primaryRisk={primaryRisk}
+            revision={revision}
+            state={state}
+            view={workspaceView}
+          />
+        </aside>
       </section>
 
       {drawer ? (
         <DemoDrawer
           actionResult={actionResult}
+          agent={agent}
           artifact={artifact}
           developerMode={developerMode}
           drawer={drawer}
           memoryCandidate={memoryCandidate}
           modeLabel={modeLabel}
           onClose={() => setDrawer(null)}
+          project={project}
           session={session}
           trace={trace}
           turns={turns}
+          workspace={workspace}
         />
       ) : null}
     </main>
   );
 }
 
-function WorkingState() {
+function ConversationIntro() {
   return (
-    <section className="minimal-working">
-      {steps.map((step, index) => (
-        <span key={step}>
-          <Loader2 size={14} className={index === steps.length - 1 ? "spin" : ""} />
-          {step}
-        </span>
-      ))}
-    </section>
-  );
-}
-
-function RiskSummary({ artifact, primaryRisk }: { artifact: Artifact; primaryRisk: Record<string, unknown> | null }) {
-  const summary = findBlock(artifact, "risk_summary")?.data || {};
-  return (
-    <div className="minimal-risk-card">
-      <div className="minimal-risk-counts">
-        <span><strong>{String(summary.high_count || 0)}</strong> high-risk</span>
-        <span><strong>{String(summary.medium_count || 0)}</strong> medium</span>
-      </div>
-      <p>{String(summary.summary || "Tilo found contract risk that needs a decision before revision.")}</p>
-      <article className="primary-decision">
-        <span className="eyebrow">Primary decision</span>
-        <h3>{String(primaryRisk?.clause || "Liability and indemnity")}</h3>
-        <p>{String(primaryRisk?.issue || "A liability cap conflicts with broad indemnity carve-outs.")}</p>
-        <small>{String(primaryRisk?.evidence || primaryRisk?.suggested_revision || "Review the full artifact for supporting evidence.")}</small>
-      </article>
+    <div className="cowork-intro">
+      <span className="eyebrow">Tilo v1.0</span>
+      <h1>Give Tilo a goal. It creates the workspace only when it helps.</h1>
+      <p>Not a dashboard with an AI sidebar. Tilo runs the product loop behind the scenes and keeps the surface focused on the next decision.</p>
     </div>
   );
 }
 
-function RevisionCard({ revision }: { revision: Record<string, unknown> | null }) {
-  const highlights = (revision?.highlights as string[]) || [];
+function UserMessage({ goal }: { goal: string }) {
   return (
-    <section className="revision-result-card">
-      <span className="eyebrow">Revision draft created</span>
-      <h3>{String(revision?.heading || "Conservative revision draft")}</h3>
-      <p>{String(revision?.content || "Tilo prepared a conservative revision for the approved risk.")}</p>
-      {highlights.length ? (
-        <div className="minimal-chip-row">
-          {highlights.map((item) => <span key={item}>{item}</span>)}
+    <article className="cowork-message user">
+      <div className="avatar">You</div>
+      <div className="bubble">{goal}</div>
+    </article>
+  );
+}
+
+function AssistantWorking() {
+  return (
+    <article className="cowork-message assistant">
+      <div className="avatar">Tilo</div>
+      <div className="bubble muted">
+        {workingSteps.map((step, index) => (
+          <span key={step}>
+            <Loader2 size={14} className={index === workingSteps.length - 1 ? "spin" : ""} />
+            {step}
+          </span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function AssistantReviewMessage({
+  artifact,
+  isSubmitting,
+  onApprove,
+  primaryRisk,
+  state,
+}: {
+  artifact: Artifact;
+  isSubmitting: boolean;
+  onApprove: () => void;
+  primaryRisk: Record<string, unknown> | null;
+  state: DemoState;
+}) {
+  const summary = findBlock(artifact, "risk_summary")?.data || {};
+  return (
+    <article className="cowork-message assistant">
+      <div className="avatar">Tilo</div>
+      <div className="bubble">
+        <p>I found a few issues, but only one needs your decision right now.</p>
+        <div className="inline-decision">
+          <span className="eyebrow">Primary decision</span>
+          <strong>{String(primaryRisk?.clause || "Liability and indemnity")}</strong>
+          <p>{String(primaryRisk?.issue || summary.summary || "A liability clause needs approval before revision.")}</p>
         </div>
-      ) : null}
+        {state === "result" ? (
+          <div className="cowork-actions">
+            <button className="cowork-primary" disabled={isSubmitting} onClick={onApprove} type="button">
+              {isSubmitting ? <Loader2 size={15} className="spin" /> : <Check size={15} />}
+              Approve revision
+            </button>
+            <Link className="cowork-secondary" href={`/artifacts/${artifact.id}`}><ArrowUpRight size={14} /> Open artifact</Link>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function AssistantRevisionMessage({ revision }: { revision: Record<string, unknown> | null }) {
+  return (
+    <article className="cowork-message assistant">
+      <div className="avatar">Tilo</div>
+      <div className="bubble">
+        <p>Done. I drafted a conservative version and kept the negotiation tone workable.</p>
+        <div className="inline-draft">
+          <strong>{String(revision?.heading || "Conservative revision draft")}</strong>
+          <p>{String(revision?.content || "Tilo prepared a revision draft for the approved risk.")}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AssistantMemoryMessage({
+  content,
+  isSubmitting,
+  onNotNow,
+  onRemember,
+}: {
+  content: string;
+  isSubmitting: boolean;
+  onNotNow: () => Promise<void>;
+  onRemember: () => Promise<void>;
+}) {
+  return (
+    <article className="cowork-message assistant">
+      <div className="avatar">Tilo</div>
+      <div className="bubble memory">
+        <MemoryStick size={16} />
+        <div>
+          <strong>Should I remember this preference?</strong>
+          <p>{content}</p>
+          <div className="cowork-actions">
+            <button className="cowork-primary" disabled={isSubmitting} onClick={() => void onRemember()} type="button">Remember</button>
+            <button className="cowork-secondary" disabled={isSubmitting} onClick={() => void onNotNow()} type="button">Not now</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AssistantDoneMessage({ memoryConfirmed }: { memoryConfirmed: boolean }) {
+  return (
+    <article className="cowork-message assistant">
+      <div className="avatar">Tilo</div>
+      <div className="bubble muted">
+        {memoryConfirmed ? "Preference saved. Future reviews can reuse it after recall." : "No problem. I will not store that preference."}
+      </div>
+    </article>
+  );
+}
+
+function Composer({
+  disabled,
+  goal,
+  onChip,
+  onGoalChange,
+  onSubmit,
+  state,
+}: {
+  disabled: boolean;
+  goal: string;
+  onChip: (kind: "contract" | "sales" | "compare") => void;
+  onGoalChange: (value: string) => void;
+  onSubmit: () => void;
+  state: DemoState;
+}) {
+  return (
+    <section className="cowork-composer" aria-label="Tilo goal composer">
+      <textarea
+        aria-label="Goal"
+        disabled={disabled}
+        onChange={(event) => onGoalChange(event.target.value)}
+        placeholder="Ask Tilo to review, compare, draft, or decide..."
+        value={goal}
+      />
+      <div className="composer-footer">
+        <div className="cowork-chip-row">
+          <button onClick={() => onChip("contract")} type="button">Review contract</button>
+          <button onClick={() => onChip("sales")} title="Coming after v1.0" type="button">Sales follow-up</button>
+          <button onClick={() => onChip("compare")} title="Coming after v1.0" type="button">Compare frameworks</button>
+        </div>
+        <button className="cowork-send" disabled={disabled || !goal.trim()} onClick={onSubmit} type="button">
+          {state === "working" ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
+          {state === "idle" ? "Start" : "Run again"}
+        </button>
+      </div>
     </section>
   );
 }
 
-function MemoryPrompt({ content, onNotNow, onRemember }: { content: string; onNotNow: () => Promise<void>; onRemember: () => Promise<void> }) {
-  return (
-    <section className="memory-prompt-card">
-      <MemoryStick size={18} />
-      <div>
-        <strong>Want me to remember this preference?</strong>
-        <p>{content}</p>
-        <div className="focused-actions">
-          <button className="primary-button" onClick={() => void onRemember()} type="button">Remember</button>
-          <button className="secondary-action" onClick={() => void onNotNow()} type="button">Not now</button>
-        </div>
+function WorkspacePanel({
+  actionResult,
+  artifact,
+  modeLabel,
+  primaryRisk,
+  revision,
+  state,
+  view,
+}: {
+  actionResult: ArtifactActionResult | null;
+  artifact: Artifact | null;
+  modeLabel: string;
+  primaryRisk: Record<string, unknown> | null;
+  revision: Record<string, unknown> | null;
+  state: DemoState;
+  view: WorkspaceView;
+}) {
+  const summary = findBlock(artifact, "risk_summary")?.data || {};
+  if (!artifact) {
+    return (
+      <div className="workspace-empty">
+        <Sparkles size={20} />
+        <strong>Workspace appears when useful</strong>
+        <p>Tilo starts as a conversation. When a decision needs structure, it opens a focused surface here.</p>
+        <span>{modeLabel}</span>
       </div>
-    </section>
+    );
+  }
+
+  return (
+    <div className="workspace-card">
+      <div className="workspace-header">
+        <span className="eyebrow">Current workspace</span>
+        <h2>{view === "draft" ? "Revision draft" : view === "memory" ? "Memory decision" : artifact.title}</h2>
+        <p>{view === "draft" ? "The approved decision has been translated into a draft." : view === "memory" ? "Only confirmed learning becomes memory." : "Tilo is keeping the full review in the workspace while the conversation stays focused."}</p>
+      </div>
+
+      {view === "review" ? (
+        <div className="workspace-section">
+          <div className="workspace-metrics">
+            <span><strong>{String(summary.high_count || 0)}</strong> high-risk</span>
+            <span><strong>{String(summary.medium_count || 0)}</strong> medium</span>
+          </div>
+          <div className="workspace-evidence">
+            <span className="eyebrow">Evidence</span>
+            <strong>{String(primaryRisk?.clause || "Liability and indemnity")}</strong>
+            <p>{String(primaryRisk?.evidence || primaryRisk?.suggested_revision || primaryRisk?.issue || "Review the full artifact for supporting evidence.")}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {view === "draft" || view === "memory" ? (
+        <div className="workspace-section">
+          <div className="workspace-evidence draft">
+            <span className="eyebrow">Draft</span>
+            <strong>{String(revision?.heading || "Conservative revision draft")}</strong>
+            <p>{String(revision?.content || "Tilo prepared a revision draft for the approved risk.")}</p>
+          </div>
+          {actionResult ? <span className="action-result-chip">Action runtime: {actionResult.status}</span> : null}
+        </div>
+      ) : null}
+
+      <Link className="workspace-open" href={`/artifacts/${artifact.id}`}>Open full artifact <ArrowUpRight size={14} /></Link>
+    </div>
   );
 }
 
 function DemoDrawer({
   actionResult,
+  agent,
   artifact,
   developerMode,
   drawer,
   memoryCandidate,
   modeLabel,
   onClose,
+  project,
   session,
   trace,
   turns,
+  workspace,
 }: {
   actionResult: ArtifactActionResult | null;
+  agent: Agent | null;
   artifact: Artifact | null;
   developerMode: boolean;
   drawer: Exclude<Drawer, null>;
   memoryCandidate: Memory | null;
   modeLabel: string;
   onClose: () => void;
+  project: Project | null;
   session: ConversationSession | null;
   trace: TraceStep[];
   turns: ConversationTurn[];
+  workspace: Workspace | null;
 }) {
-  const title = drawer === "why" ? "Why this UI?" : drawer === "trace" ? "View trace" : "Developer mode";
+  const title = drawer === "why" ? "Why this UI?" : drawer === "trace" ? "Runtime trace" : "Developer mode";
   return (
-    <div className="minimal-drawer-overlay">
-      <aside className="minimal-drawer">
+    <div className="cowork-drawer-overlay">
+      <aside className="cowork-drawer">
         <header>
           <div>
             <span className="eyebrow">Inspectable internals</span>
@@ -385,11 +591,11 @@ function DemoDrawer({
         </header>
         {drawer === "why" ? (
           <div className="drawer-stack">
-            <p>Tilo rendered one focused surface because the contract review produced a high-risk liability decision that benefits from human approval.</p>
-            <span>Policy intent: mini surface for high-risk liability confirmation.</span>
+            <p>Tilo kept the chat focused and opened a workspace only because the review found a high-risk contract decision that benefits from structured approval.</p>
+            <span>Policy intent: render a focused surface only when user decision quality improves.</span>
             <span>Action runtime: POST /api/artifacts/{artifact?.id || "artifact_id"}/actions/{findApprovalAction(artifact)?.id || "action_id"}</span>
-            <span>Observation: approval creates a UIInteractionEvent and a ConversationTurn(observation).</span>
-            <span>Memory: reflection may propose an unconfirmed preference candidate.</span>
+            <span>Observation: approval creates UIInteractionEvent and ConversationTurn(observation).</span>
+            <span>Memory: reflection can propose a candidate, but user confirmation is required.</span>
           </div>
         ) : null}
         {drawer === "trace" ? (
@@ -406,6 +612,9 @@ function DemoDrawer({
           <div className="drawer-stack">
             <span>developer mode: {developerMode ? "on" : "off"}</span>
             <span>runtime: {modeLabel}</span>
+            <span>workspace: {workspace?.id || "none"}</span>
+            <span>project: {project?.id || "none"}</span>
+            <span>agent: {agent?.id || "none"}</span>
             <span>blocks: {artifact?.schema_json.blocks.length || 0}</span>
             <span>artifact actions: {artifact?.schema_json.actions.length || 0}</span>
             <span>memory candidate: {memoryCandidate ? "available" : "not proposed yet"}</span>
