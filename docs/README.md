@@ -22,6 +22,7 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`AI_NATIVE_INTERACTION_COMPONENTS.md`](./AI_NATIVE_INTERACTION_COMPONENTS.md) — how agent-generated UI components work.
 - [`INTERACTION_MINIMALISM_AND_AGENT_AUTONOMY.md`](./INTERACTION_MINIMALISM_AND_AGENT_AUTONOMY.md) — why Tilo should stay agent-first and UI-light.
 - [`CHANNEL_AND_SURFACE_STRATEGY.md`](./CHANNEL_AND_SURFACE_STRATEGY.md) — how surfaces map across web, Telegram, and future channels.
+- [`DEMO_SIMPLIFICATION_REDESIGN.md`](./DEMO_SIMPLIFICATION_REDESIGN.md) — minimal public demo redesign direction.
 
 ---
 
@@ -51,8 +52,8 @@ Start with the README first. Use this page when you need deeper implementation r
 
 ## Active Plan
 
-- [`V0_9_ARTIFACT_ACTION_RUNTIME_PLAN.md`](./V0_9_ARTIFACT_ACTION_RUNTIME_PLAN.md) — next implementation milestone.
-- [`V0_9_CODEX_EXECUTION_PROMPT.md`](./V0_9_CODEX_EXECUTION_PROMPT.md) — copy-paste prompt for Codex.
+- [`V1_0_FRAMEWORK_RELEASE_PLAN.md`](./V1_0_FRAMEWORK_RELEASE_PLAN.md) — v1.0 framework release plan.
+- [`V1_0_CODEX_EXECUTION_PROMPT.md`](./V1_0_CODEX_EXECUTION_PROMPT.md) — copy-paste prompt for Codex.
 
 ---
 
