@@ -56,6 +56,26 @@ export type ArtifactAction = {
   state_binding?: StateBinding | null;
 };
 
+export type ArtifactActionResultStatus = "completed" | "pending_confirmation" | "rejected" | "failed" | "noop" | string;
+
+export type ArtifactActionResult = {
+  status: ArtifactActionResultStatus;
+  action_id: string;
+  artifact_id: string;
+  block_id?: string | null;
+  interaction_event_id?: string | null;
+  conversation_turn_id?: string | null;
+  confirmation_id?: string | null;
+  memory_id?: string | null;
+  tool_invocation_id?: string | null;
+  task_id?: string | null;
+  run_id?: string | null;
+  artifact_version_id?: string | null;
+  message: string;
+  next_actions: Record<string, unknown>[];
+  warnings: string[];
+};
+
 export type ProvenanceRef = {
   type: string;
   id: string;

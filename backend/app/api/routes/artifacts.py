@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import apply_update, get_one
 from app.core.database import get_db
 from app.models import Artifact
-from app.schemas import ArtifactCreate, ArtifactRead
+from app.schemas import ArtifactActionExecuteRequest, ArtifactActionResult, ArtifactCreate, ArtifactRead
+from app.services.artifact.actions import ArtifactActionRuntime, ArtifactActionRuntimeError
 from app.services.artifact.persistence import ArtifactPersistenceService
 from app.services.artifact.spec import ArtifactValidationError, ArtifactValidator
 
@@ -28,6 +29,29 @@ def list_artifacts(workspace_id: str, project_id: str | None = None, task_id: st
 @router.get("/{item_id}", response_model=ArtifactRead)
 def read_artifact(item_id: str, db: Session = Depends(get_db)) -> Artifact:
     return get_one(db, Artifact, item_id)
+
+
+@router.post("/{item_id}/actions/{action_id}", response_model=ArtifactActionResult)
+def execute_artifact_action(
+    item_id: str,
+    action_id: str,
+    payload: ArtifactActionExecuteRequest | None = None,
+    db: Session = Depends(get_db),
+) -> ArtifactActionResult:
+    request = payload or ArtifactActionExecuteRequest()
+    try:
+        return ArtifactActionRuntime(db).execute(
+            artifact_id=item_id,
+            action_id=action_id,
+            block_id=request.block_id,
+            session_id=request.session_id,
+            run_id=request.run_id,
+            source=request.source,
+            payload=request.payload,
+            idempotency_key=request.idempotency_key,
+        )
+    except ArtifactActionRuntimeError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
 
 @router.patch("/{item_id}", response_model=ArtifactRead)

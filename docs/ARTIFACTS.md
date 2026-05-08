@@ -289,4 +289,6 @@ Initial ROAM blocks:
 - `tool_call_preview`
 - `action_queue`
 
-Component actions must write durable `UIInteractionEvent` observations and then call the relevant backend API when the action maps to Confirmation, Memory, SkillCandidate, ToolInvocation, or Task/Run state.
+Component actions should execute through `POST /api/artifacts/{artifact_id}/actions/{action_id}`. The Artifact Action Runtime writes durable `UIInteractionEvent` observations, appends conversation observation turns when `session_id` is available, and owns action semantics for confirmations, memory candidates, tool gates, task continuation, regeneration, export placeholders, and skill promotion.
+
+See [`ARTIFACT_ACTION_RUNTIME.md`](./ARTIFACT_ACTION_RUNTIME.md).

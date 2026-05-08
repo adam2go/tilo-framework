@@ -138,7 +138,15 @@ curl -X POST http://localhost:8000/api/interactions \
   -d '{"workspace_id":"workspace-id","session_id":"session-id","event_type":"demo.open_full_review","payload":{"action":"open_full_review"}}'
 ```
 
-With `session_id`, the backend appends the observation turn and may create an ORID reflection memory candidate. The policy remains the source of truth for UI decisions.
+Execute an artifact action:
+
+```bash
+curl -X POST http://localhost:8000/api/artifacts/artifact-id/actions/action-id \
+  -H 'Content-Type: application/json' \
+  -d '{"block_id":"optional-block-id","session_id":"session-id","source":"web","payload":{"choice":"approve"}}'
+```
+
+With `session_id`, the backend appends the observation turn and may create an ORID reflection memory candidate. Artifact actions should use the unified runtime so the backend owns confirmation, memory, tool, and continuation semantics. The policy remains the source of truth for UI decisions.
 
 ## 6. Developer Loop
 

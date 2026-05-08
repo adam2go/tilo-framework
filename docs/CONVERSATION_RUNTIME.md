@@ -35,3 +35,7 @@ Backend code should use `ConversationService` instead of creating `ConversationS
 Context and prompt builders cap recent conversation context to 12 turns, 5 UI observations, and 500 characters per turn.
 
 When `POST /api/interactions` receives `session_id`, the backend appends a linked observation turn and runs ORID context reflection. Reflection may create only unconfirmed memory candidates. See `docs/ORID_CONTEXT_REFLECTION.md`.
+
+Artifact actions should use `POST /api/artifacts/{artifact_id}/actions/{action_id}`. The Artifact Action Runtime creates the `UIInteractionEvent` itself and, when `session_id` is present, appends the linked observation turn through `ConversationService.append_observation_for_interaction`.
+
+Channel adapters should reuse the Artifact Action Runtime when a callback can resolve artifact/action context. Telegram artifact callbacks use `tilo:artifact_action:<artifact_id>|<action_id>|<block_id>`.

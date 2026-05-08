@@ -214,6 +214,33 @@ class ArtifactRead(ArtifactCreate, ORMModel):
     updated_at: datetime
 
 
+class ArtifactActionExecuteRequest(BaseModel):
+    block_id: str | None = None
+    session_id: str | None = None
+    run_id: str | None = None
+    source: str = "web"
+    payload: dict[str, Any] = Field(default_factory=dict)
+    idempotency_key: str | None = None
+
+
+class ArtifactActionResult(BaseModel):
+    status: str
+    action_id: str
+    artifact_id: str
+    block_id: str | None = None
+    interaction_event_id: str | None = None
+    conversation_turn_id: str | None = None
+    confirmation_id: str | None = None
+    memory_id: str | None = None
+    tool_invocation_id: str | None = None
+    task_id: str | None = None
+    run_id: str | None = None
+    artifact_version_id: str | None = None
+    message: str
+    next_actions: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ConfirmationRead(ORMModel):
     id: str
     workspace_id: str

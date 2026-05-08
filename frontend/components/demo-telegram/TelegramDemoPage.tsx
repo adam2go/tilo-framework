@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Code2, Database, FileText, Languages, MessageCircle, RotateCcw, Send, ShieldCheck, X } from "lucide-react";
 import { ContractReviewMiniSurfaceAdapter } from "./ContractReviewMiniSurfaceAdapter";
 import { apiFetch, appendConversationTurn, createConversationSession, getBootstrap, getConversationSession, getConversationTurns, sendConversationMessage, sendMessage } from "../../lib/api";
+import { executeArtifactAction } from "../../lib/artifactActions";
 import { SAMPLE_CONTRACT_FALLBACK_FILE_NAME } from "../../lib/demoContracts";
 import type { ConversationEvent } from "../../lib/conversationEvents";
 import { ConversationChannels, ConversationTurnTypes } from "../../lib/conversationEvents";
@@ -14,7 +15,7 @@ import { interactionPolicyService, normalizePolicyDecision } from "../../lib/int
 import type { InteractionDecision } from "../../lib/interactionPolicy";
 import { getMiniSurfaceRegistration } from "../../lib/miniSurfaceRegistry";
 import type { MiniSurfaceType } from "../../lib/miniSurfaceRegistry";
-import type { Agent, AgentAppManifest, Artifact, ArtifactAction, Confirmation, ConversationSession, ConversationTurn, Memory, Project, RichSurfaceLink, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
+import type { Agent, AgentAppManifest, Artifact, ArtifactAction, ArtifactActionResult, Confirmation, ConversationSession, ConversationTurn, Memory, Project, RichSurfaceLink, RuntimeCapabilities, TraceStep, UIInteractionEvent, Workspace } from "../../lib/types";
 import { RichSurfaceSources, RichSurfaceTargetTypes } from "../../lib/types";
 
 type Locale = "en" | "zh";
@@ -328,6 +329,7 @@ export function TelegramDemoPage() {
   const [lastIntent, setLastIntent] = useState<FollowUpIntentResult | null>(null);
   const [memoryLifecycle, setMemoryLifecycle] = useState<MemoryLifecycle>("none");
   const [lastPolicyDecision, setLastPolicyDecision] = useState<InteractionDecision | null>(null);
+  const [lastActionResult, setLastActionResult] = useState<ArtifactActionResult | null>(null);
   const [conversationSession, setConversationSession] = useState<ConversationSession | null>(null);
   const [conversationWarnings, setConversationWarnings] = useState<string[]>([]);
   const [frontendError, setFrontendError] = useState<string | null>(null);
@@ -415,6 +417,7 @@ export function TelegramDemoPage() {
     setLastIntent(null);
     setMemoryLifecycle("none");
     setLastPolicyDecision(null);
+    setLastActionResult(null);
     setConversationWarnings([]);
     setFrontendError(null);
     setFullReviewOpen(false);
@@ -432,6 +435,7 @@ export function TelegramDemoPage() {
     setLastIntent(null);
     setMemoryLifecycle("none");
     setLastPolicyDecision(null);
+    setLastActionResult(null);
     setConversationWarnings([]);
     setFrontendError(null);
     setFullReviewOpen(false);
@@ -648,9 +652,27 @@ export function TelegramDemoPage() {
 
   async function requestEditDirection() {
     if (!artifact) return;
-    const event = await persistInteraction("channel.telegram_demo.revision_direction_requested", {});
-    setInteractions((items) => [event, ...items]);
-    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.editReply, artifact_id: artifact.id, run_id: artifact.run_id, interaction_id: event.id });
+    const block = findBlock(artifact, "editable_revision");
+    const action = block?.actions?.find((item) => item.action_type === "edit");
+    let interactionId: string | null = null;
+    if (action && block) {
+      const result = await executeArtifactAction({
+        artifactId: artifact.id,
+        actionId: action.id,
+        blockId: block.id,
+        sessionId: conversationSession?.id || null,
+        runId: artifact.run_id || null,
+        source: "web",
+        payload: { channel: "telegram-demo", action: "revision_direction_requested" },
+      });
+      setLastActionResult(result);
+      interactionId = result.interaction_event_id || null;
+    } else {
+      const event = await persistInteraction("channel.telegram_demo.revision_direction_requested", {});
+      setInteractions((items) => [event, ...items]);
+      interactionId = event.id;
+    }
+    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.editReply, artifact_id: artifact.id, run_id: artifact.run_id, interaction_id: interactionId });
     setTurns((items) => [
       ...items,
       { id: id("observe-edit"), type: "observation", content: copy.editObservation },
@@ -692,22 +714,29 @@ export function TelegramDemoPage() {
     const activeArtifact = artifactOverride || artifact;
     if (!workspace || !activeArtifact) return;
     const action = findApprovalAction(activeArtifact);
-    const block = findBlock(activeArtifact, "summary");
-    const primaryRisk = primaryRiskForArtifact(activeArtifact);
-    const event = await persistInteraction("channel.telegram_demo.approve_revision", {
-      confirmation_id: action?.confirmation_id || null,
-      block_id: block?.id || null,
-      primary_risk_id: String(primaryRisk?.id || "risk_liability_indemnity_conflict"),
-      clauses: String(primaryRisk?.clause || "8.1 / 8.2")
-    }, activeArtifact, sessionOverride);
-    if (action?.confirmation_id) {
-      const updated = await apiFetch<Confirmation>(`/api/confirmations/${action.confirmation_id}/approve`, {
-        method: "POST",
-        body: JSON.stringify({ decision: { source: "telegram_in_chat_demo" } })
-      });
-      setConfirmations((items) => items.map((item) => (item.id === updated.id ? updated : item)).filter((item) => item.status === "pending"));
+    if (!action) {
+      setFrontendError(copy.demoActionFailed("No approval action is available on this artifact."));
+      return;
     }
-    setInteractions((items) => [event, ...items]);
+    const block = findBlockForAction(activeArtifact, action.id);
+    const primaryRisk = primaryRiskForArtifact(activeArtifact);
+    const result = await executeArtifactAction({
+      artifactId: activeArtifact.id,
+      actionId: action.id,
+      blockId: block?.id || null,
+      sessionId: sessionOverride?.id || conversationSession?.id || null,
+      runId: activeArtifact.run_id || null,
+      source: "web",
+      payload: {
+        channel: "telegram-demo",
+        confirmation_id: action.confirmation_id || null,
+        primary_risk_id: String(primaryRisk?.id || "risk_liability_indemnity_conflict"),
+        clauses: String(primaryRisk?.clause || "8.1 / 8.2"),
+      },
+    });
+    setLastActionResult(result);
+    setConfirmations(await apiFetch<Confirmation[]>(`/api/confirmations?workspace_id=${workspace.id}&status=pending`));
+    setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${workspace.id}`));
     setStage("Revision Draft");
     const decision = await evaluateAppPolicy(
       { user_action: "approve_revision", mini_surfaces_used: countVisibleMiniSurfaces(turns) },
@@ -715,13 +744,13 @@ export function TelegramDemoPage() {
     );
     setLastPolicyDecision(decision);
     const revisionTurns = eventsForDecision(decision, "revision", copy, appManifest);
-    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.approvedReply, artifact_id: activeArtifact.id, run_id: activeArtifact.run_id, interaction_id: event.id }, sessionOverride?.id);
+    void appendTurn({ turn_type: ConversationTurnTypes.agentMessage, role: "assistant", content: copy.approvedReply, artifact_id: activeArtifact.id, run_id: activeArtifact.run_id, interaction_id: result.interaction_event_id || null }, sessionOverride?.id);
     revisionTurns.forEach((turn) => {
       void appendChatTurn(turn, {
         artifact_id: activeArtifact.id,
         run_id: activeArtifact.run_id,
-        interaction_id: event.id,
-        confirmation_id: action?.confirmation_id || null,
+        interaction_id: result.interaction_event_id || null,
+        confirmation_id: result.confirmation_id || action.confirmation_id || null,
         policy_decision: decision as unknown as Record<string, unknown>,
       }, sessionOverride?.id);
     });
@@ -744,47 +773,43 @@ export function TelegramDemoPage() {
   async function rememberPreference() {
     if (!workspace || !artifact) return;
     const block = findBlock(artifact, "memory_candidate");
-    const event = await persistInteraction("channel.telegram_demo.remember_preference", { block_id: block?.id || null });
-    setInteractions((items) => [event, ...items]);
-    setMemoryLifecycle("confirmed");
-    if (block) {
-      const memory = await apiFetch<Memory>("/api/memories", {
-        method: "POST",
-        body: JSON.stringify({
-          workspace_id: workspace.id,
-          project_id: project?.id || null,
-          source_run_id: artifact.run_id,
-          source_type: "telegram_in_chat_demo",
-          source_id: artifact.id,
-          type: String(block.data.memory_type || "preference"),
-          content: String(block.data.content || copy.rememberedReply),
-          confidence: Number(block.data.confidence || 0.75),
-          status: "confirmed",
-          is_confirmed: true,
-          structured_payload: { artifact_id: artifact.id, block_id: block.id, channel: "telegram-demo" }
-        })
-      });
-      setMemories((items) => [memory, ...items]);
+    const action = block?.actions?.find((item) => item.action_type === "create_memory");
+    if (!block || !action) {
+      setFrontendError(copy.demoActionFailed("No create_memory action is available on this artifact."));
+      return;
+    }
+    const result = await executeArtifactAction({
+      artifactId: artifact.id,
+      actionId: action.id,
+      blockId: block.id,
+      sessionId: conversationSession?.id || null,
+      runId: artifact.run_id || null,
+      source: "web",
+      payload: { channel: "telegram-demo" },
+    });
+    setLastActionResult(result);
+    setMemories(await apiFetch<Memory[]>(`/api/memories?workspace_id=${workspace.id}`));
+    setInteractions(await apiFetch<UIInteractionEvent[]>(`/api/interactions?workspace_id=${workspace.id}`));
+    if (result.memory_id) {
       void appendTurn({
-        turn_type: ConversationTurnTypes.memoryConfirmed,
+        turn_type: ConversationTurnTypes.memoryCandidate,
         role: "system",
-        content: String(block.data.content || copy.rememberedReply),
+        content: String(block.data.content || copy.memoryCandidateProposed),
         artifact_id: artifact.id,
         run_id: artifact.run_id,
-        interaction_id: event.id,
-        memory_id: memory.id,
-        observation_payload: { source: "telegram_demo", memory_id: memory.id },
+        interaction_id: result.interaction_event_id || null,
+        memory_id: result.memory_id,
+        observation_payload: { source: "artifact_action_runtime", memory_id: result.memory_id },
       });
     }
-    setMemoryLifecycle("saved");
+    setMemoryLifecycle("candidate");
     setStage("Memory");
     setLiveEvents((items) => advanceLiveEvent(items, "memory.candidate.created", copy.live.memoryPersisted));
     setTurns((items) => [
       ...items,
       { id: id("observe-memory"), type: "observation", content: copy.rememberedObservation },
-      { id: id("observe-memory-confirmed"), type: "observation", content: copy.memoryConfirmed },
-      { id: id("observe-memory-saved"), type: "observation", content: copy.memorySaved },
-      { id: id("bot-memory"), type: "agent_message", content: copy.rememberedReply }
+      { id: id("observe-memory-candidate-created"), type: "observation", content: copy.memoryCandidateProposed },
+      { id: id("bot-memory"), type: "agent_message", content: copy.memoryPrompt }
     ]);
   }
 
@@ -933,6 +958,7 @@ export function TelegramDemoPage() {
           diagnostics={diagnostics}
           interactions={interactions}
           lastIntent={lastIntent}
+          lastActionResult={lastActionResult}
           lastPolicyDecision={lastPolicyDecision}
           liveEvents={liveEvents}
           memoryLifecycle={memoryLifecycle}
@@ -1053,6 +1079,7 @@ function DeveloperInspectorDrawer({
   diagnostics,
   interactions,
   lastIntent,
+  lastActionResult,
   lastPolicyDecision,
   liveEvents,
   memoryLifecycle,
@@ -1070,6 +1097,7 @@ function DeveloperInspectorDrawer({
   diagnostics: ReturnType<typeof modelDiagnostics>;
   interactions: UIInteractionEvent[];
   lastIntent: FollowUpIntentResult | null;
+  lastActionResult: ArtifactActionResult | null;
   lastPolicyDecision: InteractionDecision | null;
   liveEvents: LiveEvent[];
   memoryLifecycle: MemoryLifecycle;
@@ -1122,6 +1150,7 @@ function DeveloperInspectorDrawer({
           {interactions.slice(0, 5).map((event) => <span key={event.id}>{event.event_type}</span>)}
           {!interactions.length ? <span>channel.message.received</span> : null}
           {lastIntent ? <span>followup intent: {copy.intentLabels[lastIntent.intent]} ({lastIntent.mode})</span> : null}
+          {lastActionResult ? <span>action result: {lastActionResult.status} · {lastActionResult.action_id} · {lastActionResult.message}</span> : null}
           <span>{copy.memoryLifecycle}: {copy.memoryLifecycleLabels[memoryLifecycle]}</span>
           <span>{copy.confirmations}: {confirmations.length}</span>
           <span>{copy.memories}: {memories.length}</span>
@@ -1150,6 +1179,10 @@ function findBlock(artifact: Artifact, idOrType: string) {
 
 function findApprovalAction(artifact: Artifact): ArtifactAction | undefined {
   return artifact.schema_json.actions.find((action) => action.confirmation_id) || findBlock(artifact, "summary")?.actions?.find((action) => action.confirmation_id);
+}
+
+function findBlockForAction(artifact: Artifact, actionId: string) {
+  return artifact.schema_json.blocks.find((block) => block.actions?.some((action) => action.id === actionId));
 }
 
 function risksForArtifact(artifact: Artifact) {

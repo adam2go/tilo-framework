@@ -169,6 +169,7 @@ python scripts/validate_app.py examples/apps/my-agent
 - 后端 interaction policy evaluation
 - Mini surfaces 和 rich surface links
 - `artifact_spec.v1` Artifact 渲染基础
+- 统一 Artifact Action Runtime endpoint
 - Memory candidates 和确认后持久化
 - ORID-inspired context reflection service
 - 声明式 example apps、scaffold script 和 app validation script
@@ -183,6 +184,7 @@ python scripts/validate_app.py examples/apps/my-agent
 | v0.6 | ConversationService、typed runtime primitives、centralized observation linkage、developer DX |
 | v0.7 | Run-to-session closure、conversation-native message endpoint、ORID reflection、explainable memory candidates |
 | v0.8 | Demo reliability、Quick Start verification、contributor docs、app validation、lightweight CI |
+| v0.9 | Backend-owned artifact action runtime、unified action endpoint、action observation linkage |
 | Future | MCP、browser/GUI automation、更多渠道适配、权限、skill marketplace primitives |
 
 ---
@@ -207,6 +209,7 @@ scripts/       开发者工具
 - [`docs/MEMORY.md`](./docs/MEMORY.md)
 - [`docs/README.md`](./docs/README.md)
 - [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md)
+- [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
 - [`docs/SKILLS.md`](./docs/SKILLS.md)
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)

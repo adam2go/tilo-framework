@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { AlertTriangle, Check, Clock, Database, FilePenLine, Gauge, Play, ShieldAlert, Sparkles, X } from "lucide-react";
-import { apiFetch } from "../../lib/api";
-import type { Artifact, ArtifactAction, ArtifactBlock, Memory, UIInteractionEvent } from "../../lib/types";
+import { executeArtifactAction } from "../../lib/artifactActions";
+import type { Artifact, ArtifactAction, ArtifactBlock, ArtifactActionResult } from "../../lib/types";
 
 type InteractionProps = {
   artifact: Artifact;
@@ -12,28 +12,18 @@ type InteractionProps = {
 
 type InteractionComponent = (props: InteractionProps) => JSX.Element;
 
-function eventTypeForAction(action: ArtifactAction) {
-  if (action.action_type === "approve" || action.action_type === "confirm") return "artifact.action.approved";
-  if (action.action_type === "reject") return "artifact.action.rejected";
-  if (action.action_type === "select") return "artifact.option.selected";
-  if (action.action_type === "edit") return "artifact.block.edited";
-  if (action.action_type === "create_memory") return "memory.candidate.created";
-  if (action.action_type === "promote_skill") return "skill.candidate.promoted";
-  if (action.action_type === "invoke_tool") return "tool.invocation.requested";
-  return "artifact.action.clicked";
-}
-
 function ActionButtons({ artifact, block }: InteractionProps) {
   const [status, setStatus] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<ArtifactActionResult | null>(null);
   const actions = block.actions || [];
   if (!actions.length) return null;
 
   async function handleAction(action: ArtifactAction) {
-    setStatus("Saving observation");
+    setStatus("Running action");
     try {
-      await recordInteraction(artifact, block, action);
-      await applyAction(artifact, block, action);
-      setStatus("Observation saved");
+      const result = await runArtifactAction(artifact, block, action, {});
+      setLastResult(result);
+      setStatus(`${result.status}: ${result.message}`);
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Action failed");
     }
@@ -48,91 +38,24 @@ function ActionButtons({ artifact, block }: InteractionProps) {
         </button>
       ))}
       {status ? <span className="interaction-status">{status}</span> : null}
+      {lastResult?.warnings.length ? <small>{lastResult.warnings.join(" ")}</small> : null}
     </div>
   );
 }
 
-async function recordInteraction(artifact: Artifact, block: ArtifactBlock, action: ArtifactAction) {
-  return apiFetch<UIInteractionEvent>("/api/interactions", {
-    method: "POST",
-    body: JSON.stringify({
-      workspace_id: artifact.workspace_id,
-      project_id: artifact.project_id || null,
-      artifact_id: artifact.id,
-      block_id: block.id,
-      action_id: action.id,
-      run_id: artifact.run_id || null,
-      event_type: eventTypeForAction(action),
-      payload: {
-        artifact_type: artifact.type,
-        block_type: block.type,
-        action_type: action.action_type,
-        confirmation_id: action.confirmation_id || null,
-        state_binding: action.state_binding || block.state_binding || null,
-        payload: action.payload || {}
-      }
-    })
+async function runArtifactAction(artifact: Artifact, block: ArtifactBlock, action: ArtifactAction, payload: Record<string, unknown>) {
+  return executeArtifactAction({
+    artifactId: artifact.id,
+    actionId: action.id,
+    blockId: block.id,
+    runId: artifact.run_id || null,
+    payload: {
+      artifact_type: artifact.type,
+      block_type: block.type,
+      action_type: action.action_type,
+      ...payload,
+    },
   });
-}
-
-async function applyAction(artifact: Artifact, block: ArtifactBlock, action: ArtifactAction) {
-  const binding = action.state_binding || block.state_binding;
-  if ((action.action_type === "approve" || action.action_type === "confirm") && action.confirmation_id) {
-    await apiFetch(`/api/confirmations/${action.confirmation_id}/approve`, {
-      method: "POST",
-      body: JSON.stringify({ decision: { source: "roam_component", action_id: action.id } })
-    });
-    return;
-  }
-  if (action.action_type === "reject" && action.confirmation_id) {
-    await apiFetch(`/api/confirmations/${action.confirmation_id}/reject`, {
-      method: "POST",
-      body: JSON.stringify({ reason: "Rejected from ROAM component" })
-    });
-    return;
-  }
-  if ((action.action_type === "approve" || action.action_type === "confirm") && binding?.entity_type === "memory") {
-    await apiFetch(`/api/memories/${binding.entity_id}/confirm`, { method: "POST" });
-    return;
-  }
-  if (action.action_type === "reject" && binding?.entity_type === "memory") {
-    await apiFetch(`/api/memories/${binding.entity_id}/reject`, {
-      method: "POST",
-      body: JSON.stringify({ reason: "Rejected from ROAM component" })
-    });
-    return;
-  }
-  if (action.action_type === "create_memory") {
-    const content = String(action.payload?.content || block.data.content || "");
-    if (!content) return;
-    await apiFetch<Memory>("/api/memories", {
-      method: "POST",
-      body: JSON.stringify({
-        workspace_id: artifact.workspace_id,
-        project_id: artifact.project_id || null,
-        source_run_id: artifact.run_id || null,
-        source_type: "ui_interaction",
-        source_id: artifact.id,
-        type: String(action.payload?.type || block.data.memory_type || "task_experience"),
-        content,
-        confidence: Number(block.data.confidence || 0.7),
-        status: "candidate",
-        is_confirmed: false,
-        structured_payload: { artifact_id: artifact.id, block_id: block.id, action_id: action.id }
-      })
-    });
-    return;
-  }
-  if (action.action_type === "promote_skill" && binding?.entity_type === "skill_candidate") {
-    await apiFetch(`/api/skills/candidates/${binding.entity_id}/promote`, { method: "POST" });
-    return;
-  }
-  if (action.action_type === "invoke_tool" && action.payload?.tool_id) {
-    await apiFetch(`/api/tools/${String(action.payload.tool_id)}/invoke`, {
-      method: "POST",
-      body: JSON.stringify({ input: action.payload.input || {} })
-    });
-  }
 }
 
 export function ApprovalCard({ artifact, block }: InteractionProps) {
@@ -190,17 +113,18 @@ export function RiskReviewPanel({ artifact, block }: InteractionProps) {
 
   async function decideRisk(risk: Record<string, unknown>, actionType: "approve" | "edit" | "reject") {
     const riskId = String(risk.id || risk.clause || "risk");
-    setRiskStatus((current) => ({ ...current, [riskId]: "Saving observation" }));
+    setRiskStatus((current) => ({ ...current, [riskId]: "Running action" }));
     try {
-      const action = {
-        id: `${actionType}_${riskId}`,
-        label: actionType,
-        action_type: actionType,
-        confirmation_required: false,
-        payload: { risk_id: riskId, clause: risk.clause, risk_level: risk.risk_level },
-      } satisfies ArtifactAction;
-      await recordInteraction(artifact, block, action);
-      setRiskStatus((current) => ({ ...current, [riskId]: "Observation saved" }));
+      const fallbackActionId = actionType === "approve" ? "accept_risks" : "revise_risks";
+      const action = (block.actions || []).find((item) => item.id === fallbackActionId) || (block.actions || [])[0];
+      if (!action) throw new Error("No artifact action is available for this risk.");
+      const result = await runArtifactAction(artifact, block, action, {
+        risk_id: riskId,
+        risk_decision: actionType,
+        clause: risk.clause,
+        risk_level: risk.risk_level,
+      });
+      setRiskStatus((current) => ({ ...current, [riskId]: `${result.status}: ${result.message}` }));
     } catch (err) {
       setRiskStatus((current) => ({ ...current, [riskId]: err instanceof Error ? err.message : "Action failed" }));
     }

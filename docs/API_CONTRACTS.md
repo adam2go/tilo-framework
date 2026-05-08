@@ -236,6 +236,42 @@ Artifacts:
 - `GET /api/artifacts/{id}`
 - `PATCH /api/artifacts/{id}`
 - `POST /api/artifacts/{id}/versions`
+- `POST /api/artifacts/{id}/actions/{action_id}`
+
+Artifact action execution input:
+
+```json
+{
+  "block_id": "optional-block-id",
+  "session_id": "optional-conversation-session-id",
+  "run_id": "optional-run-id",
+  "source": "web",
+  "payload": {},
+  "idempotency_key": "optional-client-key"
+}
+```
+
+Artifact action execution output:
+
+```json
+{
+  "status": "completed|pending_confirmation|rejected|failed|noop",
+  "action_id": "approve_revision",
+  "artifact_id": "artifact-id",
+  "block_id": "block-id-or-null",
+  "interaction_event_id": "event-id-or-null",
+  "conversation_turn_id": "turn-id-or-null",
+  "confirmation_id": "confirmation-id-or-null",
+  "memory_id": "memory-id-or-null",
+  "tool_invocation_id": "tool-invocation-id-or-null",
+  "task_id": "task-id-or-null",
+  "run_id": "run-id-or-null",
+  "artifact_version_id": "artifact-version-id-or-null",
+  "message": "Human readable result",
+  "next_actions": [],
+  "warnings": []
+}
+```
 
 Tools:
 

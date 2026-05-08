@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.models import Agent, Artifact, Confirmation, Memory, Project, UIInteractionEvent, Workspace
+from app.services.artifact.actions import ArtifactActionRuntime, ArtifactActionRuntimeError
 from app.services.channels.telegram.renderer import TelegramRenderer
 from app.services.channels.types import ChannelRenderResult, TiloChannelEvent
 from app.services.context_reflection import ContextReflectionService
@@ -75,6 +76,10 @@ class TelegramWebhookService:
             return self._handle_confirmation_callback(event, action, target_id)
         if action in {"confirm_memory", "reject_memory"}:
             return self._handle_memory_callback(event, action, target_id)
+        if action == "artifact_action":
+            action_response = self._handle_artifact_action_callback(event, target_id)
+            if action_response:
+                return action_response
         if action == "open_artifact":
             artifact = self._resolve_by_id_prefix(Artifact, target_id)
             if artifact:
@@ -84,6 +89,45 @@ class TelegramWebhookService:
                 return {**self._response(event, rendered), "interaction_id": interaction.id, "artifact_id": artifact.id}
         rendered = self.renderer.plain_text(event.external_chat_id, "Tilo could not resolve that Telegram action.")
         return self._response(event, rendered, status="unresolved")
+
+    def _handle_artifact_action_callback(self, event: TiloChannelEvent, target_id: str) -> dict[str, Any] | None:
+        ref = self._parse_artifact_action_ref(target_id)
+        if not ref:
+            return None
+        artifact_id, action_id, block_id = ref
+        artifact = self._resolve_by_id_prefix(Artifact, artifact_id)
+        if not artifact:
+            rendered = self.renderer.plain_text(event.external_chat_id, "That artifact action is no longer available.")
+            return self._response(event, rendered, status="unresolved")
+        session = ConversationService(self.db).find_by_external_thread(
+            channel=ConversationChannel.telegram,
+            external_thread_id=event.external_chat_id,
+            workspace_id=artifact.workspace_id,
+        )
+        try:
+            result = ArtifactActionRuntime(self.db).execute(
+                artifact_id=artifact.id,
+                action_id=action_id,
+                block_id=block_id,
+                session_id=session.id if session else None,
+                run_id=artifact.run_id,
+                source="telegram",
+                payload={
+                    "external_user_id": event.external_user_id,
+                    "external_chat_id": event.external_chat_id,
+                    "callback": event.callback_data,
+                },
+            )
+        except ArtifactActionRuntimeError as exc:
+            rendered = self.renderer.plain_text(event.external_chat_id, str(exc))
+            return self._response(event, rendered, status="failed")
+        rendered = self.renderer.plain_text(event.external_chat_id, result.message)
+        return {
+            **self._response(event, rendered, status=result.status),
+            "artifact_id": artifact.id,
+            "action_id": action_id,
+            "action_result": result.model_dump(mode="json"),
+        }
 
     def _handle_confirmation_callback(self, event: TiloChannelEvent, action: str, target_id: str) -> dict[str, Any]:
         confirmation = self._resolve_by_id_prefix(Confirmation, target_id)
@@ -195,6 +239,16 @@ class TelegramWebhookService:
         if exact:
             return exact
         return self.db.scalar(select(model).where(model.id.startswith(target_id)).order_by(model.created_at.desc()))
+
+    @staticmethod
+    def _parse_artifact_action_ref(target_id: str) -> tuple[str, str, str | None] | None:
+        if not target_id:
+            return None
+        separator = "|" if "|" in target_id else ":"
+        parts = [part for part in target_id.split(separator) if part]
+        if len(parts) < 2:
+            return None
+        return parts[0], parts[1], parts[2] if len(parts) > 2 else None
 
     def _response(self, event: TiloChannelEvent, rendered: ChannelRenderResult, status: str = "ok") -> dict[str, Any]:
         return {

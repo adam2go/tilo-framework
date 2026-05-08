@@ -170,6 +170,7 @@ Developer references:
 - Backend interaction policy evaluation
 - Mini surfaces and rich surface links
 - `artifact_spec.v1` artifact rendering foundation
+- Unified Artifact Action Runtime endpoint
 - Memory candidates and confirmation-before-persistence
 - ORID-inspired context reflection service
 - Declarative example apps, scaffold script, and app validation script
@@ -184,6 +185,7 @@ Developer references:
 | v0.6 | ConversationService, typed runtime primitives, centralized observation linkage, developer DX |
 | v0.7 | Run-to-session closure, conversation-native message endpoint, ORID reflection, explainable memory candidates |
 | v0.8 | Demo reliability, Quick Start verification, contributor docs, app validation, lightweight CI |
+| v0.9 | Backend-owned artifact action runtime, unified action endpoint, action observation linkage |
 | Future | MCP, browser/GUI automation, more channel adapters, permissions, skill marketplace primitives |
 
 ---
@@ -208,6 +210,7 @@ scripts/       Developer utilities
 - [`docs/MEMORY.md`](./docs/MEMORY.md)
 - [`docs/README.md`](./docs/README.md)
 - [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md)
+- [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
 - [`docs/SKILLS.md`](./docs/SKILLS.md)
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
