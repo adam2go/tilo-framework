@@ -57,7 +57,7 @@ docker compose up --build
 Open:
 
 ```text
-http://localhost:3000/demo/telegram
+http://localhost:3000/demo
 ```
 
 Check the backend:
@@ -71,6 +71,8 @@ Verify the local demo without any API key:
 ```bash
 bash scripts/verify_local_demo.sh
 ```
+
+The primary v1.0 demo is a minimal Contract Review flow: submit a goal, review one focused decision surface, approve a revision through the Artifact Action Runtime, and optionally confirm memory. The older `/demo/telegram` route remains available as an advanced/internal compatibility demo.
 
 The demo works in deterministic local mode by default. You can also configure an OpenAI-compatible provider from `.env`; API keys stay backend-only and are never exposed to the frontend.
 
@@ -185,7 +187,7 @@ Developer references:
 | v0.6 | ConversationService, typed runtime primitives, centralized observation linkage, developer DX |
 | v0.7 | Run-to-session closure, conversation-native message endpoint, ORID reflection, explainable memory candidates |
 | v0.8 | Demo reliability, Quick Start verification, contributor docs, app validation, lightweight CI |
-| v0.9 | Backend-owned artifact action runtime, unified action endpoint, action observation linkage |
+| v1.0 | Minimal public `/demo`, stable ROAM contract, Artifact Action Runtime, release docs |
 | Future | MCP, browser/GUI automation, more channel adapters, permissions, skill marketplace primitives |
 
 ---
@@ -214,6 +216,7 @@ scripts/       Developer utilities
 - [`docs/SKILLS.md`](./docs/SKILLS.md)
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
 - [`docs/DEMO_SCREENSHOTS.md`](./docs/DEMO_SCREENSHOTS.md)
 - [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)
 

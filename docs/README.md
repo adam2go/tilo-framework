@@ -12,6 +12,7 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`../README.zh-CN.md`](../README.zh-CN.md) — Chinese README.
 - [`USER_GUIDE.md`](./USER_GUIDE.md) — using the current demo and console.
 - [`BUILD_YOUR_FIRST_TILO_APP.md`](./BUILD_YOUR_FIRST_TILO_APP.md) — build a new declarative Tilo app.
+- [`RELEASE_V1_0.md`](./RELEASE_V1_0.md) — v1.0 release notes, stable contracts, experimental areas, and limitations.
 - [`DEMO_SCREENSHOTS.md`](./DEMO_SCREENSHOTS.md) — capture real screenshots from the running demo.
 
 ---
@@ -38,6 +39,7 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`ARTIFACTS.md`](./ARTIFACTS.md) — artifact spec and renderable output protocol.
 - [`SKILLS.md`](./SKILLS.md) — reusable skill primitives.
 - [`API_CONTRACTS.md`](./API_CONTRACTS.md) — backend API contracts.
+- [`RELEASE_V1_0.md`](./RELEASE_V1_0.md) — v1.0 release status and known limitations.
 
 ---
 

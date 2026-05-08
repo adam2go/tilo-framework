@@ -13,7 +13,7 @@ Session lookup supports `channel + external_thread_id` for restore behavior.
 Turn types include:
 `user_message`, `agent_message`, `mini_surface`, `observation`, `rich_surface_link`, and system/memory variants.
 
-`/demo/telegram` uses `session_id` in the URL to restore a session. If no session id is present, the page creates a web conversation session and updates the URL with `history.replaceState`.
+`/demo` is the primary v1.0 public demo and uses `session_id` in the URL to restore a web conversation session. `/demo/telegram` keeps the same restore behavior as a compatibility/internal demo. If no session id is present, the page creates a conversation session and updates the URL with `history.replaceState`.
 
 Important UI actions should write both:
 - `UIInteractionEvent` for durable interaction logging

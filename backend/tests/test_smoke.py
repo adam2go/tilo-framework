@@ -927,6 +927,58 @@ def test_conversation_message_endpoint_creates_session_bound_run_and_turns() -> 
     assert prompt_step["output_json"]["confirmed_memory_count"] >= 0
 
 
+def test_roam_contract_review_message_action_observation_memory_contract() -> None:
+    workspace_id = "roam-contract-workspace"
+    fixture = load_problematic_ai_service_agreement()
+
+    with TestClient(app) as client:
+        session = client.post(
+            "/api/conversations",
+            json={"app_id": "contract-review-agent", "workspace_id": workspace_id, "channel": "web"},
+        ).json()
+        message = client.post(
+            f"/api/conversations/{session['id']}/messages",
+            json={
+                "content": f"Review this contract and propose a conservative liability revision.\n\n{fixture.content}",
+                "attachments": [{"name": fixture.file_name, "type": "sample_contract", "source_path": fixture.source_path}],
+            },
+        ).json()
+        artifacts = client.get("/api/artifacts", params={"workspace_id": workspace_id, "task_id": message["task_id"]}).json()
+        artifact = artifacts[0]
+        action = next(item for item in artifact["schema_json"]["actions"] if item["id"] == "approve_liability_revision")
+        action_response = client.post(
+            f"/api/artifacts/{artifact['id']}/actions/{action['id']}",
+            json={
+                "session_id": session["id"],
+                "run_id": message["run_id"],
+                "source": "web",
+                "payload": {"choice": "approve_revision"},
+            },
+        )
+        action_result = action_response.json()
+        turns = client.get(f"/api/conversations/{session['id']}/turns").json()
+        memories = client.get("/api/memories", params={"workspace_id": workspace_id, "status": "candidate"}).json()
+        reflection_memory = next(memory for memory in memories if memory["source_type"] == "context_reflection")
+        confirmed_memory = client.post(f"/api/memories/{reflection_memory['id']}/confirm").json()
+
+    assert message["status"] == "completed"
+    assert artifact["schema_json"]["version"] == "artifact_spec.v1"
+    assert artifact["schema_json"]["artifact_type"] == "contract_review"
+    assert action["confirmation_required"] is True
+    assert action["confirmation_id"]
+    assert action_response.status_code == 200
+    assert action_result["status"] == "completed"
+    assert action_result["interaction_event_id"]
+    assert action_result["conversation_turn_id"]
+    assert any(turn["id"] == action_result["conversation_turn_id"] and turn["turn_type"] == "observation" for turn in turns)
+    assert any(turn["turn_type"] == "memory_candidate" and turn["memory_id"] == reflection_memory["id"] for turn in turns)
+    assert reflection_memory["is_confirmed"] is False
+    assert reflection_memory["status"] == "candidate"
+    assert confirmed_memory["id"] == reflection_memory["id"]
+    assert confirmed_memory["is_confirmed"] is True
+    assert confirmed_memory["status"] == "confirmed"
+
+
 def test_rich_surface_link_turn_uses_standard_target_payload() -> None:
     link = create_rich_surface_link(
         surface="ContractReviewArtifact",

@@ -56,11 +56,18 @@ else
   fail "backend health failed" "Run: docker compose up --build"
 fi
 
-frontend_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 "$FRONTEND_URL/demo/telegram" 2>/dev/null || true)"
+frontend_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 "$FRONTEND_URL/demo" 2>/dev/null || true)"
 if [ "$frontend_status" = "200" ]; then
-  pass "frontend /demo/telegram route ok"
+  pass "frontend /demo route ok"
 else
-  fail "frontend /demo/telegram route unavailable" "Check the frontend container logs, or run: docker compose up --build frontend"
+  fail "frontend /demo route unavailable" "Check the frontend container logs, or run: docker compose up --build frontend"
+fi
+
+legacy_frontend_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 "$FRONTEND_URL/demo/telegram" 2>/dev/null || true)"
+if [ "$legacy_frontend_status" = "200" ]; then
+  pass "legacy frontend /demo/telegram route ok"
+else
+  fail "legacy frontend /demo/telegram route unavailable" "Keep /demo/telegram available for compatibility."
 fi
 
 apps_payload="$(http_get "$BACKEND_URL/api/apps" 2>/dev/null || true)"

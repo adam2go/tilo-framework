@@ -13,8 +13,8 @@ export default function Home() {
             Tilo is not a chatbot wrapper. It turns a conversation into a task, a run, an interactive artifact, durable human decisions, and confirmed memory.
           </p>
           <div className="landing-actions">
-            <Link className="primary-link" href="/workspace?demo=contract&autorun=1">
-              Run Contract Review Demo
+            <Link className="primary-link" href="/demo">
+              Open Minimal Demo
               <ArrowRight size={16} />
             </Link>
             <Link className="secondary-link" href="/workspace">
@@ -55,10 +55,10 @@ export default function Home() {
 
       <section className="demo-entry-grid" aria-label="Demo entries">
         <DemoCard
-          href="/workspace?demo=contract&autorun=1"
+          href="/demo"
           icon={<FileCheck2 size={22} />}
-          title="Contract Review"
-          detail="Risk summary, review panel, approval card, editable draft placeholder, and memory candidate."
+          title="Minimal Contract Review"
+          detail="Goal-first contract review with one focused surface, artifact actions, and optional memory."
         />
         <DemoCard
           href="/workspace?demo=sales&autorun=1"

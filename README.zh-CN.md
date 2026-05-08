@@ -54,10 +54,10 @@ cp .env.example .env
 docker compose up --build
 ```
 
-打开类 Telegram 的 ROAM demo：
+打开 v1.0 最小公开 Demo：
 
 ```text
-http://localhost:3000/demo/telegram
+http://localhost:3000/demo
 ```
 
 检查后端健康状态：
@@ -71,6 +71,8 @@ curl http://localhost:8000/api/health
 ```bash
 bash scripts/verify_local_demo.sh
 ```
+
+v1.0 的主 Demo 是聚焦的合同审查流程：提交目标、查看一个关键决策界面、通过 Artifact Action Runtime 批准修订，并可选择确认记忆。旧的 `/demo/telegram` 路由仍保留为高级 / 内部兼容 Demo。
 
 Demo 默认支持确定性本地模式。你也可以在 `.env` 中配置 OpenAI-compatible provider 启用后端 LLM 模式；API key 只保存在后端，不会暴露到前端。
 
@@ -184,7 +186,7 @@ python scripts/validate_app.py examples/apps/my-agent
 | v0.6 | ConversationService、typed runtime primitives、centralized observation linkage、developer DX |
 | v0.7 | Run-to-session closure、conversation-native message endpoint、ORID reflection、explainable memory candidates |
 | v0.8 | Demo reliability、Quick Start verification、contributor docs、app validation、lightweight CI |
-| v0.9 | Backend-owned artifact action runtime、unified action endpoint、action observation linkage |
+| v1.0 | 最小公开 `/demo`、稳定 ROAM contract、Artifact Action Runtime、发布文档 |
 | Future | MCP、browser/GUI automation、更多渠道适配、权限、skill marketplace primitives |
 
 ---
@@ -213,6 +215,7 @@ scripts/       开发者工具
 - [`docs/SKILLS.md`](./docs/SKILLS.md)
 - [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
 - [`docs/DEMO_SCREENSHOTS.md`](./docs/DEMO_SCREENSHOTS.md)
 - [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)
 
