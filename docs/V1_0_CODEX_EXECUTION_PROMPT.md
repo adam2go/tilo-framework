@@ -12,6 +12,7 @@ First read:
 - README.md
 - README.zh-CN.md
 - docs/README.md
+- docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md
 - docs/DEMO_SIMPLIFICATION_REDESIGN.md
 - docs/V1_0_FRAMEWORK_RELEASE_PLAN.md
 - docs/ROAM_LOOP.md
@@ -27,11 +28,23 @@ Goal:
 Implement Tilo v1.0: Framework Release.
 
 This is not a feature-dump release.
+This is not SaaS plus AI features.
+Tilo must be implemented as an AI-native product runtime framework.
+
 The goal is to make Tilo feel like a coherent open-source framework with:
 - one minimal public demo;
 - one clear developer path;
 - one stable ROAM runtime contract;
 - honest release documentation.
+
+Hard positioning constraints:
+- Tilo is a framework for AI-native SaaS agents.
+- Tilo is not a SaaS admin console with AI chat added.
+- The user experience must be goal-first, not feature-first.
+- UI appears only when it helps the user's decision.
+- Runtime details are hidden by default and inspectable on demand.
+- Backend runtime owns action semantics.
+- Frontend renders intent.
 
 Core principles:
 - Simple surface. Powerful runtime. Inspectable internals.
@@ -46,6 +59,16 @@ Core principles:
 - Use Artifact Action Runtime for user actions.
 - Do not add a new large app scenario before v1.0.
 - Do not add fake screenshots.
+
+Implementation review checklist:
+- Does this make Tilo more AI-native, or does it recreate traditional SaaS UI?
+- Is the user experience goal-first rather than feature-first?
+- Does UI appear only when it helps the user's decision?
+- Are runtime details hidden by default and inspectable on demand?
+- Does backend runtime own action semantics?
+- Does the change strengthen ROAM?
+- Does memory remain confirmation-based?
+- Can another channel reuse the same runtime behavior?
 
 Implement in this order:
 
