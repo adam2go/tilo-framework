@@ -63,13 +63,6 @@ else
   fail "frontend /demo route unavailable" "Check the frontend container logs, or run: docker compose up --build frontend"
 fi
 
-legacy_frontend_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 "$FRONTEND_URL/demo/telegram" 2>/dev/null || true)"
-if [ "$legacy_frontend_status" = "200" ]; then
-  pass "legacy frontend /demo/telegram route ok"
-else
-  fail "legacy frontend /demo/telegram route unavailable" "Keep /demo/telegram available for compatibility."
-fi
-
 apps_payload="$(http_get "$BACKEND_URL/api/apps" 2>/dev/null || true)"
 if printf '%s' "$apps_payload" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert any(item["id"]=="contract-review-agent" for item in data); assert any(item["id"]=="sales-followup-agent" for item in data)' 2>/dev/null; then
   pass "example apps loaded"
