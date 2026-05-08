@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Check, Code2, FileText, Info, Loader2, MemoryStick, Search, Sparkles, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronDown, ChevronRight, Code2, FileText, Loader2, MemoryStick, Search, Sparkles, X } from "lucide-react";
 import { apiFetch, createConversationSession, getBootstrap, getConversationSession, getConversationTurns, sendConversationMessage } from "../../lib/api";
 import { executeArtifactAction } from "../../lib/artifactActions";
 import type { DemoContractFixture } from "../../lib/demoContracts";
@@ -14,10 +14,27 @@ type WorkspaceView = "review" | "draft" | "memory";
 
 const SAMPLE_GOAL = "Review this AI service agreement and flag risky clauses around liability, indemnity, data, payment, and termination.";
 
-const workingSteps = [
-  "Reading the sample agreement",
-  "Finding the decision that needs a human",
-  "Preparing a focused review workspace",
+const activitySteps = [
+  {
+    live: "Loading the sample agreement",
+    done: "Loaded the sample agreement",
+    detail: "The demo uses a real fixture from the backend instead of front-end mock data.",
+  },
+  {
+    live: "Creating a conversation-bound run",
+    done: "Created a conversation-bound run",
+    detail: "The user goal is sent through the conversation message endpoint so the runtime can create a task, run, and artifact.",
+  },
+  {
+    live: "Waiting for the model or deterministic runtime",
+    done: "Runtime returned a contract review artifact",
+    detail: "This can be slow when LLM mode is enabled. Tilo is not showing hidden reasoning, only observable runtime activity.",
+  },
+  {
+    live: "Preparing the focused workspace",
+    done: "Prepared the focused workspace",
+    detail: "Tilo loads the artifact, trace, turns, and memory candidates, then shows only the next useful decision.",
+  },
 ];
 
 export function MinimalDemoPage() {
@@ -38,10 +55,22 @@ export function MinimalDemoPage() {
   const [developerMode, setDeveloperMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activityStepIndex, setActivityStepIndex] = useState(0);
+  const [activityExpanded, setActivityExpanded] = useState(true);
 
   useEffect(() => {
     void boot();
   }, []);
+
+  useEffect(() => {
+    if (state !== "working") return undefined;
+    setActivityStepIndex(0);
+    setActivityExpanded(true);
+    const interval = window.setInterval(() => {
+      setActivityStepIndex((index) => Math.min(index + 1, activitySteps.length - 1));
+    }, 1800);
+    return () => window.clearInterval(interval);
+  }, [state]);
 
   const primaryRisk = useMemo(() => primaryRiskForArtifact(artifact), [artifact]);
   const revision = useMemo(() => findBlock(artifact, "editable_revision")?.data || null, [artifact]);
@@ -115,6 +144,8 @@ export function MinimalDemoPage() {
       setTrace(traceList);
       setTurns(turnList);
       setMemories(memoryList);
+      setActivityStepIndex(activitySteps.length - 1);
+      setActivityExpanded(false);
       setState("result");
     } catch (err) {
       setState("idle");
@@ -246,7 +277,16 @@ export function MinimalDemoPage() {
           <ConversationIntro />
 
           {state !== "idle" ? <UserMessage goal={goal} /> : null}
-          {state === "working" ? <AssistantWorking /> : null}
+          {state !== "idle" ? (
+            <AssistantActivity
+              expanded={activityExpanded}
+              modeLabel={modeLabel}
+              onToggle={() => setActivityExpanded((value) => !value)}
+              state={state}
+              stepIndex={activityStepIndex}
+              trace={trace}
+            />
+          ) : null}
           {artifact && state !== "working" ? (
             <AssistantReviewMessage
               artifact={artifact}
@@ -334,17 +374,55 @@ function UserMessage({ goal }: { goal: string }) {
   );
 }
 
-function AssistantWorking() {
+function AssistantActivity({
+  expanded,
+  modeLabel,
+  onToggle,
+  state,
+  stepIndex,
+  trace,
+}: {
+  expanded: boolean;
+  modeLabel: string;
+  onToggle: () => void;
+  state: DemoState;
+  stepIndex: number;
+  trace: TraceStep[];
+}) {
+  const isWorking = state === "working";
+  const currentIndex = isWorking ? Math.min(stepIndex, activitySteps.length - 1) : activitySteps.length - 1;
+  const traceCount = trace.length;
+  const shouldShowDetails = expanded || isWorking;
+
   return (
     <article className="cowork-message assistant">
       <div className="avatar">Tilo</div>
-      <div className="bubble muted">
-        {workingSteps.map((step, index) => (
-          <span key={step}>
-            <Loader2 size={14} className={index === workingSteps.length - 1 ? "spin" : ""} />
-            {step}
-          </span>
-        ))}
+      <div className="bubble activity">
+        <button className="activity-summary" onClick={onToggle} type="button">
+          <span>{shouldShowDetails ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
+          <strong>{isWorking ? activitySteps[currentIndex].live : "Activity completed"}</strong>
+          <small>{isWorking ? modeLabel : `${activitySteps.length} steps · ${traceCount || "trace"} events available`}</small>
+          {isWorking ? <Loader2 size={15} className="spin" /> : null}
+        </button>
+        {shouldShowDetails ? (
+          <div className="activity-step-list">
+            {activitySteps.map((step, index) => {
+              const done = !isWorking || index < currentIndex;
+              const active = isWorking && index === currentIndex;
+              const pending = isWorking && index > currentIndex;
+              return (
+                <div className={`activity-step ${done ? "done" : ""} ${active ? "active" : ""} ${pending ? "pending" : ""}`} key={step.live}>
+                  <span>{done ? <Check size={13} /> : active ? <Loader2 size={13} className="spin" /> : index + 1}</span>
+                  <div>
+                    <strong>{done ? step.done : step.live}</strong>
+                    <p>{step.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
+            <p className="activity-note">Activity shows observable runtime progress, not hidden model reasoning.</p>
+          </div>
+        ) : null}
       </div>
     </article>
   );
