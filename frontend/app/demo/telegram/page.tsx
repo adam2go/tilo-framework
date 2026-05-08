@@ -1,5 +1,5 @@
-import { TelegramDemoPage } from "../../../components/demo-telegram/TelegramDemoPage";
+import { redirect } from "next/navigation";
 
 export default function TelegramDemoRoute() {
-  return <TelegramDemoPage />;
+  redirect("/demo");
 }
