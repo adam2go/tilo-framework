@@ -39,4 +39,4 @@ docs/assets/minimal-demo.png
 
 Only commit the screenshot if it reflects the current UI and was captured from this flow.
 
-The legacy `/demo/telegram` route may still be captured for internal docs, but it is no longer the primary public demo.
+The legacy `/demo/telegram` route redirects to `/demo`; capture `/demo` for public docs.

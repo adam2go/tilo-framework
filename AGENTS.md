@@ -281,8 +281,9 @@ When adding a module, update or create documentation when appropriate.
 
 Important docs:
 
-- `docs/CODEX_SPEC.md`
 - `docs/ARCHITECTURE.md`
+- `docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`
+- `docs/ROAM_LOOP.md`
 - `docs/MEMORY.md`
 - `docs/ARTIFACTS.md`
 - `docs/SKILLS.md`

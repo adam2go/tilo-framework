@@ -34,7 +34,7 @@ from app.services.channels.telegram.types import parse_telegram_callback_data  #
 from app.services.artifact.contract_llm import ContractReviewLLMGenerator  # noqa: E402
 from app.services.models.client import ModelClient  # noqa: E402
 from app.services.models.errors import ModelDisabledError, ModelInvalidJSONError  # noqa: E402
-from app.services.demo import classify_followup_deterministic, load_problematic_ai_service_agreement  # noqa: E402
+from app.services.demo import load_problematic_ai_service_agreement  # noqa: E402
 from app.services.apps.loader import AgentAppLoader, get_app_loader  # noqa: E402
 from app.services.conversations.constants import ConversationChannel, ConversationTurnType  # noqa: E402
 from app.services.conversations.service import ConversationService  # noqa: E402
@@ -379,25 +379,6 @@ channels:
         loader.load_policy_path("unsafe-policy-agent")
 
 
-def test_demo_followup_intent_endpoint_uses_deterministic_fallback() -> None:
-    with TestClient(app) as client:
-        response = client.post(
-            "/api/demo/followup-intent",
-            json={"text": "语气不要太强硬，适合发给客户谈判", "locale": "zh"},
-        )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["intent"] == "revise_tone"
-    assert payload["mode"] == "deterministic"
-
-
-def test_followup_intent_rules_cover_core_demo_intents() -> None:
-    assert classify_followup_deterministic("why is clause 8.2 risky?").intent == "focus_clause"
-    assert classify_followup_deterministic("draft an email for the customer").intent == "draft_email"
-    assert classify_followup_deterministic("以后记住这个偏好").intent == "remember_preference"
-
-
 def test_model_client_disabled_mode_is_explicit() -> None:
     client = ModelClient(Settings(llm_enabled=False, openai_api_key=""))
 
@@ -664,7 +645,7 @@ def test_interaction_with_session_appends_observation_and_context_reflection_can
                 "session_id": session["id"],
                 "artifact_id": "artifact-reflection",
                 "run_id": "run-reflection",
-                "event_type": "channel.telegram_demo.approve_revision",
+                "event_type": "demo.approve_revision",
                 "payload": {"action": "approve_revision", "clauses": "8.1 / 8.2"},
             },
         )
@@ -699,7 +680,7 @@ def test_context_reflection_orid_tone_candidate_and_memory_suppression() -> None
             conversation.append_user_message(tone_session.id, "语气不要太强硬，适合发给客户谈判")
             tone_event = UIInteractionEvent(
                 workspace_id="orid-tone-workspace",
-                event_type="channel.telegram_demo.text_followup",
+                event_type="demo.text_followup",
                 payload_json={"content": "语气不要太强硬，适合发给客户谈判"},
             )
             db.add(tone_event)
@@ -714,7 +695,7 @@ def test_context_reflection_orid_tone_candidate_and_memory_suppression() -> None
             )
             skip_event = UIInteractionEvent(
                 workspace_id="orid-skip-workspace",
-                event_type="channel.telegram_demo.skip_memory",
+                event_type="demo.skip_memory",
                 payload_json={"action": "not_now"},
             )
             db.add(skip_event)

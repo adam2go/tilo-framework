@@ -13,7 +13,6 @@ First read:
 - README.zh-CN.md
 - docs/README.md
 - docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md
-- docs/DEMO_SIMPLIFICATION_REDESIGN.md
 - docs/V1_0_FRAMEWORK_RELEASE_PLAN.md
 - docs/ROAM_LOOP.md
 - docs/ARTIFACT_ACTION_RUNTIME.md
@@ -54,7 +53,7 @@ Core principles:
 - Preserve ROAM: Render -> Observe -> Act -> Memorize.
 - Preserve deterministic mode without API key.
 - Preserve optional LLM mode if configured.
-- Preserve /demo/telegram for compatibility or internal debugging.
+- Keep /demo/telegram as a compatibility redirect to /demo.
 - Use existing backend APIs where possible.
 - Use Artifact Action Runtime for user actions.
 - Do not add a new large app scenario before v1.0.
@@ -74,7 +73,7 @@ Implement in this order:
 
 1. Add a new minimal public demo route.
    - Add /demo.
-   - Keep /demo/telegram available.
+   - Keep /demo/telegram available as a redirect.
    - The new /demo should be the primary public demo.
    - Use a single-column centered layout by default.
    - Do not use the current permanent three-column layout.
@@ -152,10 +151,10 @@ Implement in this order:
    - Do not expose API keys or raw prompts.
 
 7. Preserve and reduce /demo/telegram exposure.
-   - Do not break /demo/telegram tests or route.
-   - It can remain as a legacy/internal showcase.
+   - Do not break /demo/telegram old links.
+   - It should redirect to /demo rather than carry a separate large showcase.
    - README should point to /demo after the new demo works.
-   - /demo/telegram can be linked as an advanced/legacy demo in docs, not the primary demo.
+   - /demo/telegram should be documented only as a compatibility redirect.
 
 8. Add end-to-end ROAM contract tests.
    Add or strengthen tests proving:
@@ -213,7 +212,7 @@ Implement in this order:
 12. Update README and Chinese README after /demo works.
    - Quick Start should point to http://localhost:3000/demo.
    - Keep overview hero image.
-   - Mention /demo/telegram only as legacy/internal/advanced if still relevant.
+   - Mention /demo/telegram only as a compatibility redirect if still relevant.
    - Add a concise v1.0 positioning.
    - Add real screenshot only if captured from current UI.
    - Do not add fake screenshots.

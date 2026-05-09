@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Tilo Framework.
 
-Tilo aims to become a serious open-source framework for memory-native, AI-native SaaS agents. Contributions should preserve the project direction and quality bar.
+Tilo aims to become a serious open-source framework for AI-native product runtimes. Contributions should preserve the project direction and quality bar.
 
 ## 1. Read Before Contributing
 
@@ -11,10 +11,11 @@ Before making significant changes, read:
 1. `README.md`
 2. `AGENTS.md`
 3. `docs/PROJECT_CONSTITUTION.md`
-4. `docs/PRODUCT_PRINCIPLES.md`
+4. `docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`
 5. `docs/ARCHITECTURE.md`
-6. `docs/QUALITY_BAR.md`
-7. Relevant module docs
+6. `docs/ROAM_LOOP.md`
+7. `docs/QUALITY_BAR.md`
+8. Relevant runtime/module docs
 
 ## 2. Project Direction
 

@@ -72,7 +72,7 @@ curl http://localhost:8000/api/health
 bash scripts/verify_local_demo.sh
 ```
 
-v1.0 的主 Demo 是聚焦的合同审查流程：提交目标、查看一个关键决策界面、通过 Artifact Action Runtime 批准修订，并可选择确认记忆。旧的 `/demo/telegram` 路由仍保留为高级 / 内部兼容 Demo。
+v1.0 的主 Demo 是聚焦的合同审查流程：提交目标、查看一个关键决策界面、通过 Artifact Action Runtime 批准修订，并可选择确认记忆。旧的 `/demo/telegram` 路由现在会兼容性跳转到 `/demo`，不再是单独的公开 Demo。
 
 Demo 默认支持确定性本地模式。你也可以在 `.env` 中配置 OpenAI-compatible provider 启用后端 LLM 模式；API key 只保存在后端，不会暴露到前端。
 

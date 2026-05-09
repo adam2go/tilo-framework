@@ -20,10 +20,8 @@ Start with the README first. Use this page when you need deeper implementation r
 ## Core Concepts
 
 - [`ROAM_LOOP.md`](./ROAM_LOOP.md) — the main product loop: Render -> Observe -> Act -> Memorize.
-- [`AI_NATIVE_INTERACTION_COMPONENTS.md`](./AI_NATIVE_INTERACTION_COMPONENTS.md) — how agent-generated UI components work.
-- [`INTERACTION_MINIMALISM_AND_AGENT_AUTONOMY.md`](./INTERACTION_MINIMALISM_AND_AGENT_AUTONOMY.md) — why Tilo should stay agent-first and UI-light.
-- [`CHANNEL_AND_SURFACE_STRATEGY.md`](./CHANNEL_AND_SURFACE_STRATEGY.md) — how surfaces map across web, Telegram, and future channels.
-- [`DEMO_SIMPLIFICATION_REDESIGN.md`](./DEMO_SIMPLIFICATION_REDESIGN.md) — minimal public demo redesign direction.
+- [`AI_NATIVE_FRAMEWORK_PRINCIPLES.md`](./AI_NATIVE_FRAMEWORK_PRINCIPLES.md) — the positioning constraints for an AI-native product runtime framework.
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — backend and frontend runtime boundaries.
 
 ---
 

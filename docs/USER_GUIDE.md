@@ -195,22 +195,15 @@ Current limitations:
 
 ---
 
-## 8. Recommended Next Product Improvements / 推荐下一步产品优化
+## 8. Recommended Next Framework Improvements / 推荐下一步框架优化
 
-For product experience, the next UI improvements should be:
+For framework maturity, the next improvements should be:
 
-1. Add onboarding cards on first load.
-2. Make demo prompts more obvious.
-3. Add step-by-step run progress.
-4. Improve Artifact visual hierarchy.
-5. Separate Inbox into a clearer decision center.
-6. Add Memory Review page.
-7. Add Skill Candidate Review page.
-8. Add empty states and tooltips.
-9. Add screenshot/GIF to README.
-10. Add file-backed contract review flow.
-
-See [`docs/UI_IMPROVEMENT_PLAN.md`](./UI_IMPROVEMENT_PLAN.md).
+1. Keep app scaffolding and validation deterministic.
+2. Add stronger contract tests for new runtime actions.
+3. Improve artifact editing/versioning without moving action semantics into the frontend.
+4. Expand example fixtures only when they exercise reusable runtime contracts.
+5. Capture real screenshots from the running `/demo` only.
 
 ---
 

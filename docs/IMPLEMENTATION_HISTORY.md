@@ -71,7 +71,7 @@ Core decisions:
 The current docs now cover this in:
 
 - `docs/ROAM_LOOP.md`
-- `docs/AI_NATIVE_INTERACTION_COMPONENTS.md`
+- `docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`
 - `docs/CONVERSATION_RUNTIME.md`
 - `docs/MEMORY.md`
 
@@ -93,7 +93,7 @@ Chat is the entry. Surface is the workspace. Interaction becomes memory.
 
 The related LLM plan added OpenAI-compatible backend-only configuration, deterministic fallback, runtime capabilities, and a contract-review-specific generation path.
 
-Current README now points directly to `/demo/telegram` as the main demo entry.
+The route is no longer a separate public demo. In v1.0, `/demo` is the primary public demo and `/demo/telegram` redirects there for compatibility. The backend Telegram channel adapter remains an experimental channel integration, but the large Telegram-like frontend showcase was removed.
 
 ---
 
@@ -116,8 +116,8 @@ This direction is carried forward into the next active milestone.
 See:
 
 ```text
-docs/V0_8_DEMO_RELIABILITY_AND_OPEN_SOURCE_DX_PLAN.md
-docs/V0_8_CODEX_EXECUTION_PROMPT.md
+docs/V1_0_FRAMEWORK_RELEASE_PLAN.md
+docs/V1_0_CODEX_EXECUTION_PROMPT.md
 ```
 
-v0.8 focuses on public demo reliability, documentation clarity, first-run developer experience, and release-ready validation.
+v1.0 focuses on Tilo as an AI-native product runtime framework: goal-first demo, backend-owned action semantics, optional inspection drawers, deterministic local mode, and stable app/runtime contracts.

@@ -8,21 +8,22 @@ Before coding, read these files in order:
 
 1. `README.md`
 2. `AGENTS.md`
-3. `docs/PRODUCT_PRINCIPLES.md`
-4. `docs/CODEX_SPEC.md`
-5. `docs/ARCHITECTURE.md`
-6. `docs/MEMORY.md`
-7. `docs/ARTIFACTS.md`
-8. `docs/SKILLS.md`
-9. `docs/UI_UX.md`
-10. `docs/TECH_STACK.md`
-11. `docs/SECURITY.md`
-12. `docs/DEVELOPMENT_WORKFLOW.md`
+3. `docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/ROAM_LOOP.md`
+6. `docs/APP_MANIFEST.md`
+7. `docs/INTERACTION_POLICY.md`
+8. `docs/ARTIFACT_ACTION_RUNTIME.md`
+9. `docs/CONVERSATION_RUNTIME.md`
+10. `docs/MEMORY.md`
+11. `docs/ARTIFACTS.md`
+12. `docs/SECURITY.md`
+13. `docs/DEVELOPMENT_WORKFLOW.md`
 
 If there is any conflict, follow this priority:
 
 ```text
-AGENTS.md > PRODUCT_PRINCIPLES.md > CODEX_SPEC.md > architecture/module docs > implementation convenience
+AGENTS.md > AI_NATIVE_FRAMEWORK_PRINCIPLES.md > architecture/runtime docs > implementation convenience
 ```
 
 ## 2. Implementation Strategy

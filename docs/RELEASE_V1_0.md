@@ -18,7 +18,7 @@ Tilo is a framework for SaaS agents that can render focused interfaces, observe 
 ## Experimental
 
 - LLM-backed contract generation when configured through backend environment variables.
-- Telegram-like demo at `/demo/telegram`, retained for compatibility and deeper internal inspection.
+- Backend Telegram channel adapter foundation; `/demo/telegram` redirects to `/demo` for compatibility.
 - Skill candidate promotion and evaluation scaffolding.
 - Tool invocation beyond mock/local tools.
 - Rich surface patterns beyond the focused Contract Review demo.
@@ -64,6 +64,7 @@ Then inspect:
 - The public demo is intentionally focused on Contract Review. Sales Follow-up and Competitive Analysis remain framework examples, not polished public demos.
 - Developer drawers expose concise runtime summaries, not a full production observability console.
 - Docker/local verification depends on local environment availability.
+- The compatibility redirect for `/demo/telegram` is kept, but the old Telegram-like frontend showcase was removed.
 
 ## Roadmap After v1.0
 

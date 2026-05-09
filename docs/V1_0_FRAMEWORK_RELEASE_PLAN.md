@@ -77,19 +77,13 @@ This means:
 
 ## 4. P0: Minimal Public Demo
 
-Implement the redesign in:
-
-```text
-docs/DEMO_SIMPLIFICATION_REDESIGN.md
-```
-
 Add:
 
 ```text
 /demo
 ```
 
-Keep `/demo/telegram` available for compatibility or internal debugging.
+Keep `/demo/telegram` available as a compatibility redirect to `/demo`.
 
 ### Required behavior
 
@@ -138,7 +132,7 @@ Developer mode
 - First-time users can understand it in 10 seconds.
 - Runtime details are accessible but hidden by default.
 - README points to `/demo` when stable.
-- `/demo/telegram` remains available.
+- `/demo/telegram` redirects to `/demo`.
 
 ---
 
@@ -359,7 +353,7 @@ Update README and Chinese README after `/demo` is stable.
 Required changes:
 
 - Quick Start points to `/demo`.
-- `/demo/telegram` is described as legacy/internal if still kept.
+- `/demo/telegram` is described only as a compatibility redirect if still kept.
 - Add concise v1.0 positioning.
 - Keep overview hero image.
 - Add real screenshot only if captured from current UI.

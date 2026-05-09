@@ -378,7 +378,7 @@ This enables agents to deliver interactive SaaS-like artifacts, capture decision
 ## 12. Codex Prompt
 
 ```text
-Read docs/ROAM_LOOP.md and docs/AI_NATIVE_INTERACTION_COMPONENTS.md.
+Read docs/ROAM_LOOP.md and docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md.
 
 Implement the ROAM Loop foundation.
 

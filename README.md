@@ -72,7 +72,7 @@ Verify the local demo without any API key:
 bash scripts/verify_local_demo.sh
 ```
 
-The primary v1.0 demo is a minimal Contract Review flow: submit a goal, review one focused decision surface, approve a revision through the Artifact Action Runtime, and optionally confirm memory. The older `/demo/telegram` route remains available as an advanced/internal compatibility demo.
+The primary v1.0 demo is a minimal Contract Review flow: submit a goal, review one focused decision surface, approve a revision through the Artifact Action Runtime, and optionally confirm memory. The older `/demo/telegram` route now redirects to `/demo` for compatibility; it is no longer a separate public demo.
 
 The demo works in deterministic local mode by default. You can also configure an OpenAI-compatible provider from `.env`; API keys stay backend-only and are never exposed to the frontend.
 
