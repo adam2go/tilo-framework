@@ -1,6 +1,6 @@
 # Tilo Documentation
 
-This folder is organized for contributors who want to understand, run, or extend Tilo quickly.
+This folder is organized for contributors who want to understand, run, integrate, or extend Tilo quickly.
 
 Start with the README first. Use this page when you need deeper implementation references.
 
@@ -10,6 +10,7 @@ Start with the README first. Use this page when you need deeper implementation r
 
 - [`../README.md`](../README.md) — project overview, quick start, examples, roadmap.
 - [`../README.zh-CN.md`](../README.zh-CN.md) — Chinese README.
+- [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md) — integrate Tilo into an existing product.
 - [`USER_GUIDE.md`](./USER_GUIDE.md) — using the current demo and console.
 - [`BUILD_YOUR_FIRST_TILO_APP.md`](./BUILD_YOUR_FIRST_TILO_APP.md) — build a new declarative Tilo app.
 - [`RELEASE_V1_0.md`](./RELEASE_V1_0.md) — v1.0 release notes, stable contracts, experimental areas, and limitations.
