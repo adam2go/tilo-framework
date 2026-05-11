@@ -3,6 +3,8 @@ set -u
 
 BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
 FRONTEND_URL="${FRONTEND_URL:-http://localhost:3000}"
+WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-30}"
+WAIT_SECONDS="${WAIT_SECONDS:-2}"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -29,6 +31,45 @@ http_post() {
   curl -fsS --max-time 90 -H 'Content-Type: application/json' -X POST "$1" -d "$2"
 }
 
+wait_for_payload() {
+  url="$1"
+  expected="$2"
+  attempts="$3"
+  seconds="$4"
+  count=1
+  while [ "$count" -le "$attempts" ]; do
+    payload="$(http_get "$url" 2>/dev/null || true)"
+    if [ "$payload" = "$expected" ]; then
+      printf '%s' "$payload"
+      return 0
+    fi
+    sleep "$seconds"
+    count=$((count + 1))
+  done
+  printf '%s' "$payload"
+  return 1
+}
+
+wait_for_http_status() {
+  url="$1"
+  expected="$2"
+  attempts="$3"
+  seconds="$4"
+  count=1
+  status=""
+  while [ "$count" -le "$attempts" ]; do
+    status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 "$url" 2>/dev/null || true)"
+    if [ "$status" = "$expected" ]; then
+      printf '%s' "$status"
+      return 0
+    fi
+    sleep "$seconds"
+    count=$((count + 1))
+  done
+  printf '%s' "$status"
+  return 1
+}
+
 printf 'Tilo local demo verification\n'
 printf 'backend:  %s\n' "$BACKEND_URL"
 printf 'frontend: %s\n\n' "$FRONTEND_URL"
@@ -49,14 +90,14 @@ if ! need_command python3; then
   exit 1
 fi
 
-health_payload="$(http_get "$BACKEND_URL/api/health" 2>/dev/null || true)"
+health_payload="$(wait_for_payload "$BACKEND_URL/api/health" '{"status":"ok"}' "$WAIT_ATTEMPTS" "$WAIT_SECONDS" || true)"
 if [ "$health_payload" = '{"status":"ok"}' ]; then
   pass "backend health ok"
 else
   fail "backend health failed" "Run: docker compose up --build"
 fi
 
-frontend_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 "$FRONTEND_URL/demo" 2>/dev/null || true)"
+frontend_status="$(wait_for_http_status "$FRONTEND_URL/demo" "200" "$WAIT_ATTEMPTS" "$WAIT_SECONDS" || true)"
 if [ "$frontend_status" = "200" ]; then
   pass "frontend /demo route ok"
 else

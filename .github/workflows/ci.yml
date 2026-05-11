@@ -52,11 +52,14 @@ jobs:
   demo:
     name: Local demo verification
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       LLM_ENABLED: "false"
       LLM_PROVIDER: openai
       OPENAI_API_KEY: ""
       LLM_BASE_URL: ""
+      WAIT_ATTEMPTS: "45"
+      WAIT_SECONDS: "2"
     steps:
       - uses: actions/checkout@v4
       - name: Build and start local stack

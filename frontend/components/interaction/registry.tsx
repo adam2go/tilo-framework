@@ -8,11 +8,12 @@ import type { Artifact, ArtifactAction, ArtifactBlock, ArtifactActionResult } fr
 type InteractionProps = {
   artifact: Artifact;
   block: ArtifactBlock;
+  sessionId?: string | null;
 };
 
 type InteractionComponent = (props: InteractionProps) => JSX.Element;
 
-function ActionButtons({ artifact, block }: InteractionProps) {
+function ActionButtons({ artifact, block, sessionId }: InteractionProps) {
   const [status, setStatus] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<ArtifactActionResult | null>(null);
   const actions = block.actions || [];
@@ -21,7 +22,7 @@ function ActionButtons({ artifact, block }: InteractionProps) {
   async function handleAction(action: ArtifactAction) {
     setStatus("Running action");
     try {
-      const result = await runArtifactAction(artifact, block, action, {});
+      const result = await runArtifactAction(artifact, block, action, {}, sessionId);
       setLastResult(result);
       setStatus(`${result.status}: ${result.message}`);
     } catch (err) {
@@ -43,11 +44,18 @@ function ActionButtons({ artifact, block }: InteractionProps) {
   );
 }
 
-async function runArtifactAction(artifact: Artifact, block: ArtifactBlock, action: ArtifactAction, payload: Record<string, unknown>) {
+async function runArtifactAction(
+  artifact: Artifact,
+  block: ArtifactBlock,
+  action: ArtifactAction,
+  payload: Record<string, unknown>,
+  sessionId?: string | null
+) {
   return executeArtifactAction({
     artifactId: artifact.id,
     actionId: action.id,
     blockId: block.id,
+    sessionId: sessionId || null,
     runId: artifact.run_id || null,
     payload: {
       artifact_type: artifact.type,
@@ -58,7 +66,7 @@ async function runArtifactAction(artifact: Artifact, block: ArtifactBlock, actio
   });
 }
 
-export function ApprovalCard({ artifact, block }: InteractionProps) {
+export function ApprovalCard({ artifact, block, sessionId }: InteractionProps) {
   return (
     <section className="interaction-card approval-card">
       <div className="interaction-title-row">
@@ -69,12 +77,12 @@ export function ApprovalCard({ artifact, block }: InteractionProps) {
         </div>
       </div>
       <p>{String(block.data.content || block.data.description || "")}</p>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function RiskSummary({ artifact, block }: InteractionProps) {
+export function RiskSummary({ artifact, block, sessionId }: InteractionProps) {
   const high = Number(block.data.high_count || 0);
   const medium = Number(block.data.medium_count || 0);
   const low = Number(block.data.low_count || 0);
@@ -102,12 +110,12 @@ export function RiskSummary({ artifact, block }: InteractionProps) {
         </div>
       </div>
       <p>{String(block.data.summary || "")}</p>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function RiskReviewPanel({ artifact, block }: InteractionProps) {
+export function RiskReviewPanel({ artifact, block, sessionId }: InteractionProps) {
   const [riskStatus, setRiskStatus] = useState<Record<string, string>>({});
   const risks = (block.data.risks as Array<Record<string, unknown>>) || [];
 
@@ -123,7 +131,7 @@ export function RiskReviewPanel({ artifact, block }: InteractionProps) {
         risk_decision: actionType,
         clause: risk.clause,
         risk_level: risk.risk_level,
-      });
+      }, sessionId);
       setRiskStatus((current) => ({ ...current, [riskId]: `${result.status}: ${result.message}` }));
     } catch (err) {
       setRiskStatus((current) => ({ ...current, [riskId]: err instanceof Error ? err.message : "Action failed" }));
@@ -157,12 +165,12 @@ export function RiskReviewPanel({ artifact, block }: InteractionProps) {
           </article>
         ))}
       </div>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function ComparisonMatrix({ artifact, block }: InteractionProps) {
+export function ComparisonMatrix({ artifact, block, sessionId }: InteractionProps) {
   const columns = ((block.data.columns as Array<string | { key: string; label: string }>) || []).map((column) =>
     typeof column === "string" ? { key: column, label: column } : column
   );
@@ -185,12 +193,12 @@ export function ComparisonMatrix({ artifact, block }: InteractionProps) {
           </tbody>
         </table>
       </div>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function MetricDashboard({ artifact, block }: InteractionProps) {
+export function MetricDashboard({ artifact, block, sessionId }: InteractionProps) {
   const metrics = (block.data.metrics as Array<Record<string, unknown>>) || [];
   const insights = (block.data.insights as string[]) || [];
   return (
@@ -211,12 +219,12 @@ export function MetricDashboard({ artifact, block }: InteractionProps) {
       {insights.length ? (
         <ul className="artifact-list">{insights.map((item) => <li key={item}>{item}</li>)}</ul>
       ) : null}
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function MemoryCandidateCard({ artifact, block }: InteractionProps) {
+export function MemoryCandidateCard({ artifact, block, sessionId }: InteractionProps) {
   return (
     <section className="interaction-card memory-candidate-card">
       <div className="interaction-title-row">
@@ -227,12 +235,12 @@ export function MemoryCandidateCard({ artifact, block }: InteractionProps) {
         </div>
       </div>
       <p>{String(block.data.content || "")}</p>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function ToolCallPreview({ artifact, block }: InteractionProps) {
+export function ToolCallPreview({ artifact, block, sessionId }: InteractionProps) {
   return (
     <section className="interaction-card">
       <div className="interaction-title-row">
@@ -243,12 +251,12 @@ export function ToolCallPreview({ artifact, block }: InteractionProps) {
         </div>
       </div>
       <p>{String(block.data.summary || "")}</p>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function ActionQueue({ artifact, block }: InteractionProps) {
+export function ActionQueue({ artifact, block, sessionId }: InteractionProps) {
   const items = (block.data.items as Array<Record<string, unknown>>) || [];
   return (
     <section className="interaction-card">
@@ -265,12 +273,12 @@ export function ActionQueue({ artifact, block }: InteractionProps) {
           </article>
         ))}
       </div>
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
-export function EditableDocumentPreview({ artifact, block }: InteractionProps) {
+export function EditableDocumentPreview({ artifact, block, sessionId }: InteractionProps) {
   const highlights = (block.data.highlights as string[]) || [];
   return (
     <section className="interaction-card editable-document-placeholder">
@@ -289,7 +297,7 @@ export function EditableDocumentPreview({ artifact, block }: InteractionProps) {
           ))}
         </div>
       ) : null}
-      <ActionButtons artifact={artifact} block={block} />
+      <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
@@ -307,7 +315,7 @@ export const interactionComponentRegistry: Record<string, InteractionComponent> 
   editable_document_placeholder: EditableDocumentPreview
 };
 
-export function renderInteractionComponent(artifact: Artifact, block: ArtifactBlock) {
+export function renderInteractionComponent(artifact: Artifact, block: ArtifactBlock, options: { sessionId?: string | null } = {}) {
   const Component = interactionComponentRegistry[block.type];
-  return Component ? <Component artifact={artifact} block={block} /> : null;
+  return Component ? <Component artifact={artifact} block={block} sessionId={options.sessionId || null} /> : null;
 }

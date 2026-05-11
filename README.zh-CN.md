@@ -98,6 +98,12 @@ User action -> ArtifactActionRuntime -> UIInteractionEvent -> ConversationTurn(o
 
 ---
 
+## 协议边界
+
+MCP 连接工具。AG-UI 传递 Agent / UI 事件。LangGraph 编排 workflow。Tilo 拥有 AI-native 产品运行时闭环：`Goal -> Surface -> Decision -> Action -> Memory`。
+
+---
+
 ## 快速开始
 
 运行本地 Demo：

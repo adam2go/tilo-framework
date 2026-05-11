@@ -26,7 +26,7 @@ function blocksByType(blocks: ArtifactBlock[]) {
   return new Set(blocks.map((block) => block.type));
 }
 
-export function WorkflowSurface({ artifact }: { artifact: Artifact | null }) {
+export function WorkflowSurface({ artifact, sessionId = null }: { artifact: Artifact | null; sessionId?: string | null }) {
   const blockTypes = blocksByType(artifact?.schema_json.blocks || []);
   return (
     <section className="workflow-surface">
@@ -61,7 +61,7 @@ export function WorkflowSurface({ artifact }: { artifact: Artifact | null }) {
       </div>
 
       {artifact ? (
-        <ArtifactRenderer artifact={artifact} />
+        <ArtifactRenderer artifact={artifact} sessionId={sessionId} />
       ) : (
         <div className="workflow-placeholder">
           <strong>Run the Contract Review demo to render the workflow.</strong>

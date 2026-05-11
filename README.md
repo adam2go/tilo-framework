@@ -95,6 +95,12 @@ The frontend renders intent. The backend owns action semantics.
 
 ---
 
+## Protocol Boundary
+
+MCP connects tools. AG-UI streams agent/UI events. LangGraph orchestrates workflows. Tilo owns the AI-native product runtime loop: `Goal -> Surface -> Decision -> Action -> Memory`.
+
+---
+
 ## Quick Start
 
 Run the demo locally:

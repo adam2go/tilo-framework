@@ -5,7 +5,7 @@ import { ArtifactRenderer, normalizeArtifactSpec } from "../ArtifactRenderer";
 import { apiFetch } from "../../lib/api";
 import type { Artifact } from "../../lib/types";
 
-export function ArtifactDetail({ artifactId, channel }: { artifactId: string; channel?: string }) {
+export function ArtifactDetail({ artifactId, channel, sessionId }: { artifactId: string; channel?: string; sessionId?: string | null }) {
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +45,7 @@ export function ArtifactDetail({ artifactId, channel }: { artifactId: string; ch
         <span className="status-pill">{schema.status}</span>
       </header>
       <div className="artifact-detail">
-        <ArtifactRenderer artifact={artifact} />
+        <ArtifactRenderer artifact={artifact} sessionId={sessionId || null} />
         <aside className="artifact-meta">
           <h2>Version</h2>
           <span>v{artifact.version}</span>

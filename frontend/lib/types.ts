@@ -76,6 +76,15 @@ export type ArtifactActionResult = {
   warnings: string[];
 };
 
+export type ArtifactActionExecutePayload = {
+  block_id?: string | null;
+  session_id?: string | null;
+  run_id?: string | null;
+  source?: "web" | "telegram" | "api" | string;
+  payload?: Record<string, unknown>;
+  idempotency_key?: string | null;
+};
+
 export type ProvenanceRef = {
   type: string;
   id: string;
