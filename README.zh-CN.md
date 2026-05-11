@@ -1,16 +1,16 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>围绕 ROAM Loop 构建 AI 原生 SaaS Agent：渲染、观察、行动、记忆。</strong>
+  <strong>面向 AI-native 产品的运行时框架：把人的决策转成后端动作和确认后的记忆。</strong>
 </p>
 
 <p align="center">
   <a href="./README.md">English</a> ·
-  <a href="./docs/ROAM_LOOP.md">ROAM Loop</a> ·
-  <a href="./docs/CONVERSATION_RUNTIME.md">Conversation Runtime</a> ·
-  <a href="./docs/MEMORY.md">Memory</a> ·
+  <a href="./docs/INTEGRATION_GUIDE.md">集成指南</a> ·
   <a href="./docs/BUILD_YOUR_FIRST_TILO_APP.md">构建 App</a> ·
-  <a href="./docs/USER_GUIDE.md">使用指南</a>
+  <a href="./docs/ARTIFACT_ACTION_RUNTIME.md">Action Runtime</a> ·
+  <a href="./docs/MEMORY.md">Memory</a> ·
+  <a href="./docs/README.md">文档</a>
 </p>
 
 <p align="center">
@@ -21,24 +21,67 @@
   <img alt="Last Commit" src="https://img.shields.io/github/last-commit/adam2go/tilo-framework" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-blue" />
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688" />
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-frontend-black" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
 </p>
 
 <p align="center">
-  <img alt="Tilo Framework 项目总览：围绕 ROAM Loop 构建 AI 原生 SaaS Agent Runtime" src="./docs/assets/tilo-framework-overview.svg" />
+  <img alt="Tilo Framework 项目总览：围绕目标、界面、决策、行动和记忆构建 AI-native 产品运行时" src="./docs/assets/tilo-framework-overview.svg" />
 </p>
 
 ---
 
-## 项目定位
+## Tilo 是什么？
 
-**Tilo 是一个开源框架，用于构建 AI 原生 SaaS Agent：它可以渲染交互式产品界面，观察用户决策，继续调用工具行动，并把确认后的经验沉淀为长期记忆。**
+Tilo 是一个开源框架，用于构建 **AI-native 产品流程**：Agent 可以渲染聚焦的交互界面，请人做关键决策，通过后端运行时执行动作，并且只把确认后的学习沉淀为记忆。
 
-很多 Agent 框架关注推理、工具调用、工作流编排或多智能体协作。Tilo 更关注缺失的产品层：
+它不是“传统 SaaS 后台 + AI 聊天侧边栏”，而是一套运行时层：
 
-> 如果用户界面本身也成为 Agent Runtime 的一部分，会发生什么？
+```text
+Goal -> Surface -> Decision -> Action -> Memory
+目标 -> 界面 -> 决策 -> 行动 -> 记忆
+```
 
-Tilo 不是聊天机器人外壳，而是一个 **AI 原生 SaaS 交互 Runtime**。
+```bash
+git clone https://github.com/adam2go/tilo-framework.git && cd tilo-framework && cp .env.example .env && docker compose up --build
+```
+
+打开：
+
+```text
+http://localhost:3000/demo
+```
+
+你应该会看到一个最小合同审查 Demo：目标优先的对话、聚焦工作区、审批动作，以及可选的记忆确认。确定性本地模式不需要 API key。
+
+---
+
+## Tilo 真正新的地方
+
+### 1. 确认式记忆，而不是自动写入记忆
+
+很多 Agent 会自动写入记忆。这很容易污染 eval、存错偏好，也让用户失去控制感。
+
+Tilo 把记忆设计成生命周期：
+
+```text
+Observation -> Memory Candidate -> Human Confirmation -> Confirmed Memory
+观察 -> 记忆候选 -> 用户确认 -> 确认后的记忆
+```
+
+Agent 可以提出“我学到了什么”，但由用户决定什么能变成长期记忆。
+
+### 2. 后端拥有动作语义，而不是前端按钮直接改状态
+
+很多 AI demo 里，前端按钮会直接调用某个 API 并修改状态。这会破坏审计链路，也会让每个渠道重复实现同一套逻辑。
+
+Tilo 把关键动作统一交给后端 Artifact Action Runtime：
+
+```text
+User action -> ArtifactActionRuntime -> UIInteractionEvent -> ConversationTurn(observation) -> safe side effect
+用户动作 -> 动作运行时 -> UI 交互事件 -> 观察 turn -> 安全副作用
+```
+
+前端只渲染意图，后端拥有动作语义。
 
 ---
 
@@ -50,11 +93,10 @@ Tilo 不是聊天机器人外壳，而是一个 **AI 原生 SaaS 交互 Runtime*
 git clone https://github.com/adam2go/tilo-framework.git
 cd tilo-framework
 cp .env.example .env
-
 docker compose up --build
 ```
 
-打开 v1.0 最小公开 Demo：
+打开：
 
 ```text
 http://localhost:3000/demo
@@ -72,57 +114,42 @@ curl http://localhost:8000/api/health
 bash scripts/verify_local_demo.sh
 ```
 
-v1.0 的主 Demo 是聚焦的合同审查流程：提交目标、查看一个关键决策界面、通过 Artifact Action Runtime 批准修订，并可选择确认记忆。旧的 `/demo/telegram` 路由现在会兼容性跳转到 `/demo`，不再是单独的公开 Demo。
+预期输出：
 
-Demo 默认支持确定性本地模式。你也可以在 `.env` 中配置 OpenAI-compatible provider 启用后端 LLM 模式；API key 只保存在后端，不会暴露到前端。
+```text
+✓ backend health ok
+✓ frontend /demo route ok
+✓ example apps loaded
+✓ conversation session created
+✓ conversation-native message endpoint completed
+✓ demo verification complete
+```
+
+旧的 `/demo/telegram` 路由会兼容性跳转到 `/demo`，不再是单独的公开 Demo。
 
 ---
 
-## 可以构建什么？
+## 开发者如何集成 Tilo
 
-Tilo 适合这样的 agent app：对话是入口，但当用户决策需要结构化表达时，UI 会自然出现。
+Tilo 可以渐进式接入现有产品，你不需要重写整个系统。
 
-| 示例 | Tilo 会渲染什么 |
-|---|---|
-| **合同审查 Agent** | 风险面板、修改建议、审批卡片、完整审查 Artifact、记忆候选 |
-| **销售跟进 Agent** | 跟进建议、决策卡片、草稿动作、可复用语气偏好 |
-| **竞品分析 Agent** | 对比矩阵、证据卡片、方案选择、后续动作 |
+| 模式 | 适合场景 | 集成边界 |
+|---|---|---|
+| Standalone demo | 本地评估 Tilo | 运行 `/demo` |
+| Backend runtime sidecar | 已经有自己的前端 | 调用 Tilo REST APIs |
+| Embedded components | 想复用参考 AI-native UI | 复用 artifact/action 组件 |
+| Declarative Tilo app | 想封装一个可复用 agent workflow | `app.yaml` + `interaction.policy.yaml` |
 
-示例 prompt：
+先看：[`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
 
-```text
-Review this contract and flag risky clauses around liability, termination, and payment terms.
-```
-
-```text
-Which customers should sales follow up with this week?
-```
+核心 API：
 
 ```text
-Create a competitive analysis for memory-native AI agent frameworks.
-```
-
----
-
-## 工作原理
-
-```text
-Render -> Observe -> Act -> Memorize
-渲染 -> 观察 -> 行动 -> 记忆
-```
-
-- **Render**：Agent 渲染交互式 Artifact 或组件界面。
-- **Observe**：用户点击、编辑、审批、选择、反馈和工具结果成为结构化观察。
-- **Act**：Agent 更新 Artifact、调用工具、追问问题、创建确认项或启动后续任务。
-- **Memorize**：被确认的决策、偏好、项目事实和可复用流程进入长期记忆。
-
-核心运行时链路：
-
-```text
-Agent App Manifest -> Interaction Policy -> Mini / Rich Surface
--> UIInteractionEvent -> ConversationTurn(observation)
--> AgentContextBuilder -> PromptBuilder -> Agent Runtime
--> Memory Candidate -> Human Confirmation -> Confirmed Memory
+POST /api/conversations
+POST /api/conversations/{session_id}/messages
+GET  /api/artifacts?workspace_id=...&task_id=...
+POST /api/artifacts/{artifact_id}/actions/{action_id}
+POST /api/memories/{memory_id}/confirm
 ```
 
 ---
@@ -152,8 +179,6 @@ python scripts/create_app.py my-agent
 python scripts/validate_app.py examples/apps/my-agent
 ```
 
-然后编辑 `app.yaml` 和 `interaction.policy.yaml`。Policy 决定 Agent 何时静默继续、何时追问、何时展示 mini surface、何时打开 rich surface。
-
 开发者参考：
 
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
@@ -163,61 +188,68 @@ python scripts/validate_app.py examples/apps/my-agent
 
 ---
 
-## 当前能力
+## 可以构建什么？
 
-- Conversation sessions 和 turns
-- Web demo 通过 `session_id` 恢复会话
-- Telegram 文本 / callback 映射基础
-- 后端 interaction policy evaluation
-- Mini surfaces 和 rich surface links
-- `artifact_spec.v1` Artifact 渲染基础
-- 统一 Artifact Action Runtime endpoint
-- Memory candidates 和确认后持久化
-- ORID-inspired context reflection service
-- 声明式 example apps、scaffold script 和 app validation script
+| 示例 | Tilo 验证了什么 |
+|---|---|
+| Contract Review Agent | 决策界面、审批动作、修订草稿、确认式记忆 |
+| Sales Follow-up Agent | 第二个 workflow 下声明式 app 的可移植性 |
+| Future examples | 不改核心 runtime 扩展更多领域 |
 
 ---
 
-## Roadmap
+## Runtime 模型
 
-| Milestone | Focus |
-|---|---|
-| v0.5 | 持久 conversation runtime、rich surface escalation、Telegram mapping、第二个 app |
-| v0.6 | ConversationService、typed runtime primitives、centralized observation linkage、developer DX |
-| v0.7 | Run-to-session closure、conversation-native message endpoint、ORID reflection、explainable memory candidates |
-| v0.8 | Demo reliability、Quick Start verification、contributor docs、app validation、lightweight CI |
-| v1.0 | 最小公开 `/demo`、稳定 ROAM contract、Artifact Action Runtime、发布文档 |
-| Future | MCP、browser/GUI automation、更多渠道适配、权限、skill marketplace primitives |
+```text
+Agent App Manifest
+-> Interaction Policy
+-> Artifact Spec
+-> Artifact Action Runtime
+-> UIInteractionEvent
+-> ConversationTurn(observation)
+-> Memory Candidate
+-> Human Confirmation
+-> Confirmed Memory
+```
+
+Tilo 可以参考或兼容 MCP、AG-UI、ACP、A2A，但不会被这些协议牵着走。协议是边界适配层，Tilo 自己拥有产品运行时闭环：目标、界面、决策、行动和记忆。
 
 ---
 
 ## 仓库结构
 
 ```text
-backend/       FastAPI 后端、Runtime services、Memory、Tools、Artifacts
-frontend/      Next.js Console、Artifact Renderer、Memory/Trace/Inbox 面板
-docs/          产品原则、ROAM Loop、架构、指南、实现计划
-evals/         本地评测脚手架
+backend/       FastAPI 后端和 AI-native runtime contracts
+frontend/      Next.js 参考 UI 和最小 /demo 实现
 examples/      声明式 agent app examples 和 fixtures
-scripts/       开发者工具
+docs/          稳定概念、集成指南、发布文档、历史归档
+evals/         Runtime 质量检查和 baseline metrics
+scripts/       App validation、scaffold、本地 demo verification
 ```
+
+---
+
+## Roadmap Focus
+
+继续加功能之前，当前优先级是：
+
+1. 提升 README 和 demo 转化力。
+2. 让本地验证在 CI 中持续保持绿色。
+3. 不改框架代码跑通第二个 example app。
+4. 明确 Skill / Tool / MCP 边界。
+5. 把 ArtifactSpec block 分成 core 和 extension 两层。
+6. 增加 surface rendering、action completion、memory acceptance 的 baseline eval 指标。
 
 ---
 
 ## 文档 / 贡献
 
-- [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
-- [`docs/CONVERSATION_RUNTIME.md`](./docs/CONVERSATION_RUNTIME.md)
-- [`docs/MEMORY.md`](./docs/MEMORY.md)
 - [`docs/README.md`](./docs/README.md)
-- [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md)
+- [`docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`](./docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md)
+- [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
 - [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
-- [`docs/SKILLS.md`](./docs/SKILLS.md)
-- [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
-- [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`docs/MEMORY.md`](./docs/MEMORY.md)
 - [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
-- [`docs/DEMO_SCREENSHOTS.md`](./docs/DEMO_SCREENSHOTS.md)
-- [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)
 
 Tilo 还很早期，欢迎参与贡献。
 
@@ -230,7 +262,7 @@ Tilo 还很早期，欢迎参与贡献。
 
 最重要的一条：
 
-> 不要把 Tilo 做成简单聊天机器人。请始终保留 ROAM Loop：Render、Observe、Act、Memorize。
+> 不要把 Tilo 做成 SaaS + AI。请始终保留 AI-native runtime loop：Goal -> Surface -> Decision -> Action -> Memory。
 
 ---
 
