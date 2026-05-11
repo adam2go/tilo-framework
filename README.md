@@ -1,16 +1,16 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>Build AI-native SaaS agents with the ROAM Loop: Render, Observe, Act, Memorize.</strong>
+  <strong>The AI-native runtime for agents that turn human decisions into actions and confirmed memory.</strong>
 </p>
 
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
-  <a href="./docs/ROAM_LOOP.md">ROAM Loop</a> ·
-  <a href="./docs/CONVERSATION_RUNTIME.md">Conversation Runtime</a> ·
-  <a href="./docs/MEMORY.md">Memory</a> ·
+  <a href="./docs/INTEGRATION_GUIDE.md">Integration</a> ·
   <a href="./docs/BUILD_YOUR_FIRST_TILO_APP.md">Build an App</a> ·
-  <a href="./docs/USER_GUIDE.md">User Guide</a>
+  <a href="./docs/ARTIFACT_ACTION_RUNTIME.md">Action Runtime</a> ·
+  <a href="./docs/MEMORY.md">Memory</a> ·
+  <a href="./docs/README.md">Docs</a>
 </p>
 
 <p align="center">
@@ -21,24 +21,64 @@
   <img alt="Last Commit" src="https://img.shields.io/github/last-commit/adam2go/tilo-framework" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-blue" />
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688" />
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-frontend-black" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
 </p>
 
 <p align="center">
-  <img alt="Tilo Framework overview: AI-native SaaS agent runtime built around the ROAM Loop" src="./docs/assets/tilo-framework-overview.svg" />
+  <img alt="Tilo Framework overview: AI-native SaaS agent runtime built around goal, surface, decision, action, and memory" src="./docs/assets/tilo-framework-overview.svg" />
 </p>
 
 ---
 
-## Project Positioning
+## What is Tilo?
 
-**Tilo is an open-source framework for building AI-native SaaS agents that render interactive product surfaces, observe human decisions, act through tools, and memorize confirmed learning.**
+Tilo is an open-source framework for building **AI-native product flows** where agents render focused surfaces, ask humans for decisions, execute actions through the backend runtime, and only memorize confirmed learning.
 
-Most agent frameworks focus on reasoning, tool calling, workflows, or multi-agent orchestration. Tilo focuses on the missing product layer:
+It is not a SaaS dashboard with an AI sidebar. It is the runtime layer for:
 
-> What if the user interface itself became part of the agent runtime?
+```text
+Goal -> Surface -> Decision -> Action -> Memory
+```
 
-Tilo is not a chatbot wrapper. It is an **AI-native SaaS interaction runtime**.
+```bash
+git clone https://github.com/adam2go/tilo-framework.git && cd tilo-framework && cp .env.example .env && docker compose up --build
+```
+
+Open:
+
+```text
+http://localhost:3000/demo
+```
+
+You should see the minimal Contract Review demo: a goal-first conversation, a focused workspace, an approval action, and an optional memory confirmation. No API key is required in deterministic mode.
+
+---
+
+## What's actually new in Tilo?
+
+### 1. Confirmed memory, not automatic memory
+
+Many agents write memory automatically. That can pollute evaluations, store wrong preferences, and make users feel out of control.
+
+Tilo treats memory as a lifecycle:
+
+```text
+Observation -> Memory Candidate -> Human Confirmation -> Confirmed Memory
+```
+
+The agent can propose what it learned. The user decides what becomes durable.
+
+### 2. Backend-owned action semantics
+
+In many AI demos, a frontend button directly calls an API and mutates state. That breaks auditability and makes every channel reimplement the same logic.
+
+Tilo routes meaningful actions through the backend Artifact Action Runtime:
+
+```text
+User action -> ArtifactActionRuntime -> UIInteractionEvent -> ConversationTurn(observation) -> safe side effect
+```
+
+The frontend renders intent. The backend owns action semantics.
 
 ---
 
@@ -50,7 +90,6 @@ Run the demo locally:
 git clone https://github.com/adam2go/tilo-framework.git
 cd tilo-framework
 cp .env.example .env
-
 docker compose up --build
 ```
 
@@ -72,58 +111,42 @@ Verify the local demo without any API key:
 bash scripts/verify_local_demo.sh
 ```
 
-The primary v1.0 demo is a minimal Contract Review flow: submit a goal, review one focused decision surface, approve a revision through the Artifact Action Runtime, and optionally confirm memory. The older `/demo/telegram` route now redirects to `/demo` for compatibility; it is no longer a separate public demo.
+Expected result:
 
-The demo works in deterministic local mode by default. You can also configure an OpenAI-compatible provider from `.env`; API keys stay backend-only and are never exposed to the frontend.
+```text
+✓ backend health ok
+✓ frontend /demo route ok
+✓ example apps loaded
+✓ conversation session created
+✓ conversation-native message endpoint completed
+✓ demo verification complete
+```
+
+The older `/demo/telegram` route redirects to `/demo` for compatibility; it is no longer a separate public demo.
 
 ---
 
-## What You Can Build
+## How developers integrate Tilo
 
-### Contract Review Agent
+Tilo can be adopted gradually. You do not need to rewrite your product.
 
-```text
-Review this contract and flag risky clauses around liability, termination, and payment terms.
-```
+| Mode | Use when | Integration boundary |
+|---|---|---|
+| Standalone demo | You want to evaluate Tilo locally | Run `/demo` |
+| Backend runtime sidecar | You already have a frontend | Call Tilo REST APIs |
+| Embedded components | You want a reference AI-native UI | Reuse artifact/action components |
+| Declarative Tilo app | You want to package an agent workflow | `app.yaml` + `interaction.policy.yaml` |
 
-Tilo renders risk panels, suggested revisions, approval cards, full review artifacts, and memory candidates.
+Start here: [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
 
-### Sales Follow-up Agent
-
-```text
-Which customers should sales follow up with this week?
-```
-
-Tilo renders follow-up recommendations, decision cards, draft actions, and reusable tone preferences.
-
-### Competitive Analysis Agent
+Core APIs:
 
 ```text
-Create a competitive analysis for memory-native AI agent frameworks.
-```
-
-Tilo can render a comparison matrix, evidence cards, option selection, and follow-up actions.
-
----
-
-## How It Works
-
-```text
-Render -> Observe -> Act -> Memorize
-```
-
-- **Render** — the agent renders an interactive artifact or component surface.
-- **Observe** — user clicks, edits, approvals, selections, feedback, and tool results become structured observations.
-- **Act** — the agent updates artifacts, invokes tools, asks questions, creates confirmations, or starts follow-up tasks.
-- **Memorize** — confirmed decisions, preferences, project facts, and reusable procedures become long-term memory.
-
-Core runtime flow:
-
-```text
-Agent App Manifest -> Interaction Policy -> Mini / Rich Surface
--> UIInteractionEvent -> ConversationTurn(observation)
--> AgentContextBuilder -> PromptBuilder -> Agent Runtime
--> Memory Candidate -> Human Confirmation -> Confirmed Memory
+POST /api/conversations
+POST /api/conversations/{session_id}/messages
+GET  /api/artifacts?workspace_id=...&task_id=...
+POST /api/artifacts/{artifact_id}/actions/{action_id}
+POST /api/memories/{memory_id}/confirm
 ```
 
 ---
@@ -153,8 +176,6 @@ python scripts/create_app.py my-agent
 python scripts/validate_app.py examples/apps/my-agent
 ```
 
-Then edit `app.yaml` and `interaction.policy.yaml`. The policy decides when the agent should continue silently, ask a question, show a mini surface, or open a rich surface.
-
 Developer references:
 
 - [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
@@ -164,61 +185,68 @@ Developer references:
 
 ---
 
-## Current Capabilities
+## What You Can Build
 
-- Conversation sessions and turns
-- Web demo session restore with `session_id`
-- Telegram text/callback mapping foundation
-- Backend interaction policy evaluation
-- Mini surfaces and rich surface links
-- `artifact_spec.v1` artifact rendering foundation
-- Unified Artifact Action Runtime endpoint
-- Memory candidates and confirmation-before-persistence
-- ORID-inspired context reflection service
-- Declarative example apps, scaffold script, and app validation script
+| Example | What Tilo proves |
+|---|---|
+| Contract Review Agent | Decision surfaces, approval actions, revision drafts, confirmed memory |
+| Sales Follow-up Agent | Declarative app portability across a second workflow |
+| Future examples | More domains without changing the core runtime contract |
 
 ---
 
-## Roadmap
+## Runtime model
 
-| Milestone | Focus |
-|---|---|
-| v0.5 | Durable conversation runtime, rich surface escalation, Telegram mapping, second app |
-| v0.6 | ConversationService, typed runtime primitives, centralized observation linkage, developer DX |
-| v0.7 | Run-to-session closure, conversation-native message endpoint, ORID reflection, explainable memory candidates |
-| v0.8 | Demo reliability, Quick Start verification, contributor docs, app validation, lightweight CI |
-| v1.0 | Minimal public `/demo`, stable ROAM contract, Artifact Action Runtime, release docs |
-| Future | MCP, browser/GUI automation, more channel adapters, permissions, skill marketplace primitives |
+```text
+Agent App Manifest
+-> Interaction Policy
+-> Artifact Spec
+-> Artifact Action Runtime
+-> UIInteractionEvent
+-> ConversationTurn(observation)
+-> Memory Candidate
+-> Human Confirmation
+-> Confirmed Memory
+```
+
+Tilo is protocol-aware but not protocol-led. MCP, AG-UI, ACP, or A2A can be boundary adapters. Tilo owns the product runtime loop: goal, surface, decision, action, and memory.
 
 ---
 
 ## Repository Map
 
 ```text
-backend/       FastAPI backend, runtime services, memory, tools, artifacts
-frontend/      Next.js console, artifact renderer, memory/trace/inbox panels
-docs/          Product principles, ROAM Loop, architecture, guides, implementation plans
-evals/         Local benchmark scaffolding
+backend/       FastAPI backend and AI-native runtime contracts
+frontend/      Next.js reference UI and minimal /demo implementation
 examples/      Declarative agent app examples and fixtures
-scripts/       Developer utilities
+docs/          Stable concepts, integration guide, release docs, implementation history
+evals/         Runtime quality checks and baseline metrics
+scripts/       App validation, scaffold, and local demo verification
 ```
+
+---
+
+## Roadmap Focus
+
+Current focus before adding more features:
+
+1. Make README and demo conversion-grade.
+2. Keep local verification green in CI.
+3. Prove the second example app without changing framework code.
+4. Clarify Skill / Tool / MCP boundaries.
+5. Split ArtifactSpec blocks into core and extension tiers.
+6. Add baseline eval metrics for surface rendering, action completion, and memory acceptance.
 
 ---
 
 ## Docs / Contributing
 
-- [`docs/ROAM_LOOP.md`](./docs/ROAM_LOOP.md)
-- [`docs/CONVERSATION_RUNTIME.md`](./docs/CONVERSATION_RUNTIME.md)
-- [`docs/MEMORY.md`](./docs/MEMORY.md)
 - [`docs/README.md`](./docs/README.md)
-- [`docs/ARTIFACTS.md`](./docs/ARTIFACTS.md)
+- [`docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`](./docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md)
+- [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
 - [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
-- [`docs/SKILLS.md`](./docs/SKILLS.md)
-- [`docs/API_CONTRACTS.md`](./docs/API_CONTRACTS.md)
-- [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
+- [`docs/MEMORY.md`](./docs/MEMORY.md)
 - [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
-- [`docs/DEMO_SCREENSHOTS.md`](./docs/DEMO_SCREENSHOTS.md)
-- [`docs/USER_GUIDE.md`](./docs/USER_GUIDE.md)
 
 Tilo is early. Contributions are welcome.
 
@@ -231,7 +259,7 @@ Before contributing, please read:
 
 The most important rule:
 
-> Do not turn Tilo into a simple chatbot. Preserve the ROAM Loop: Render, Observe, Act, Memorize.
+> Do not turn Tilo into SaaS plus AI. Preserve the AI-native runtime loop: Goal -> Surface -> Decision -> Action -> Memory.
 
 ---
 
