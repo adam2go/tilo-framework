@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
 from app.models import TraceStep
 
 
@@ -61,7 +61,7 @@ class TraceRecorder:
         output_json: dict[str, Any] | None = None,
         status: str = "completed",
     ) -> TraceStep:
-        now = datetime.utcnow()
+        now = utcnow()
         step = TraceStep(
             run_id=run_id,
             step_type=step_type,
@@ -86,7 +86,7 @@ class TraceRecorder:
         summary: str,
         input_json: dict[str, Any] | None = None,
     ) -> TraceStep:
-        now = datetime.utcnow()
+        now = utcnow()
         step = TraceStep(
             run_id=run_id,
             step_type=step_type,
@@ -111,7 +111,7 @@ class TraceRecorder:
         if summary is not None:
             step.summary = summary
         step.output_json = self.sanitizer.sanitize(output_json) if output_json is not None else step.output_json
-        step.completed_at = datetime.utcnow()
+        step.completed_at = utcnow()
         self.db.commit()
         self.db.refresh(step)
         return step

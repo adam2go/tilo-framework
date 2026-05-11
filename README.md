@@ -30,7 +30,7 @@
 
 ---
 
-## What is Tilo?
+## 30-second version
 
 Tilo is an open-source framework for building **AI-native product flows** where agents render focused surfaces, ask humans for decisions, execute actions through the backend runtime, and only memorize confirmed learning.
 
@@ -54,7 +54,20 @@ You should see the minimal Contract Review demo: a goal-first conversation, a fo
 
 ---
 
-## What's actually new in Tilo?
+## When to use Tilo
+
+Use Tilo when your product needs an agent to:
+
+- turn a user goal into a focused decision surface;
+- execute meaningful user actions through backend-owned semantics;
+- keep an audit trail of observations;
+- propose memory, but require human confirmation before recall.
+
+Do not use Tilo as a generic dashboard template or an AI chat sidebar.
+
+---
+
+## What is different?
 
 ### 1. Confirmed memory, not automatic memory
 
@@ -211,6 +224,8 @@ Agent App Manifest
 
 Tilo is protocol-aware but not protocol-led. MCP, AG-UI, ACP, or A2A can be boundary adapters. Tilo owns the product runtime loop: goal, surface, decision, action, and memory.
 
+See [`docs/SKILL_TOOL_MCP_BOUNDARIES.md`](./docs/SKILL_TOOL_MCP_BOUNDARIES.md) for the Skill / Tool / MCP boundary.
+
 ---
 
 ## Repository Map
@@ -237,6 +252,8 @@ Current focus before adding more features:
 5. Split ArtifactSpec blocks into core and extension tiers.
 6. Add baseline eval metrics for surface rendering, action completion, and memory acceptance.
 
+Baseline eval: [`evals/baseline_report.md`](./evals/baseline_report.md)
+
 ---
 
 ## Docs / Contributing
@@ -246,6 +263,7 @@ Current focus before adding more features:
 - [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
 - [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
 - [`docs/MEMORY.md`](./docs/MEMORY.md)
+- [`docs/SKILL_TOOL_MCP_BOUNDARIES.md`](./docs/SKILL_TOOL_MCP_BOUNDARIES.md)
 - [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
 
 Tilo is early. Contributions are welcome.

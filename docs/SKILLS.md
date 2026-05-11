@@ -1,14 +1,26 @@
 # Skill System
 
+See also [`SKILL_TOOL_MCP_BOUNDARIES.md`](./SKILL_TOOL_MCP_BOUNDARIES.md).
+
 This document defines the skill system for Tilo Framework.
 
 ## 1. Skill Philosophy
 
-A Tilo Skill is not just a prompt.
+A Tilo Skill is not just a prompt, and it is not the same thing as a Tool or MCP server.
 
-A Skill is a reusable capability package that can include instructions, input/output schemas, templates, examples, artifact templates, tool requirements, and optional executable code.
+A Skill is a scenario bundle that can include instructions, input/output schemas, templates, examples, artifact templates, tool requirements, surface preferences, policies, fixtures, and best practices.
 
 Skills should help agents perform repeated work more reliably.
+
+Boundary:
+
+```text
+Tool = executable capability
+MCP = external tool/server adapter protocol
+Skill = scenario bundle of prompts, tools, surfaces, policies, fixtures, and best practices
+```
+
+Tilo is protocol-aware, not protocol-led. MCP / AG-UI / ACP / A2A can be integration boundaries, but Tilo's core remains `Goal -> Surface -> Decision -> Action -> Memory`.
 
 ## 2. Skill Goals
 
@@ -32,9 +44,10 @@ skills/
     instructions.md
     examples/
     templates/
+    policies/
+    fixtures/
     artifact.schema.json
     evals/
-    scripts/
 ```
 
 For v0.1, skills can be stored in the database first, but the model should anticipate file-based import later.
@@ -53,6 +66,9 @@ Skill should include:
 - output_schema_json
 - artifact_template_json nullable
 - required_tool_ids nullable
+- preferred_surfaces nullable
+- policy_refs nullable
+- fixture_refs nullable
 - version
 - created_at
 - updated_at
@@ -67,7 +83,9 @@ For v0.1, skill selection can be simple:
 
 Future versions may use embeddings and evaluations.
 
-## 6. Skill and Artifact
+## 6. Skill, Tool, and Artifact
+
+Skills may require tools, but they do not execute those tools directly. User-triggered execution should flow through Artifact Action Runtime or another backend runtime service with the same audit and confirmation guarantees.
 
 Skills can define preferred artifact templates.
 
@@ -132,6 +150,8 @@ Do not:
 
 - implement skills as only a prompt string forever
 - let skills execute arbitrary code without permissions
+- let MCP or another protocol define Tilo's core product loop
+- treat a tool adapter as a complete app workflow
 - auto-install untrusted skills
 - auto-update skills without user visibility
 - duplicate demo logic outside skills and runtime

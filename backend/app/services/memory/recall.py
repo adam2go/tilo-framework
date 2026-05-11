@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
 from app.models import Memory, MemoryRecallEvent, Task
 
 
@@ -41,7 +41,7 @@ class MemoryRecallPipeline:
         scored.sort(key=lambda result: result.score, reverse=True)
         selected = scored[:limit]
 
-        now = datetime.utcnow()
+        now = utcnow()
         for result in selected:
             result.memory.last_recalled_at = now
             result.memory.recall_count = (result.memory.recall_count or 0) + 1
@@ -128,7 +128,7 @@ class MemoryRecallPipeline:
     def _recency_score(memory: Memory) -> float:
         if not memory.created_at:
             return 0.5
-        age_days = max((datetime.utcnow() - memory.created_at).days, 0)
+        age_days = max((utcnow() - memory.created_at).days, 0)
         return round(1 / (1 + age_days / 30), 4)
 
     @staticmethod

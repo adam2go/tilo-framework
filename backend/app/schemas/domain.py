@@ -198,14 +198,20 @@ class MemoryRecallEventRead(ORMModel):
 
 
 class ArtifactCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     workspace_id: str
     project_id: str | None = None
     task_id: str | None = None
     run_id: str | None = None
     type: str = "document"
     title: str
-    schema_json: dict[str, Any]
+    artifact_schema: dict[str, Any] = Field(alias="schema_json")
     version: int = 1
+
+    @property
+    def schema_json(self) -> dict[str, Any]:
+        return self.artifact_schema
 
 
 class ArtifactRead(ArtifactCreate, ORMModel):

@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, Stri
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import utcnow
 
 
 def new_id() -> str:
@@ -12,8 +13,8 @@ def new_id() -> str:
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class User(Base, TimestampMixin):
@@ -97,7 +98,7 @@ class RunMetrics(Base):
     tool_call_count: Mapped[int] = mapped_column(Integer, default=0)
     error_count: Mapped[int] = mapped_column(Integer, default=0)
     user_feedback_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Memory(Base, TimestampMixin):
@@ -136,7 +137,7 @@ class MemoryWriteEvent(Base):
     run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
     event_type: Mapped[str] = mapped_column(String)
     payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class MemoryRecallEvent(Base):
@@ -150,7 +151,7 @@ class MemoryRecallEvent(Base):
     retrieved_memory_ids: Mapped[list] = mapped_column(JSON, default=list)
     scores_json: Mapped[dict] = mapped_column(JSON, default=dict)
     strategy: Mapped[str] = mapped_column(String, default="hybrid_v0.2")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class MemoryConflict(Base):
@@ -162,7 +163,7 @@ class MemoryConflict(Base):
     conflicting_memory_id: Mapped[str] = mapped_column(String, ForeignKey("memories.id"), index=True)
     status: Mapped[str] = mapped_column(String, default="open")
     reason: Mapped[str] = mapped_column(Text, default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Artifact(Base, TimestampMixin):
@@ -223,7 +224,7 @@ class Feedback(Base):
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     feedback_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     feedback_type: Mapped[str] = mapped_column(String, default="other")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class UIInteractionEvent(Base):
@@ -239,7 +240,7 @@ class UIInteractionEvent(Base):
     run_id: Mapped[str | None] = mapped_column(String, ForeignKey("runs.id"), nullable=True, index=True)
     event_type: Mapped[str] = mapped_column(String, index=True)
     payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class ConversationSession(Base, TimestampMixin):
@@ -275,7 +276,7 @@ class ConversationTurn(Base):
     confirmation_id: Mapped[str | None] = mapped_column(String, ForeignKey("confirmations.id"), nullable=True, index=True)
     memory_id: Mapped[str | None] = mapped_column(String, ForeignKey("memories.id"), nullable=True, index=True)
     policy_decision_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class ContextReflection(Base):
@@ -289,7 +290,7 @@ class ContextReflection(Base):
     trigger_event_id: Mapped[str | None] = mapped_column(String, ForeignKey("ui_interaction_events.id"), nullable=True, index=True)
     orid_json: Mapped[dict] = mapped_column(JSON, default=dict)
     proposed_actions_json: Mapped[list] = mapped_column(JSON, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class SkillCandidate(Base, TimestampMixin):
@@ -337,7 +338,7 @@ class ToolInvocation(Base):
     confirmation_id: Mapped[str | None] = mapped_column(String, ForeignKey("confirmations.id"), nullable=True, index=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class TraceStep(Base):
@@ -353,4 +354,4 @@ class TraceStep(Base):
     status: Mapped[str] = mapped_column(String, default="completed")
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

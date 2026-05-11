@@ -3,14 +3,20 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
 
-SUPPORTED_BLOCK_TYPES = {
+CORE_BLOCK_TYPES = {
     "markdown",
-    "rich_text",
     "table",
+    "form",
+    "approval_card",
+    "risk_panel",
     "metric",
+    "list",
+}
+
+KNOWN_EXTENSION_BLOCK_TYPES = {
+    "rich_text",
     "card",
     "risk_summary",
-    "approval_card",
     "risk_review_panel",
     "metric_dashboard",
     "memory_candidate_card",
@@ -18,15 +24,15 @@ SUPPORTED_BLOCK_TYPES = {
     "action_queue",
     "editable_document_preview",
     "editable_document_placeholder",
-    "list",
     "timeline",
     "kanban",
     "risk_item",
     "citation",
-    "form",
     "comparison_matrix",
     "confirmation_action",
 }
+
+SUPPORTED_BLOCK_TYPES = CORE_BLOCK_TYPES | KNOWN_EXTENSION_BLOCK_TYPES
 
 SUPPORTED_ACTION_TYPES = {
     "approve",
@@ -94,8 +100,8 @@ class ArtifactBlock(BaseModel):
     @field_validator("type")
     @classmethod
     def validate_block_type(cls, value: str) -> str:
-        if value not in SUPPORTED_BLOCK_TYPES:
-            raise ValueError(f"Unsupported artifact block type: {value}")
+        if not value.strip():
+            raise ValueError("Artifact block type is required")
         return value
 
 

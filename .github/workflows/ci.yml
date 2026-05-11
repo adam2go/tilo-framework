@@ -31,6 +31,8 @@ jobs:
           python scripts/validate_app.py examples/apps/sales-followup-agent
       - name: Run backend tests
         run: python -m pytest backend/tests
+      - name: Run baseline eval
+        run: python evals/runners/run_baseline_eval.py
 
   frontend:
     name: Frontend build
@@ -46,3 +48,24 @@ jobs:
           corepack enable
           pnpm install --frozen-lockfile
           pnpm build
+
+  demo:
+    name: Local demo verification
+    runs-on: ubuntu-latest
+    env:
+      LLM_ENABLED: "false"
+      LLM_PROVIDER: openai
+      OPENAI_API_KEY: ""
+      LLM_BASE_URL: ""
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start local stack
+        run: docker compose up --build -d
+      - name: Verify local demo
+        run: bash scripts/verify_local_demo.sh
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+      - name: Stop local stack
+        if: always()
+        run: docker compose down -v

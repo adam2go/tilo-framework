@@ -70,6 +70,12 @@ else
   fail "compatibility redirect /demo/telegram unavailable" "Keep /demo/telegram redirecting to /demo for old links."
 fi
 
+if python3 scripts/verify_demo_page.py --frontend-url "$FRONTEND_URL" >/tmp/tilo_demo_page_verify.log 2>&1; then
+  pass "demo page contract ok"
+else
+  fail "demo page contract failed" "$(cat /tmp/tilo_demo_page_verify.log)"
+fi
+
 apps_payload="$(http_get "$BACKEND_URL/api/apps" 2>/dev/null || true)"
 if printf '%s' "$apps_payload" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert any(item["id"]=="contract-review-agent" for item in data); assert any(item["id"]=="sales-followup-agent" for item in data)' 2>/dev/null; then
   pass "example apps loaded"

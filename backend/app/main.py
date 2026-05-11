@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,7 +11,18 @@ from app.services.bootstrap import seed_defaults
 
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name, version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    ensure_v02_schema(engine)
+    with SessionLocal() as db:
+        seed_defaults(db)
+    yield
+
+
+app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,11 +33,3 @@ app.add_middleware(
 
 for router in routers:
     app.include_router(router)
-
-
-@app.on_event("startup")
-def startup() -> None:
-    Base.metadata.create_all(bind=engine)
-    ensure_v02_schema(engine)
-    with SessionLocal() as db:
-        seed_defaults(db)

@@ -76,7 +76,7 @@ def create_artifact_version(item_id: str, payload: ArtifactCreate, db: Session =
         schema_json = ArtifactValidator().normalize_and_validate(payload.schema_json)
     except ArtifactValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    item = Artifact(**payload.model_dump(exclude={"version", "schema_json"}), schema_json=schema_json, version=original.version + 1)
+    item = Artifact(**payload.model_dump(exclude={"version", "artifact_schema"}), schema_json=schema_json, version=original.version + 1)
     db.add(item)
     db.commit()
     db.refresh(item)

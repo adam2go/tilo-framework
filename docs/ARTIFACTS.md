@@ -42,7 +42,48 @@ All artifacts should share this high-level shape:
 }
 ```
 
-## 4. Supported Artifact Types for v0.1
+## 4. Artifact Block Tiers
+
+Artifact blocks are split into a small stable core and open-ended extension blocks.
+
+Core blocks are the lowest-common-denominator contract that every renderer should support:
+
+```text
+markdown
+table
+form
+approval_card
+risk_panel
+metric
+list
+```
+
+Everything else is an extension block. Extension blocks are allowed, but they must degrade gracefully through a fallback renderer. Unknown extension blocks must not crash the frontend and must not require a bespoke component before an artifact can be inspected.
+
+Known extension blocks in the reference implementation include:
+
+```text
+rich_text
+card
+risk_summary
+risk_review_panel
+metric_dashboard
+memory_candidate_card
+tool_call_preview
+action_queue
+editable_document_preview
+editable_document_placeholder
+timeline
+kanban
+risk_item
+citation
+comparison_matrix
+confirmation_action
+```
+
+Do not add a new block type for every business scenario. Prefer core blocks first, then extension blocks only when the interaction shape is reusable.
+
+## 5. Supported Artifact Types for v1.0
 
 - document
 - table
@@ -50,18 +91,6 @@ All artifacts should share this high-level shape:
 - kanban
 - timeline
 - contract_review
-
-## 5. Supported Block Types for v0.1
-
-- markdown
-- table
-- card
-- metric
-- list
-- kanban
-- timeline
-- risk_item
-- confirmation_action
 
 ## 6. Document Artifact
 
@@ -249,7 +278,9 @@ Artifacts now use `artifact_spec.v1`:
 }
 ```
 
-Supported v0.2 blocks are `markdown`, `rich_text`, `table`, `metric`, `card`, `list`, `timeline`, `kanban`, `risk_item`, `citation`, `form`, `comparison_matrix`, and `confirmation_action`.
+Core v1.0 blocks are `markdown`, `table`, `form`, `approval_card`, `risk_panel`, `metric`, and `list`.
+
+Extension blocks may use domain-specific names, but every frontend renderer must provide a fallback path. The backend schema accepts extension block types as long as the block type is present and non-empty; validation should focus on action safety and required artifact shape rather than rejecting every unknown visual block.
 
 Artifact actions may request confirmation, but durable user decisions must be stored as `Confirmation` records. The frontend renderer dispatches by block type through a registry and renders unsupported blocks with a safe fallback.
 

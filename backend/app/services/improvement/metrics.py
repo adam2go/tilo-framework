@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
 from app.models import Run, RunMetrics, Task
 
 
@@ -47,5 +46,5 @@ class RunMetricsService:
     def _latency_ms(run: Run) -> int:
         if not run.started_at:
             return 0
-        end = run.completed_at or datetime.utcnow()
+        end = run.completed_at or utcnow()
         return max(int((end - run.started_at).total_seconds() * 1000), 0)

@@ -1,5 +1,4 @@
-from datetime import datetime
-
+from app.core.time import utcnow
 from app.models import Run, Task
 
 
@@ -42,9 +41,9 @@ class RunStateMachine:
         )
         run.status = new_status
         if new_status == "running" and not run.started_at:
-            run.started_at = datetime.utcnow()
+            run.started_at = utcnow()
         if new_status in {"completed", "failed", "cancelled"}:
-            run.completed_at = datetime.utcnow()
+            run.completed_at = utcnow()
         if new_status == "failed" and reason:
             run.error_message = self.safe_reason(reason)
 

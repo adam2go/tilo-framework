@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utcnow
 from app.models import Confirmation, Run, Task, Tool, ToolInvocation
 from app.services.agent_runtime.state_machine import RunStateMachine
 from app.services.tools.registry import ToolRegistry
@@ -33,7 +33,7 @@ class ToolInvocationService:
             permission_level=tool.permission_level,
             input_json=self._safe_payload(payload),
             status="running",
-            started_at=datetime.utcnow(),
+            started_at=utcnow(),
         )
         self.db.add(invocation)
         self.db.flush()
@@ -44,7 +44,7 @@ class ToolInvocationService:
             output = self.registry.invoke(tool, payload, task_id=task_id, run_id=run_id)
             invocation.output_json = self._safe_payload(output)
             invocation.status = "completed"
-            invocation.completed_at = datetime.utcnow()
+            invocation.completed_at = utcnow()
 
         self.db.commit()
         self.db.refresh(invocation)

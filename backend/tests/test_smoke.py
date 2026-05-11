@@ -42,7 +42,7 @@ from app.services.context_reflection import ContextReflectionService  # noqa: E4
 from app.services.interaction_policy.schemas import InteractionContext, InteractionDecisionType  # noqa: E402
 from app.services.interaction_policy.service import InteractionPolicyService  # noqa: E402
 from app.schemas import RichSurfaceLink  # noqa: E402
-from app.schemas.artifact import ArtifactSpecV1  # noqa: E402
+from app.schemas.artifact import CORE_BLOCK_TYPES, ArtifactSpecV1  # noqa: E402
 from app.services.surfaces.constants import RichSurfaceSource, RichSurfaceTargetType  # noqa: E402
 from app.services.surfaces.rich_links import create_rich_surface_link  # noqa: E402
 from app.services.trace.recorder import TraceRecorder  # noqa: E402
@@ -1309,6 +1309,24 @@ def test_artifact_schema_accepts_roam_actions_and_state_binding() -> None:
     assert spec.blocks[0].type == "approval_card"
     assert spec.blocks[0].actions[0].action_type == "approve"
     assert spec.blocks[0].state_binding.entity_type == "run"
+
+
+def test_artifact_schema_core_blocks_and_extension_blocks_are_stable() -> None:
+    assert {"markdown", "table", "form", "approval_card", "risk_panel", "metric", "list"}.issubset(CORE_BLOCK_TYPES)
+
+    spec = ArtifactSpecV1.model_validate(
+        {
+            "artifact_type": "demo",
+            "title": "Extension Demo",
+            "blocks": [
+                {"id": "core", "type": "risk_panel", "data": {"summary": "Core risk panel"}},
+                {"id": "extension", "type": "sales_followup_sequence", "data": {"summary": "Extension block"}},
+            ],
+        }
+    )
+
+    assert spec.blocks[0].type == "risk_panel"
+    assert spec.blocks[1].type == "sales_followup_sequence"
 
 
 def create_action_artifact(

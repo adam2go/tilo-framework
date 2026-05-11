@@ -30,7 +30,7 @@
 
 ---
 
-## Tilo 是什么？
+## 30 秒看懂
 
 Tilo 是一个开源框架，用于构建 **AI-native 产品流程**：Agent 可以渲染聚焦的交互界面，请人做关键决策，通过后端运行时执行动作，并且只把确认后的学习沉淀为记忆。
 
@@ -55,7 +55,20 @@ http://localhost:3000/demo
 
 ---
 
-## Tilo 真正新的地方
+## 什么时候用 Tilo
+
+当你的产品需要 Agent 做这些事时，可以用 Tilo：
+
+- 把用户目标转成聚焦的决策界面；
+- 通过后端拥有语义的运行时执行关键动作；
+- 留下可审计的 observation；
+- 先提出记忆候选，再由人确认后进入长期记忆。
+
+不要把 Tilo 当成通用 dashboard 模板，也不要把它当成 AI 聊天侧边栏。
+
+---
+
+## Tilo 的差异点
 
 ### 1. 确认式记忆，而不是自动写入记忆
 
@@ -214,6 +227,8 @@ Agent App Manifest
 
 Tilo 可以参考或兼容 MCP、AG-UI、ACP、A2A，但不会被这些协议牵着走。协议是边界适配层，Tilo 自己拥有产品运行时闭环：目标、界面、决策、行动和记忆。
 
+Skill / Tool / MCP 边界见：[`docs/SKILL_TOOL_MCP_BOUNDARIES.md`](./docs/SKILL_TOOL_MCP_BOUNDARIES.md)。
+
 ---
 
 ## 仓库结构
@@ -240,6 +255,8 @@ scripts/       App validation、scaffold、本地 demo verification
 5. 把 ArtifactSpec block 分成 core 和 extension 两层。
 6. 增加 surface rendering、action completion、memory acceptance 的 baseline eval 指标。
 
+Baseline eval：[`evals/baseline_report.md`](./evals/baseline_report.md)
+
 ---
 
 ## 文档 / 贡献
@@ -249,6 +266,7 @@ scripts/       App validation、scaffold、本地 demo verification
 - [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
 - [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
 - [`docs/MEMORY.md`](./docs/MEMORY.md)
+- [`docs/SKILL_TOOL_MCP_BOUNDARIES.md`](./docs/SKILL_TOOL_MCP_BOUNDARIES.md)
 - [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
 
 Tilo 还很早期，欢迎参与贡献。

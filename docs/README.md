@@ -11,6 +11,7 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`../README.md`](../README.md) — project overview, quick start, examples, roadmap.
 - [`../README.zh-CN.md`](../README.zh-CN.md) — Chinese README.
 - [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md) — integrate Tilo into an existing product.
+- [`PRIORITY_ACTION_PLAN.md`](./PRIORITY_ACTION_PLAN.md) — current P0/P1 action plan.
 - [`USER_GUIDE.md`](./USER_GUIDE.md) — using the current demo and console.
 - [`BUILD_YOUR_FIRST_TILO_APP.md`](./BUILD_YOUR_FIRST_TILO_APP.md) — build a new declarative Tilo app.
 - [`RELEASE_V1_0.md`](./RELEASE_V1_0.md) — v1.0 release notes, stable contracts, experimental areas, and limitations.
@@ -37,8 +38,10 @@ Start with the README first. Use this page when you need deeper implementation r
 - [`MEMORY.md`](./MEMORY.md) — memory lifecycle and recall design.
 - [`ARTIFACTS.md`](./ARTIFACTS.md) — artifact spec and renderable output protocol.
 - [`SKILLS.md`](./SKILLS.md) — reusable skill primitives.
+- [`SKILL_TOOL_MCP_BOUNDARIES.md`](./SKILL_TOOL_MCP_BOUNDARIES.md) — Skill, Tool, and MCP ownership boundaries.
 - [`API_CONTRACTS.md`](./API_CONTRACTS.md) — backend API contracts.
 - [`RELEASE_V1_0.md`](./RELEASE_V1_0.md) — v1.0 release status and known limitations.
+- [`../evals/baseline_report.md`](../evals/baseline_report.md) — deterministic baseline runtime metrics.
 
 ---
 

@@ -4,6 +4,27 @@ import type { ArtifactBlock } from "../../lib/types";
 
 type BlockRenderer = (props: { block: ArtifactBlock }) => JSX.Element;
 
+export const CORE_ARTIFACT_BLOCK_TYPES = ["markdown", "table", "form", "approval_card", "risk_panel", "metric", "list"] as const;
+
+export const EXTENSION_ARTIFACT_BLOCK_TYPES = [
+  "rich_text",
+  "card",
+  "risk_summary",
+  "risk_review_panel",
+  "metric_dashboard",
+  "memory_candidate_card",
+  "tool_call_preview",
+  "action_queue",
+  "editable_document_preview",
+  "editable_document_placeholder",
+  "timeline",
+  "kanban",
+  "risk_item",
+  "citation",
+  "comparison_matrix",
+  "confirmation_action"
+] as const;
+
 function MarkdownBlock({ block }: { block: ArtifactBlock }) {
   return <section className="text-block">{String(block.data.content || "")}</section>;
 }
@@ -75,6 +96,40 @@ function ListBlock({ block }: { block: ArtifactBlock }) {
   );
 }
 
+function FormBlock({ block }: { block: ArtifactBlock }) {
+  const fields = (block.data.fields as Array<{ name?: string; label?: string; type?: string }>) || [];
+  return (
+    <section className="card-block">
+      <strong>{String(block.title || block.data.title || "Form")}</strong>
+      <div className="artifact-list">
+        {fields.length ? fields.map((field, index) => (
+          <span key={field.name || `${block.id}-field-${index}`}>{String(field.label || field.name || "Field")} · {String(field.type || "text")}</span>
+        )) : <span>No fields declared.</span>}
+      </div>
+    </section>
+  );
+}
+
+function RiskPanelBlock({ block }: { block: ArtifactBlock }) {
+  const risks = (block.data.risks as Array<Record<string, unknown>>) || [];
+  return (
+    <section className="risk-block">
+      <div>
+        <strong>{String(block.title || block.data.title || "Risk panel")}</strong>
+        <span className="risk-level high">{String(block.data.status || "review")}</span>
+      </div>
+      {block.data.summary ? <p>{String(block.data.summary)}</p> : null}
+      {risks.length ? (
+        <ul className="artifact-list">
+          {risks.slice(0, 4).map((risk, index) => (
+            <li key={String(risk.id || index)}>{String(risk.clause || risk.title || "Risk")}: {String(risk.issue || risk.summary || "")}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
 function KanbanBlock({ block }: { block: ArtifactBlock }) {
   const columns = (block.data.columns as Array<{ id: string; title: string; cards: Array<{ id?: string; title: string; description?: string }> }>) || [];
   return (
@@ -119,11 +174,13 @@ function ConfirmationActionBlock({ block }: { block: ArtifactBlock }) {
   );
 }
 
-function UnsupportedBlock({ block }: { block: ArtifactBlock }) {
+function ExtensionFallbackBlock({ block }: { block: ArtifactBlock }) {
+  const summary = block.data.summary || block.data.content || block.data.description || block.title || "This extension block has no compact summary.";
   return (
     <section className="unsupported-block">
-      <strong>Unsupported block</strong>
+      <strong>{String(block.title || "Extension block")}</strong>
       <span>{block.type}</span>
+      <small>{String(summary)}</small>
     </section>
   );
 }
@@ -132,6 +189,9 @@ export const blockRenderers: Record<string, BlockRenderer> = {
   markdown: MarkdownBlock,
   rich_text: MarkdownBlock,
   card: CardBlock,
+  approval_card: CardBlock,
+  form: FormBlock,
+  risk_panel: RiskPanelBlock,
   risk_item: RiskItemBlock,
   table: TableBlock,
   comparison_matrix: TableBlock,
@@ -143,6 +203,6 @@ export const blockRenderers: Record<string, BlockRenderer> = {
 };
 
 export function renderArtifactBlock(block: ArtifactBlock) {
-  const Renderer = blockRenderers[block.type] || UnsupportedBlock;
+  const Renderer = blockRenderers[block.type] || ExtensionFallbackBlock;
   return <Renderer block={block} />;
 }
