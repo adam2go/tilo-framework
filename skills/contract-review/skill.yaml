@@ -1,0 +1,26 @@
+name: contract-review
+version: 1.0.0
+description: Contract analysis, risk assessment, and revision suggestions.
+
+block_hints:
+  - type: chart
+    variant: radar
+    use_when: "Showing risk distribution across categories (liability, payment, IP, etc.)"
+  - type: card
+    use_when: "Displaying risk summary with severity counts and confidence score"
+  - type: table
+    use_when: "Listing detailed risk findings with clause, severity, issue, and suggestion columns"
+  - type: diff
+    use_when: "Showing before/after revision suggestions for contract clauses"
+  - type: markdown
+    use_when: "Displaying full contract text with clause navigation"
+  - type: memory_card
+    use_when: "Proposing user preference memory (e.g. conservative revision style)"
+
+view_hints: |
+  For contract review tasks, organize into these views:
+  - "Risks" tab: risk chart + risk summary card + risk findings table
+  - "Clauses" tab: full contract text with risk-linked clause highlights
+  - "Revision" tab: diff blocks showing suggested changes per clause
+  - "Memory" tab: memory candidate for user preferences
+  Adapt based on contract complexity and user's specific question.

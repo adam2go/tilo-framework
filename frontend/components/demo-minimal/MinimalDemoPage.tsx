@@ -7,6 +7,7 @@ import { apiFetch, createConversationSession, getBootstrap, getConversationSessi
 import { executeArtifactAction } from "../../lib/artifactActions";
 import type { DemoContractFixture } from "../../lib/demoContracts";
 import type { Artifact, ArtifactAction, ArtifactActionResult, ConversationSession, ConversationTurn, Memory, Project, RuntimeCapabilities, TraceStep, Workspace, Agent } from "../../lib/types";
+import { blockData } from "../../lib/types";
 
 type DemoState = "idle" | "working" | "result" | "revision" | "memory";
 type Drawer = "why" | "trace" | "developer" | null;
@@ -73,7 +74,7 @@ export function MinimalDemoPage() {
   }, [state]);
 
   const primaryRisk = useMemo(() => primaryRiskForArtifact(artifact), [artifact]);
-  const revision = useMemo(() => findBlock(artifact, "editable_revision")?.data || null, [artifact]);
+  const revision = useMemo(() => { const b = findBlock(artifact, "editable_revision"); return b ? blockData(b) : null; }, [artifact]);
   const memoryCandidate = useMemo(() => memories.find((memory) => memory.status === "candidate" && !memory.is_confirmed) || null, [memories]);
   const modeLabel = capabilities?.llm_enabled ? `LLM · ${capabilities.llm_provider}` : "Deterministic";
   const hasResult = Boolean(artifact);
@@ -301,7 +302,7 @@ export function MinimalDemoPage() {
           ) : null}
           {artifact && state === "revision" ? (
             <AssistantMemoryMessage
-              content={memoryCandidate?.content || String(findBlock(artifact, "memory_candidate")?.data.content || "Prefer conservative but negotiation-friendly contract revisions.")}
+              content={memoryCandidate?.content || String(findBlock(artifact, "memory_candidate") ? blockData(findBlock(artifact, "memory_candidate")!).content : "Prefer conservative but negotiation-friendly contract revisions.")}
               isSubmitting={isSubmitting}
               onNotNow={notNow}
               onRemember={rememberPreference}
@@ -441,7 +442,7 @@ function AssistantReviewMessage({
   primaryRisk: Record<string, unknown> | null;
   state: DemoState;
 }) {
-  const summary = findBlock(artifact, "risk_summary")?.data || {};
+  const summary = findBlock(artifact, "risk_summary") ? blockData(findBlock(artifact, "risk_summary")!) : {};
   return (
     <article className="cowork-message assistant">
       <div className="avatar">Tilo</div>
@@ -577,7 +578,7 @@ function WorkspacePanel({
   state: DemoState;
   view: WorkspaceView;
 }) {
-  const summary = findBlock(artifact, "risk_summary")?.data || {};
+  const summary = findBlock(artifact, "risk_summary") ? blockData(findBlock(artifact, "risk_summary")!) : {};
   if (!artifact) {
     return (
       <div className="workspace-empty">
@@ -718,7 +719,8 @@ function findBlockForAction(artifact: Artifact, actionId: string) {
 }
 
 function primaryRiskForArtifact(artifact: Artifact | null) {
-  const risks = ((findBlock(artifact, "risk_review")?.data.risks as Array<Record<string, unknown>>) || []);
+  const riskBlock = findBlock(artifact, "risk_review");
+  const risks = ((riskBlock ? blockData(riskBlock).risks as Array<Record<string, unknown>> : []) || []);
   return (
     risks.find((risk) => {
       const text = `${String(risk.id || "")} ${String(risk.clause || "")} ${String(risk.issue || "")}`.toLowerCase();

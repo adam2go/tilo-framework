@@ -42,7 +42,7 @@ from tilo.services.context_reflection import ContextReflectionService  # noqa: E
 from tilo.services.interaction_policy.schemas import InteractionContext, InteractionDecisionType  # noqa: E402
 from tilo.services.interaction_policy.service import InteractionPolicyService  # noqa: E402
 from tilo.schemas import RichSurfaceLink  # noqa: E402
-from tilo.schemas.artifact import CORE_BLOCK_TYPES, ArtifactSpecV1  # noqa: E402
+from tilo.schemas.artifact import CORE_BLOCK_TYPES, PRIMITIVE_BLOCK_TYPES, ArtifactSpecV1  # noqa: E402
 from tilo.services.surfaces.constants import RichSurfaceSource, RichSurfaceTargetType  # noqa: E402
 from tilo.services.surfaces.rich_links import create_rich_surface_link  # noqa: E402
 from tilo.services.trace.recorder import TraceRecorder  # noqa: E402

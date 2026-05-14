@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, Check, Clock, Database, FilePenLine, Gauge, Play, ShieldAlert, Sparkles, X } from "lucide-react";
 import { executeArtifactAction } from "../../lib/artifactActions";
 import type { Artifact, ArtifactAction, ArtifactBlock, ArtifactActionResult } from "../../lib/types";
+import { blockData } from "../../lib/types";
 
 type InteractionProps = {
   artifact: Artifact;
@@ -72,27 +73,27 @@ export function ApprovalCard({ artifact, block, sessionId }: InteractionProps) {
       <div className="interaction-title-row">
         <ShieldAlert size={18} />
         <div>
-          <strong>{String(block.data.title || block.title || "Approval")}</strong>
-          <span>{String(block.data.risk_level || "review")}</span>
+          <strong>{String(blockData(block).title || block.title || "Approval")}</strong>
+          <span>{String(blockData(block).risk_level || "review")}</span>
         </div>
       </div>
-      <p>{String(block.data.content || block.data.description || "")}</p>
+      <p>{String(blockData(block).content || blockData(block).description || "")}</p>
       <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
 export function RiskSummary({ artifact, block, sessionId }: InteractionProps) {
-  const high = Number(block.data.high_count || 0);
-  const medium = Number(block.data.medium_count || 0);
-  const low = Number(block.data.low_count || 0);
+  const high = Number(blockData(block).high_count || 0);
+  const medium = Number(blockData(block).medium_count || 0);
+  const low = Number(blockData(block).low_count || 0);
   return (
     <section className="interaction-card risk-summary-card">
       <div className="interaction-title-row">
         <AlertTriangle size={18} />
         <div>
           <strong>{block.title || "Risk Summary"}</strong>
-          <span>{String(block.data.status || "review_ready")} · confidence {String(block.data.confidence || "0.8")}</span>
+          <span>{String(blockData(block).status || "review_ready")} · confidence {String(blockData(block).confidence || "0.8")}</span>
         </div>
       </div>
       <div className="risk-summary-grid">
@@ -109,7 +110,7 @@ export function RiskSummary({ artifact, block, sessionId }: InteractionProps) {
           <span>Low</span>
         </div>
       </div>
-      <p>{String(block.data.summary || "")}</p>
+      <p>{String(blockData(block).summary || "")}</p>
       <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
@@ -117,7 +118,7 @@ export function RiskSummary({ artifact, block, sessionId }: InteractionProps) {
 
 export function RiskReviewPanel({ artifact, block, sessionId }: InteractionProps) {
   const [riskStatus, setRiskStatus] = useState<Record<string, string>>({});
-  const risks = (block.data.risks as Array<Record<string, unknown>>) || [];
+  const risks = (blockData(block).risks as Array<Record<string, unknown>>) || [];
 
   async function decideRisk(risk: Record<string, unknown>, actionType: "approve" | "edit" | "reject") {
     const riskId = String(risk.id || risk.clause || "risk");
@@ -171,10 +172,10 @@ export function RiskReviewPanel({ artifact, block, sessionId }: InteractionProps
 }
 
 export function ComparisonMatrix({ artifact, block, sessionId }: InteractionProps) {
-  const columns = ((block.data.columns as Array<string | { key: string; label: string }>) || []).map((column) =>
+  const columns = ((blockData(block).columns as Array<string | { key: string; label: string }>) || []).map((column) =>
     typeof column === "string" ? { key: column, label: column } : column
   );
-  const rows = (block.data.rows as Array<Record<string, string>>) || [];
+  const rows = (blockData(block).rows as Array<Record<string, string>>) || [];
   return (
     <section className="interaction-card">
       <div className="interaction-title-row">
@@ -199,8 +200,8 @@ export function ComparisonMatrix({ artifact, block, sessionId }: InteractionProp
 }
 
 export function MetricDashboard({ artifact, block, sessionId }: InteractionProps) {
-  const metrics = (block.data.metrics as Array<Record<string, unknown>>) || [];
-  const insights = (block.data.insights as string[]) || [];
+  const metrics = (blockData(block).metrics as Array<Record<string, unknown>>) || [];
+  const insights = (blockData(block).insights as string[]) || [];
   return (
     <section className="interaction-card">
       <div className="interaction-title-row">
@@ -231,10 +232,10 @@ export function MemoryCandidateCard({ artifact, block, sessionId }: InteractionP
         <Database size={18} />
         <div>
           <strong>{block.title || "Memory candidate"}</strong>
-          <span>confidence {String(block.data.confidence || "0.7")}</span>
+          <span>confidence {String(blockData(block).confidence || "0.7")}</span>
         </div>
       </div>
-      <p>{String(block.data.content || "")}</p>
+      <p>{String(blockData(block).content || "")}</p>
       <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
@@ -246,18 +247,18 @@ export function ToolCallPreview({ artifact, block, sessionId }: InteractionProps
       <div className="interaction-title-row">
         <Play size={18} />
         <div>
-          <strong>{String(block.data.tool_name || block.title || "Tool call")}</strong>
-          <span>{String(block.data.permission_level || "low")} permission</span>
+          <strong>{String(blockData(block).tool_name || block.title || "Tool call")}</strong>
+          <span>{String(blockData(block).permission_level || "low")} permission</span>
         </div>
       </div>
-      <p>{String(block.data.summary || "")}</p>
+      <p>{String(blockData(block).summary || "")}</p>
       <ActionButtons artifact={artifact} block={block} sessionId={sessionId} />
     </section>
   );
 }
 
 export function ActionQueue({ artifact, block, sessionId }: InteractionProps) {
-  const items = (block.data.items as Array<Record<string, unknown>>) || [];
+  const items = (blockData(block).items as Array<Record<string, unknown>>) || [];
   return (
     <section className="interaction-card">
       <div className="interaction-title-row">
@@ -279,17 +280,17 @@ export function ActionQueue({ artifact, block, sessionId }: InteractionProps) {
 }
 
 export function EditableDocumentPreview({ artifact, block, sessionId }: InteractionProps) {
-  const highlights = (block.data.highlights as string[]) || [];
+  const highlights = (blockData(block).highlights as string[]) || [];
   return (
     <section className="interaction-card editable-document-placeholder">
       <div className="interaction-title-row">
         <FilePenLine size={18} />
         <div>
-          <strong>{String(block.data.heading || block.title || "Editable draft")}</strong>
-          <span>{String(block.data.status || "draft")}</span>
+          <strong>{String(blockData(block).heading || block.title || "Editable draft")}</strong>
+          <span>{String(blockData(block).status || "draft")}</span>
         </div>
       </div>
-      <div className="editable-preview">{String(block.data.content || "")}</div>
+      <div className="editable-preview">{String(blockData(block).content || "")}</div>
       {highlights.length ? (
         <div className="revision-highlights">
           {highlights.map((item) => (

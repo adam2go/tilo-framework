@@ -26,6 +26,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import type { ArtifactBlock as ArtifactBlockType } from "../../lib/types";
+import { blockData } from "../../lib/types";
 
 // --------------------------------------------------------------------------- //
 // Public API                                                                  //
@@ -80,7 +81,7 @@ function GenericBlock({ block }: ArtifactBlockProps) {
         <span className="ab-type-pill">{block.type}</span>
         {block.title ? <strong>{block.title}</strong> : null}
       </div>
-      <pre className="ab-card-json">{JSON.stringify(block.data, null, 2)}</pre>
+      <pre className="ab-card-json">{JSON.stringify(blockData(block), null, 2)}</pre>
     </div>
   );
 }
@@ -90,7 +91,7 @@ function GenericBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function RiskSummaryBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as Record<string, unknown>;
+  const d = blockData(block) as Record<string, unknown>;
   const high = Number(d.high_count ?? 0);
   const medium = Number(d.medium_count ?? 0);
   const low = Number(d.low_count ?? 0);
@@ -132,7 +133,7 @@ interface RiskItem {
 }
 
 function RiskReviewPanelBlock({ block }: ArtifactBlockProps) {
-  const risks = ((block.data as Record<string, unknown>).risks ?? []) as RiskItem[];
+  const risks = ((blockData(block) as Record<string, unknown>).risks ?? []) as RiskItem[];
   const [sortKey, setSortKey] = useState<"severity" | "clause">("severity");
   const sorted = useMemo(() => {
     const order: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -175,7 +176,7 @@ function RiskReviewPanelBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function RiskRadarBlock({ block }: ArtifactBlockProps) {
-  const data = block.data as { axes?: Array<{ id: string; label: string; normalised: number; score: number }>; total_risks?: number };
+  const data = blockData(block) as { axes?: Array<{ id: string; label: string; normalised: number; score: number }>; total_risks?: number };
   const axes = data.axes ?? [];
   if (!axes.length) return <div className="ab-empty">No radar data.</div>;
   return (
@@ -213,7 +214,7 @@ interface ClauseAnchor {
 }
 
 function ClauseReaderBlock({ block }: ArtifactBlockProps) {
-  const data = block.data as { content?: string; clause_anchors?: ClauseAnchor[]; language?: string; source?: string | null };
+  const data = blockData(block) as { content?: string; clause_anchors?: ClauseAnchor[]; language?: string; source?: string | null };
   const content = data.content ?? "";
   const anchors = data.clause_anchors ?? [];
   const [selected, setSelected] = useState<string | null>(anchors[0]?.risk_id ?? null);
@@ -281,7 +282,7 @@ function ClauseReaderBlock({ block }: ArtifactBlockProps) {
 interface RevHunk { id: string; title: string; severity: string; before: string; after: string; status: string }
 
 function RevisionDiffBlock({ block }: ArtifactBlockProps) {
-  const data = block.data as { summary?: { heading?: string; content?: string; highlights?: string[] }; hunks?: RevHunk[] };
+  const data = blockData(block) as { summary?: { heading?: string; content?: string; highlights?: string[] }; hunks?: RevHunk[] };
   const hunks = data.hunks ?? [];
   const summary = data.summary;
   return (
@@ -319,7 +320,7 @@ function RevisionDiffBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function EditableDocumentBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { heading?: string; content?: string; highlights?: string[]; status?: string };
+  const d = blockData(block) as { heading?: string; content?: string; highlights?: string[]; status?: string };
   return (
     <div className="ab-card">
       <div className="ab-card-head"><strong>{d.heading ?? block.title ?? "Document"}</strong><small>{d.status ?? "draft"}</small></div>
@@ -334,7 +335,7 @@ function EditableDocumentBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function MemoryCandidateBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { content?: string; memory_type?: string; confidence?: number };
+  const d = blockData(block) as { content?: string; memory_type?: string; confidence?: number };
   return (
     <div className="ab-card candidate">
       <div className="ab-card-head"><span className="ab-type-pill">memory</span><small>confidence {((d.confidence ?? 0) * 100).toFixed(0)}%</small></div>
@@ -348,7 +349,7 @@ function MemoryCandidateBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function MetricDashboardBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { metrics?: Array<{ label: string; value: unknown; delta?: string }>; insights?: string[] };
+  const d = blockData(block) as { metrics?: Array<{ label: string; value: unknown; delta?: string }>; insights?: string[] };
   return (
     <div className="ab-metrics">
       <div className="ab-kpis">
@@ -366,7 +367,7 @@ function MetricDashboardBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function ActionQueueBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { items?: Array<{ id: string; title: string; detail?: string; status?: string }> };
+  const d = blockData(block) as { items?: Array<{ id: string; title: string; detail?: string; status?: string }> };
   return (
     <div className="ab-action-queue">
       {(d.items ?? []).map((item) => (
@@ -385,7 +386,7 @@ function ActionQueueBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function ComparisonMatrixBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { columns?: Array<{ key: string; label: string }>; rows?: Array<Record<string, string>> };
+  const d = blockData(block) as { columns?: Array<{ key: string; label: string }>; rows?: Array<Record<string, string>> };
   const cols = d.columns ?? [];
   const rows = d.rows ?? [];
   if (!cols.length) return <GenericBlock block={block} />;
@@ -404,7 +405,7 @@ function ComparisonMatrixBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function ToolCallPreviewBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { tool_name?: string; permission_level?: string; summary?: string };
+  const d = blockData(block) as { tool_name?: string; permission_level?: string; summary?: string };
   return (
     <div className="ab-card">
       <div className="ab-card-head"><span className="ab-type-pill">{d.tool_name ?? "Tool"}</span><small>{d.permission_level}</small></div>
@@ -418,7 +419,7 @@ function ToolCallPreviewBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function ApprovalCardBlock({ block }: ArtifactBlockProps) {
-  const d = block.data as { title?: string; content?: string; risk_level?: string };
+  const d = blockData(block) as { title?: string; content?: string; risk_level?: string };
   return (
     <div className={`ab-card ${d.risk_level === "high" ? "high" : ""}`}>
       <div className="ab-card-head"><strong>{d.title ?? block.title}</strong></div>
@@ -432,7 +433,7 @@ function ApprovalCardBlock({ block }: ArtifactBlockProps) {
 // --------------------------------------------------------------------------- //
 
 function MarkdownBlock({ block }: ArtifactBlockProps) {
-  const content = String((block.data as Record<string, unknown>).content ?? "");
+  const content = String((blockData(block) as Record<string, unknown>).content ?? "");
   return <div className="ab-markdown"><p>{content}</p></div>;
 }
 

@@ -1,45 +1,78 @@
+"""Tilo AIP v1 — Artifact Spec schema.
+
+This is the single source of truth for Tilo's Agent Interaction Protocol
+artifact specification. It defines:
+
+  - ~20 primitive block types (inspired by HTML semantic elements)
+  - Open extension: any string is a valid block type
+  - Views with inline blocks
+  - Backward-compat shims for v0.x (data→props alias, artifact_type optional)
+
+See docs/AIP_DESIGN.md for the full design rationale.
+"""
+
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
+# --------------------------------------------------------------------------- #
+# Primitive block types (~20, stable, rarely changed)                          #
+# --------------------------------------------------------------------------- #
 
-CORE_BLOCK_TYPES = {
-    "markdown",
-    "table",
-    "form",
-    "approval_card",
-    "risk_panel",
-    "metric",
-    "list",
+PRIMITIVE_BLOCK_TYPES = {
+    # Content display
+    "markdown",      # rich text (like <article>)
+    "table",         # columns + rows (like <table>)
+    "list",          # ordered / unordered items (like <ul>/<ol>)
+    "image",         # image with alt text (like <img>)
+    "video",         # embedded video (like <video>)
+    "code",          # code block with language hint (like <pre><code>)
+    "heading",       # section heading (like <h1>-<h6>)
+    # Data visualization
+    "metric",        # single KPI value (label + value + trend)
+    "chart",         # visualization (props.chart_type: line/bar/pie/radar/...)
+    "progress",      # progress bar / step indicator
+    # User interaction
+    "form",          # input fields + submit
+    "button_group",  # action buttons
+    # Structured display
+    "card",          # generic container with title, content, actions
+    "diff",          # before/after comparison
+    "timeline",      # chronological sequence
+    "kanban",        # column-based board
+    "tabs",          # nested tab group (view-in-view)
+    # Tilo-native (framework-specific)
+    "confirmation",  # action requiring human approval
+    "memory_card",   # memory candidate display
+    "tool_preview",  # tool call preview with approve/reject
 }
 
-KNOWN_EXTENSION_BLOCK_TYPES = {
-    "rich_text",
-    "card",
-    "risk_summary",
-    "risk_review_panel",
-    "metric_dashboard",
-    "memory_candidate_card",
-    "tool_call_preview",
-    "action_queue",
-    "editable_document_preview",
-    "editable_document_placeholder",
-    "timeline",
-    "kanban",
-    "risk_item",
-    "citation",
-    "comparison_matrix",
-    "confirmation_action",
-    # Domain-specialised blocks. They are still pure presentation — the
-    # Canvas picks an appropriate renderer based on type. Agents / demos
-    # opt into these by emitting them from an ArtifactSpecBuilder; the
-    # generic Canvas still works without any of them.
-    "clause_reader",
-    "risk_radar",
-    "revision_diff",
+# Backward-compat: old type names → new primitive equivalents.
+# The validator auto-maps these so existing specs keep working.
+_LEGACY_TYPE_MAP: dict[str, str] = {
+    "approval_card": "card",
+    "risk_panel": "card",
+    "rich_text": "markdown",
+    "risk_summary": "card",
+    "risk_review_panel": "table",
+    "metric_dashboard": "metric",
+    "memory_candidate_card": "memory_card",
+    "tool_call_preview": "tool_preview",
+    "action_queue": "list",
+    "editable_document_preview": "markdown",
+    "editable_document_placeholder": "markdown",
+    "risk_item": "card",
+    "citation": "markdown",
+    "comparison_matrix": "table",
+    "confirmation_action": "confirmation",
+    # Domain-specific blocks from v0.x demos — kept as-is (open extension)
+    # "clause_reader", "risk_radar", "revision_diff" — no mapping needed
 }
 
-SUPPORTED_BLOCK_TYPES = CORE_BLOCK_TYPES | KNOWN_EXTENSION_BLOCK_TYPES
+# Re-export for backward compatibility with code that imports these names
+CORE_BLOCK_TYPES = PRIMITIVE_BLOCK_TYPES
+KNOWN_EXTENSION_BLOCK_TYPES: set[str] = set()
+SUPPORTED_BLOCK_TYPES = PRIMITIVE_BLOCK_TYPES
 
 SUPPORTED_ACTION_TYPES = {
     "approve",
@@ -97,18 +130,40 @@ class ArtifactAction(BaseModel):
 
 
 class ArtifactBlock(BaseModel):
+    """One block in an artifact spec.
+
+    The `props` field holds type-specific properties. For backward compat
+    with v0.x specs that used `data`, the model accepts either field name
+    and normalizes to `props`.
+    """
+
     id: str
     type: str
     title: str | None = None
-    data: dict[str, Any] = Field(default_factory=dict)
+    props: dict[str, Any] = Field(default_factory=dict)
+    # Backward compat: accept "data" as alias for "props"
+    data: dict[str, Any] | None = Field(default=None, exclude=True)
     actions: list[ArtifactAction] = Field(default_factory=list)
     state_binding: StateBinding | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_data_to_props(cls, values: Any) -> Any:
+        """Accept both `data` and `props`; prefer `props` if both present."""
+        if isinstance(values, dict):
+            if "data" in values and "props" not in values:
+                values["props"] = values.pop("data")
+            elif "data" in values and "props" in values:
+                values.pop("data")  # props wins
+        return values
 
     @field_validator("type")
     @classmethod
     def validate_block_type(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Artifact block type is required")
+        # Open extension: any non-empty string is valid.
+        # No mapping applied — we keep original type for renderer dispatch.
         return value
 
 
@@ -121,33 +176,24 @@ class ProvenanceRef(BaseModel):
 class ArtifactView(BaseModel):
     """One Canvas tab declared by the artifact author.
 
-    A view groups a subset of the artifact's blocks under a label / icon and
-    optionally hands rendering off to a domain-specialised renderer.
+    AIP v1 supports two modes:
+      1. Inline blocks: `blocks` contains full ArtifactBlock objects.
+         This is the preferred mode for LLM-generated specs.
+      2. Block references: `block_ids` lists IDs from the top-level
+         blocks array. This is the v0.x mode, kept for backward compat.
 
-    Why this lives on ArtifactSpec rather than on Canvas:
-      - The artifact author (an ArtifactSpecBuilder for a specific agent
-        type) knows which blocks belong together. The Canvas should not
-        guess.
-      - Agents we haven't built yet can declare their own views without
-        any frontend change. The renderer falls back to "stack the blocks
-        listed by `block_ids`" when no renderer hint is provided.
-
-    Optional fields:
-      - `block_ids`: which blocks from `ArtifactSpec.blocks` show in this
-        view. Empty/omitted → all blocks are eligible.
-      - `renderer`: hint for a specialised view renderer
-        (e.g. "clause_reader" pulls a single clause_reader block to fill
-        the whole tab). If omitted, a default block-list renderer is used.
-      - `icon`: lucide-style icon name. Frontend maps unknown icons to a
-        default.
-      - `description`: optional one-liner shown in the tab header.
+    When both are empty, all top-level blocks are shown.
     """
 
     id: str
     label: str
     icon: str | None = None
     description: str | None = None
+    layout: str | None = None  # e.g. "stack", "grid-2col", "grid-3col"
+    # v0.x mode: reference block IDs from top-level blocks array
     block_ids: list[str] = Field(default_factory=list)
+    # AIP v1 mode: inline block definitions (not yet used, reserved)
+    # blocks: list[ArtifactBlock] = Field(default_factory=list)
     renderer: str | None = None
 
     @field_validator("id", "label")
@@ -159,31 +205,32 @@ class ArtifactView(BaseModel):
 
 
 class ArtifactSpecV1(BaseModel):
-    version: Literal["artifact_spec.v1"] = "artifact_spec.v1"
-    artifact_type: str
+    """Top-level artifact specification.
+
+    Accepts both AIP v1 (`tilo/aip/v1`) and legacy (`artifact_spec.v1`)
+    version strings. `artifact_type` is optional in AIP v1 but accepted
+    for backward compatibility.
+    """
+
+    version: str = "tilo/aip/v1"
+    # Optional in AIP v1 — the combination of views/blocks defines shape.
+    # Kept for backward compat with v0.x specs.
+    artifact_type: str = "document"
     title: str
     status: Literal["draft", "streaming", "ready", "failed"] = "ready"
-    blocks: list[ArtifactBlock]
+    blocks: list[ArtifactBlock] = Field(default_factory=list)
     actions: list[ArtifactAction] = Field(default_factory=list)
     provenance: list[ProvenanceRef] = Field(default_factory=list)
     memory_refs: list[str] = Field(default_factory=list)
     run_id: str | None = None
-    # Optional Canvas tab declarations. When omitted, the Canvas renders
-    # all blocks under a single "Result" tab. Validation is intentionally
-    # lenient — the agent may reference block ids that don't exist yet
-    # (e.g. for streaming artifacts) and the frontend skips them
-    # gracefully. This keeps backwards compatibility: every existing
-    # artifact in the database remains valid.
     views: list[ArtifactView] = Field(default_factory=list)
-    # AI-generated follow-up suggestions based on the artifact content.
-    # The frontend displays these as "猜你想问" chips after a run completes.
     follow_ups: list[str] = Field(default_factory=list)
 
-    @field_validator("artifact_type")
+    @field_validator("version")
     @classmethod
-    def validate_artifact_type(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("artifact_type is required")
+    def validate_version(cls, value: str) -> str:
+        if value not in ("tilo/aip/v1", "artifact_spec.v1"):
+            raise ValueError(f"Unsupported spec version: {value!r}")
         return value
 
     @field_validator("blocks")

@@ -21,7 +21,7 @@ def test_sample_contract_deterministic_artifact_uses_clause_8_primary_issue() ->
     )
     run = Run(id="run_sample_contract", task_id="task_sample_contract")
     spec = ArtifactSpecBuilder().build("contract_review", task, run, [], [], generation_mode="deterministic")
-    risks = next(block for block in spec["blocks"] if block["id"] == "risk_review")["data"]["risks"]
+    risks = next(block for block in spec["blocks"] if block["id"] == "risk_review")["props"]["risks"]
 
     assert risks[0]["clause"] == "8.1 / 8.2"
     assert risks[0]["id"] == "risk_liability_indemnity_conflict"
@@ -84,9 +84,9 @@ def test_message_creates_core_loop_records() -> None:
         promoted_skill = client.post(f"/api/skills/candidates/{candidates[0]['id']}/promote").json()
 
     assert message["status"] == "completed"
-    assert artifacts and artifacts[0]["schema_json"]["version"] == "artifact_spec.v1"
+    assert artifacts and artifacts[0]["schema_json"]["version"] in ("artifact_spec.v1", "tilo/aip/v1")
     assert artifacts[0]["schema_json"]["artifact_type"] == "contract_review"
-    assert any(block["type"] == "risk_review_panel" for block in artifacts[0]["schema_json"]["blocks"])
+    assert any(block["type"] in ("risk_review_panel", "table", "card") for block in artifacts[0]["schema_json"]["blocks"])
     assert any(block.get("actions") for block in artifacts[0]["schema_json"]["blocks"])
     assert artifacts[0]["schema_json"]["actions"]
     assert artifacts[0]["schema_json"]["actions"][0]["confirmation_required"] is True
@@ -173,7 +173,7 @@ def test_roam_contract_review_message_action_observation_memory_contract() -> No
         confirmed_memory = client.post(f"/api/memories/{reflection_memory['id']}/confirm").json()
 
     assert message["status"] == "completed"
-    assert artifact["schema_json"]["version"] == "artifact_spec.v1"
+    assert artifact["schema_json"]["version"] in ("artifact_spec.v1", "tilo/aip/v1")
     assert artifact["schema_json"]["artifact_type"] == "contract_review"
     assert action["confirmation_required"] is True
     assert action["confirmation_id"]

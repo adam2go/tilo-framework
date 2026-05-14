@@ -1,0 +1,20 @@
+name: competitive-analysis
+version: 1.0.0
+description: Competitive landscape analysis, positioning comparison, and strategic recommendations.
+
+block_hints:
+  - type: table
+    use_when: "Comparing companies on positioning, strengths, and gaps"
+  - type: markdown
+    use_when: "Providing analysis summary and strategic recommendations"
+  - type: list
+    use_when: "Listing recommended next steps with priority"
+  - type: chart
+    variant: bar
+    use_when: "Visualizing competitive scores or market share"
+
+view_hints: |
+  For competitive analysis tasks, organize into these views:
+  - "Comparison" tab: comparison table + analysis summary
+  - "Next Steps" tab: recommended action items
+  Adapt columns and metrics based on the specific competitive dimensions the user cares about.
