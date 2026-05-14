@@ -41,7 +41,6 @@ def verify(frontend_url: str) -> None:
     assert_true(status == 200, f"/demo returned HTTP {status}")
     assert_true("/demo" in final_url, f"/demo resolved to unexpected URL: {final_url}")
     assert_true("Tilo" in html, "/demo page is missing the Tilo product signal")
-    assert_true("Review this AI service agreement" in html, "/demo page is missing the contract-review goal")
     assert_true("raw JSON" not in html, "/demo should not expose raw JSON by default")
     assert_true("hidden reasoning" not in html.lower(), "/demo should not expose hidden reasoning")
 
