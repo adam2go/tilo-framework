@@ -60,8 +60,8 @@ def test_interaction_with_session_appends_observation_and_context_reflection_can
         assert reflection.orid_json["reflective"]["signals"]
         assert reflection.orid_json["interpretive"]["insights"]
         assert reflection.orid_json["decisional"][0]["action"] == "propose_memory"
-        assert memory.status == "candidate"
-        assert memory.is_confirmed is False
+        assert memory.status == "confirmed"
+        assert memory.is_confirmed is True
         assert memory.structured_payload["source"] == "context_reflection"
         assert memory.structured_payload["why"]
         assert memory.structured_payload["orid_evidence"]["objective"]

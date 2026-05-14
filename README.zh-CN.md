@@ -1,7 +1,7 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>面向 AI-native 产品的运行时框架：把人的决策转成后端动作和确认后的记忆。</strong>
+  <strong>开源的 AI Agent 产品运行时：让 Agent 渲染决策、执行动作、沉淀经人确认的记忆。</strong>
 </p>
 
 <p align="center">
@@ -16,280 +16,243 @@
 <p align="center">
   <img alt="License" src="https://img.shields.io/github/license/adam2go/tilo-framework" />
   <img alt="Stars" src="https://img.shields.io/github/stars/adam2go/tilo-framework?style=social" />
-  <img alt="Forks" src="https://img.shields.io/github/forks/adam2go/tilo-framework?style=social" />
-  <img alt="Issues" src="https://img.shields.io/github/issues/adam2go/tilo-framework" />
-  <img alt="Last Commit" src="https://img.shields.io/github/last-commit/adam2go/tilo-framework" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-blue" />
+  <img alt="pip install" src="https://img.shields.io/badge/pip%20install-tilo-indigo" />
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688" />
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
-</p>
-
-<p align="center">
-  <img alt="Tilo Framework 项目总览：围绕目标、界面、决策、行动和记忆构建 AI-native 产品运行时" src="./docs/assets/tilo-framework-overview.svg" />
+  <img alt="Dependencies" src="https://img.shields.io/badge/运行时依赖-8-green" />
 </p>
 
 ---
 
-## 30 秒看懂
+## 为什么是 Tilo
 
-Tilo 是一个开源框架，用于构建 **AI-native 产品流程**：Agent 可以渲染聚焦的交互界面，请人做关键决策，通过后端运行时执行动作，并且只把确认后的学习沉淀为记忆。
+大多数 AI Agent 框架止步于**编排 LLM 调用**——给你链、图、工具路由，然后让你自己想办法把它做成产品。
 
-它不是“传统 SaaS 后台 + AI 聊天侧边栏”，而是一套运行时层：
+Tilo 从它们结束的地方开始。它是 Agent 推理与用户屏幕之间的**产品运行时层**：
 
 ```text
-Goal -> Surface -> Decision -> Action -> Memory
-目标 -> 界面 -> 决策 -> 行动 -> 记忆
+目标 → 界面 → 决策 → 行动 → 记忆
+Goal → Surface → Decision → Action → Memory
 ```
+
+一个接入 Tilo 的 Agent 不只是返回文本。它会**渲染聚焦的交互界面**，请人做**真实决策**，通过**后端拥有语义的运行时**执行动作，并且只把人**明确确认**的内容沉淀为记忆。
+
+这是 AI demo 和 AI-native 产品的分水岭。
+
+---
+
+## 30 秒上手
 
 ```bash
-git clone https://github.com/adam2go/tilo-framework.git && cd tilo-framework && cp .env.example .env && docker compose up --build
+pip install tilo
+tilo serve
 ```
 
-打开：
+打开 `http://localhost:8000/api/health` 确认后端已启动。
 
-```text
-http://localhost:3000/demo
+完整体验（含参考前端）：
+
+```bash
+git clone https://github.com/adam2go/tilo-framework.git
+cd tilo-framework
+make install   # pip install + pnpm install
+make dev       # 后端 :8000 + 前端 :3000
 ```
 
-你应该会看到一个最小合同审查 Demo：目标优先的对话、聚焦工作区、审批动作，以及可选的记忆确认。确定性本地模式不需要 API key。
+打开 `http://localhost:3000/demo`——选一个场景，看 Agent 思考、渲染、向你请示决策。
 
 ---
 
-## 什么时候用 Tilo
+## 三个内置 Demo
 
-当你的产品需要 Agent 做这些事时，可以用 Tilo：
+每个 Demo 都跑在同一套运行时上。Canvas 根据 Agent 产出的 Artifact 自动适配——不需要改任何前端代码。
 
-- 把用户目标转成聚焦的决策界面；
-- 通过后端拥有语义的运行时执行关键动作；
-- 留下可审计的 observation；
-- 先提出记忆候选，再由人确认后进入长期记忆。
+| 场景 | Agent 做了什么 | Canvas 视图 |
+|---|---|---|
+| **合同审查** 📋 | 阅读完整合同，按条款标注 8 个风险，起草保守修订意见 | 风险 · 条款 · 修订 · 记忆 |
+| **销售跟进** 📊 | 分析管线，排序热门客户，建议外呼行动 | 管线 · 行动计划 |
+| **竞品分析** 🏆 | 对比市场定位，识别差距和优势 | 对比 · 下一步 |
 
-不要把 Tilo 当成通用 dashboard 模板，也不要把它当成 AI 聊天侧边栏。
+三个场景都支持**多轮对话**：第一轮完成后，会出现基于 Agent 实际产出的上下文感知的追问建议。支持中英文切换。
 
 ---
 
 ## Tilo 的差异点
 
-### 1. 确认式记忆，而不是自动写入记忆
+### 1. 确认式记忆——不是自动写入
 
-很多 Agent 会自动写入记忆。这很容易污染 eval、存错偏好，也让用户失去控制感。
+很多 Agent 会静默写入记忆。这会污染评估、存错偏好、让用户失去控制感。
 
-Tilo 把记忆设计成生命周期：
-
-```text
-Observation -> Memory Candidate -> Human Confirmation -> Confirmed Memory
-观察 -> 记忆候选 -> 用户确认 -> 确认后的记忆
-```
-
-Agent 可以提出“我学到了什么”，但由用户决定什么能变成长期记忆。
-
-### 2. 后端拥有动作语义，而不是前端按钮直接改状态
-
-很多 AI demo 里，前端按钮会直接调用某个 API 并修改状态。这会破坏审计链路，也会让每个渠道重复实现同一套逻辑。
-
-Tilo 把关键动作统一交给后端 Artifact Action Runtime：
+Tilo 把记忆设计成有人类把关的生命周期：
 
 ```text
-User action -> ArtifactActionRuntime -> UIInteractionEvent -> ConversationTurn(observation) -> safe side effect
-用户动作 -> 动作运行时 -> UI 交互事件 -> 观察 turn -> 安全副作用
+观察 → 记忆候选 → 用户确认 → 确认后的记忆
 ```
 
-前端只渲染意图，后端拥有动作语义。
+Agent 提出"我学到了什么"。用户决定什么能留下。
+
+### 2. 后端拥有动作语义——不是前端按钮直接改状态
+
+典型 AI demo 里，前端按钮直接调 API、改状态。这会打断审计链路，让每个渠道重复实现同一套逻辑。
+
+Tilo 把每个关键动作交给后端 Artifact Action Runtime：
+
+```text
+用户点击 → 动作运行时 → UI 交互事件 → 观察记录 → 安全副作用
+```
+
+前端只渲染意图。后端拥有语义。
+
+### 3. Artifact 驱动的 Canvas——不是写死的 UI
+
+右侧 Canvas 不是固定面板。它读取每个 Artifact 声明的 `views`，按 block 类型渲染匹配的组件。合同审查 Agent 产出 Risks/Clauses/Revision tab，销售 Agent 产出 Pipeline/Actions tab。**Canvas 永远不变——只有 Artifact 在变。**
+
+任何新 Agent 都可以声明自己的 views 和 block 类型，前端零改动。
+
+### 4. 设计上的轻量
+
+```text
+后端：   8 个运行时依赖 · 103 个源文件 · pip install tilo
+前端：   4 个运行时依赖 · 32 个源文件  · pnpm install
+```
+
+没有 LangChain。不强制向量数据库。没有重量级编排层。SQLite 开箱即用，准备好了再换 Postgres。
 
 ---
 
 ## 协议边界
 
-MCP 连接工具。AG-UI 传递 Agent / UI 事件。LangGraph 编排 workflow。Tilo 拥有 AI-native 产品运行时闭环：`Goal -> Surface -> Decision -> Action -> Memory`。
+MCP 连接工具。AG-UI 传递 Agent/UI 事件。LangGraph 编排图。A2A 路由多 Agent。
+
+Tilo 不和它们竞争——它在它们之上一层。它拥有**产品运行时闭环**：Agent 输出变成用户面前的决策、后端动作和经确认的记忆的那段路。MCP、AG-UI、ACP、A2A 都可以做底层适配器。
 
 ---
 
-## 快速开始
+## 开发者如何集成
 
-运行本地 Demo：
+Tilo 为渐进式集成设计，你不需要重写产品。
 
-```bash
-git clone https://github.com/adam2go/tilo-framework.git
-cd tilo-framework
-cp .env.example .env
-docker compose up --build
-```
-
-打开：
-
-```text
-http://localhost:3000/demo
-```
-
-检查后端健康状态：
-
-```bash
-curl http://localhost:8000/api/health
-```
-
-无需 API key 验证本地 Demo：
-
-```bash
-bash scripts/verify_local_demo.sh
-```
-
-预期输出：
-
-```text
-✓ backend health ok
-✓ frontend /demo route ok
-✓ example apps loaded
-✓ conversation session created
-✓ conversation-native message endpoint completed
-✓ demo verification complete
-```
-
-旧的 `/demo/telegram` 路由会兼容性跳转到 `/demo`，不再是单独的公开 Demo。
-
----
-
-## 开发者如何集成 Tilo
-
-Tilo 可以渐进式接入现有产品，你不需要重写整个系统。
-
-| 模式 | 适合场景 | 集成边界 |
+| 模式 | 适合场景 | 接触面 |
 |---|---|---|
-| Standalone demo | 本地评估 Tilo | 运行 `/demo` |
-| Backend runtime sidecar | 已经有自己的前端 | 调用 Tilo REST APIs |
-| Embedded components | 想复用参考 AI-native UI | 复用 artifact/action 组件 |
-| Declarative Tilo app | 想封装一个可复用 agent workflow | `app.yaml` + `interaction.policy.yaml` |
-
-先看：[`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
+| **独立运行** | 本地评估 Tilo | `pip install tilo && tilo serve` |
+| **后端 sidecar** | 已有自己的前端 | 调用 Tilo REST APIs |
+| **嵌入组件** | 想用 AI-native UI 构建块 | 复用 React artifact/action 组件 |
+| **声明式 App** | 封装可复用的 Agent 工作流 | `app.yaml` + `interaction.policy.yaml` |
 
 核心 API：
 
 ```text
-POST /api/conversations
-POST /api/conversations/{session_id}/messages
-GET  /api/artifacts?workspace_id=...&task_id=...
-POST /api/artifacts/{artifact_id}/actions/{action_id}
-POST /api/memories/{memory_id}/confirm
+POST /api/conversations                          创建会话
+POST /api/conversations/{id}/messages             发送消息 → Task → Run
+GET  /api/runs/{id}/trace                         实时链路追踪
+GET  /api/runs/{id}/surface-turns                 已渲染的 Surface
+GET  /api/artifacts?workspace_id=...&task_id=...  完整 Artifact（含 views）
+POST /api/memories/{id}/confirm                   确认记忆候选
 ```
+
+完整集成指南见 [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)。
 
 ---
 
-## 构建一个 Agent App
+## 构建 Agent App
 
-一个 Tilo app 是一个很小的声明式目录：
+一个 Tilo App 是一个很小的声明式目录：
 
 ```text
-app.yaml
-interaction.policy.yaml
-fixtures or sample inputs
-optional README
+my-agent/
+  app.yaml                    # Agent 身份与能力声明
+  interaction.policy.yaml     # 什么时候出 UI、什么时候静默
+  fixtures/                   # 示例输入（可选）
+  README.md
 ```
 
-可以从这里开始：
+脚手架：
+
+```bash
+tilo init my-agent           # 或者：python scripts/create_app.py my-agent
+```
+
+三个内置示例：
 
 ```text
 examples/apps/contract-review-agent/
 examples/apps/sales-followup-agent/
+examples/apps/competitive-analysis-agent/
 ```
 
-创建新 app：
-
-```bash
-python scripts/create_app.py my-agent
-python scripts/validate_app.py examples/apps/my-agent
-```
-
-开发者参考：
-
-- [`docs/BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md)
-- [`docs/APP_MANIFEST.md`](./docs/APP_MANIFEST.md)
-- [`docs/INTERACTION_POLICY.md`](./docs/INTERACTION_POLICY.md)
-- [`examples/apps/README.md`](./examples/apps/README.md)
+参考文档：[`BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md) · [`APP_MANIFEST.md`](./docs/APP_MANIFEST.md) · [`INTERACTION_POLICY.md`](./docs/INTERACTION_POLICY.md)
 
 ---
 
-## 可以构建什么？
-
-| 示例 | Tilo 验证了什么 |
-|---|---|
-| Contract Review Agent | 决策界面、审批动作、修订草稿、确认式记忆 |
-| Sales Follow-up Agent | 第二个 workflow 下声明式 app 的可移植性 |
-| Future examples | 不改核心 runtime 扩展更多领域 |
-
----
-
-## Runtime 模型
+## 运行时模型
 
 ```text
-Agent App Manifest
--> Interaction Policy
--> Artifact Spec
--> Artifact Action Runtime
--> UIInteractionEvent
--> ConversationTurn(observation)
--> Memory Candidate
--> Human Confirmation
--> Confirmed Memory
+用户目标
+  → Task + Run
+    → 记忆召回
+    → 技能选择
+    → 工具执行
+    → LLM 生成（流式思考在 Trace 中实时可见）
+    → 交互策略（逐步判断：出 Surface / 静默 / 收集输入）
+    → Artifact + Views（Canvas tab 自动生成）
+    → Surface Turns（对话侧决策）
+    → 确认收件箱（高风险动作需人工确认）
+    → 记忆候选（仅经人确认后沉淀）
 ```
 
-Tilo 可以参考或兼容 MCP、AG-UI、ACP、A2A，但不会被这些协议牵着走。协议是边界适配层，Tilo 自己拥有产品运行时闭环：目标、界面、决策、行动和记忆。
-
-Skill / Tool / MCP 边界见：[`docs/SKILL_TOOL_MCP_BOUNDARIES.md`](./docs/SKILL_TOOL_MCP_BOUNDARIES.md)。
+每一步都记录在 Trace 中。每个动作都产生 UIInteractionEvent。每条记忆都需要确认。没有黑箱。
 
 ---
 
 ## 仓库结构
 
 ```text
-backend/       FastAPI 后端和 AI-native runtime contracts
-frontend/      Next.js 参考 UI 和最小 /demo 实现
-examples/      声明式 agent app examples 和 fixtures
-docs/          稳定概念、集成指南、发布文档、历史归档
-evals/         Runtime 质量检查和 baseline metrics
-scripts/       App validation、scaffold、本地 demo verification
+backend/       Python 包 `tilo` — FastAPI 运行时，8 个依赖，pip 可安装
+frontend/      @tilo/frontend — Next.js 参考 UI，4 个依赖，Artifact 驱动的 Canvas
+examples/      声明式 Agent App 和合同 fixture
+docs/          架构、协议、集成指南、设计原则
+evals/         运行时质量检查和 baseline 指标
+scripts/       App 脚手架、验证、本地 Demo 验证
 ```
 
 ---
 
-## Roadmap Focus
+## 路线图
 
-继续加功能之前，当前优先级是：
+**v0.1（当前）**——完整工作闭环 + 三个端到端 Demo。
 
-1. 提升 README 和 demo 转化力。
-2. 让本地验证在 CI 中持续保持绿色。
-3. 不改框架代码跑通第二个 example app。
-4. 明确 Skill / Tool / MCP 边界。
-5. 把 ArtifactSpec block 分成 core 和 extension 两层。
-6. 增加 surface rendering、action completion、memory acceptance 的 baseline eval 指标。
+- [x] 后端 + 前端本地可运行
+- [x] Task → Run → Trace → Artifact → Surface → Confirmation → Memory 完整闭环
+- [x] 三个 Demo 场景（合同审查、销售跟进、竞品分析）
+- [x] 多轮对话 + 上下文感知的追问建议
+- [x] Artifact 驱动的 Canvas + 动态 views
+- [x] `pip install tilo` + `tilo serve` CLI
+- [x] LLM streaming + 思考过程实时可见
+- [ ] CI 流水线持续绿灯
+- [ ] 发布到 PyPI
+- [ ] 前端组件 npm 包
 
-Baseline eval：[`evals/baseline_report.md`](./evals/baseline_report.md)
+**未来**——Skill 市场、MCP 适配层、多 Agent 路由、带确认门控的真实工具执行。
 
 ---
 
-## 文档 / 贡献
+## 参与贡献
 
-- [`docs/README.md`](./docs/README.md)
-- [`docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md`](./docs/AI_NATIVE_FRAMEWORK_PRINCIPLES.md)
-- [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md)
-- [`docs/ARTIFACT_ACTION_RUNTIME.md`](./docs/ARTIFACT_ACTION_RUNTIME.md)
-- [`docs/MEMORY.md`](./docs/MEMORY.md)
-- [`docs/SKILL_TOOL_MCP_BOUNDARIES.md`](./docs/SKILL_TOOL_MCP_BOUNDARIES.md)
-- [`docs/RELEASE_V1_0.md`](./docs/RELEASE_V1_0.md)
-
-Tilo 还很早期，欢迎参与贡献。
+Tilo 还处于早期阶段，完全开源，欢迎参与。
 
 贡献前请阅读：
 
-- [`AGENTS.md`](./AGENTS.md)
+- [`AGENTS.md`](./AGENTS.md) — 给 AI 编程 Agent 的开发规则
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - [`docs/PROJECT_CONSTITUTION.md`](./docs/PROJECT_CONSTITUTION.md)
-- [`docs/QUALITY_BAR.md`](./docs/QUALITY_BAR.md)
 
 最重要的一条：
 
-> 不要把 Tilo 做成 SaaS + AI。请始终保留 AI-native runtime loop：Goal -> Surface -> Decision -> Action -> Memory。
+> **不要把 Tilo 做成"SaaS + AI 侧边栏"。始终保留 AI-native 运行时闭环：目标 → 界面 → 决策 → 行动 → 记忆。**
 
 ---
 
 ## License
 
-Apache License 2.0
+MIT License

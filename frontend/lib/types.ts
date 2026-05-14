@@ -101,6 +101,14 @@ export type ArtifactSpecV1 = {
   provenance: ProvenanceRef[];
   memory_refs: string[];
   run_id?: string | null;
+  views?: Array<{
+    id: string;
+    label: string;
+    icon?: string | null;
+    description?: string | null;
+    block_ids: string[];
+    renderer?: string | null;
+  }>;
 };
 
 export type Artifact = {

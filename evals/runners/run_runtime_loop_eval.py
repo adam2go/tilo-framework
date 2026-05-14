@@ -16,7 +16,7 @@ sys.path.insert(0, str(BACKEND_PATH if BACKEND_PATH.exists() else ROOT))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app.main import app  # noqa: E402
+from tilo.main import app  # noqa: E402
 
 
 DATASET = ROOT / "evals" / "datasets" / "contract_review_cases.jsonl"

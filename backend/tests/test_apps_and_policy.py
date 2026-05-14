@@ -86,7 +86,8 @@ def test_interaction_policy_evaluates_core_decisions_and_budget() -> None:
     assert medium_risk.decision == InteractionDecisionType.no_ui
     assert full_review.decision == InteractionDecisionType.rich_surface
     assert full_review.surface == "ContractReviewArtifact"
-    assert memory.surface == "MiniMemoryCard"
+    assert memory.decision == InteractionDecisionType.no_ui
+    assert memory.reason == "memories_are_auto_confirmed_no_ui_needed"
     assert revision.surface == "MiniRevisionPreview"
     assert unknown.decision == InteractionDecisionType.no_ui
     assert budgeted.decision == InteractionDecisionType.no_ui

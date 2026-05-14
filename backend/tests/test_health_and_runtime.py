@@ -79,7 +79,7 @@ def test_run_manager_marks_failed_runs(monkeypatch) -> None:
             result = RunManager(db).execute(task, run)
             failed_step = db.query(TraceStep).filter(TraceStep.run_id == run.id, TraceStep.status == "failed").one()
 
-            assert result == {"artifacts": [], "confirmations": [], "memory_candidates": []}
+            assert result == {"artifacts": [], "confirmations": [], "memory_candidates": [], "surface_turns": []}
             assert task.status == "failed"
             assert run.status == "failed"
             assert run.error_message == "[REDACTED]"

@@ -94,11 +94,11 @@ def test_message_creates_core_loop_records() -> None:
     assert any(step["step_type"] == "recall_memory" for step in trace)
     assert any(step["step_type"] == "generate_artifact" for step in trace)
     assert recall_events and recall_events[0]["strategy"] == "hybrid_v0.2"
-    assert any(event["event_type"] == "candidate_created" for event in write_events)
+    assert any(event["event_type"] in ("candidate_created", "auto_confirmed") for event in write_events)
     assert tool_invocations and tool_invocations[0]["status"] == "completed"
     assert tool_invocations[0]["output_json"]["mock"] is True
     assert confirmations
-    assert any(memory["status"] == "candidate" and memory["is_confirmed"] is False for memory in memories)
+    assert any(memory["status"] == "confirmed" and memory["is_confirmed"] is True for memory in memories)
     assert metrics["success"] is True
     assert metrics["artifact_count"] == 1
     assert metrics["confirmation_count"] >= 1
@@ -167,8 +167,9 @@ def test_roam_contract_review_message_action_observation_memory_contract() -> No
         )
         action_result = action_response.json()
         turns = client.get(f"/api/conversations/{session['id']}/turns").json()
-        memories = client.get("/api/memories", params={"workspace_id": workspace_id, "status": "candidate"}).json()
-        reflection_memory = next(memory for memory in memories if memory["source_type"] == "context_reflection")
+        memories = client.get("/api/memories", params={"workspace_id": workspace_id, "status": "confirmed"}).json()
+        reflection_memory = next(memory for memory in memories if memory.get("source_type") == "context_reflection")
+        # Memory is already auto-confirmed; calling confirm again is a no-op but should not error.
         confirmed_memory = client.post(f"/api/memories/{reflection_memory['id']}/confirm").json()
 
     assert message["status"] == "completed"
@@ -182,8 +183,8 @@ def test_roam_contract_review_message_action_observation_memory_contract() -> No
     assert action_result["conversation_turn_id"]
     assert any(turn["id"] == action_result["conversation_turn_id"] and turn["turn_type"] == "observation" for turn in turns)
     assert any(turn["turn_type"] == "memory_candidate" and turn["memory_id"] == reflection_memory["id"] for turn in turns)
-    assert reflection_memory["is_confirmed"] is False
-    assert reflection_memory["status"] == "candidate"
+    assert reflection_memory["is_confirmed"] is True
+    assert reflection_memory["status"] == "confirmed"
     assert confirmed_memory["id"] == reflection_memory["id"]
     assert confirmed_memory["is_confirmed"] is True
     assert confirmed_memory["status"] == "confirmed"

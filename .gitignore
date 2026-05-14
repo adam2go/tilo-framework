@@ -1,8 +1,14 @@
 __pycache__/
 *.py[cod]
+*.pyo
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
 
 node_modules/
 .next/
@@ -17,3 +23,11 @@ node_modules/
 
 evals/reports/*.json
 !evals/reports/.gitkeep
+
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.logs/
+
+.codebuddy/
