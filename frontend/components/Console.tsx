@@ -8,6 +8,7 @@ import { WorkflowSurface } from "./roam/WorkflowSurface";
 import { renderInteractionComponent } from "./interaction/registry";
 import { apiFetch, getBootstrap, sendMessage } from "../lib/api";
 import type { Agent, Artifact, ArtifactAction, ArtifactBlock, Confirmation, Memory, Project, Skill, SkillCandidate, TraceStep, UIInteractionEvent, Workspace } from "../lib/types";
+import { blockData } from "../lib/types";
 
 const demoPrompts = [
   {
@@ -162,9 +163,9 @@ export function Console() {
           source_run_id: artifact?.run_id || null,
           source_type: "ui_interaction",
           source_id: artifact?.id || null,
-          type: String(block.data.memory_type || "preference"),
-          content: String(block.data.content || "User prefers conservative contract review with actionable revision suggestions."),
-          confidence: Number(block.data.confidence || 0.74),
+          type: String(blockData(block).memory_type || "preference"),
+          content: String(blockData(block).content || "User prefers conservative contract review with actionable revision suggestions."),
+          confidence: Number(blockData(block).confidence || 0.74),
           status: "candidate",
           is_confirmed: false,
           structured_payload: { stage: "Memory", artifact_id: artifact?.id || null, block_id: block.id }

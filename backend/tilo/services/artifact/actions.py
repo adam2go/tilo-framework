@@ -153,7 +153,7 @@ class ArtifactActionRuntime:
                     id=str(raw_block.get("id") or block_id or "block"),
                     type=str(raw_block.get("type") or "card"),
                     title=raw_block.get("title"),
-                    data=raw_block.get("data") or {},
+                    props=raw_block.get("props") or raw_block.get("data") or {},
                     actions=[],
                     state_binding=None,
                 )
@@ -307,7 +307,7 @@ class ArtifactActionRuntime:
         request_payload: dict[str, Any],
     ) -> ArtifactActionResult:
         merged_payload = {**resolved.action.payload, **request_payload}
-        content = str(merged_payload.get("content") or (resolved.block.data.get("content") if resolved.block else "") or "").strip()
+        content = str(merged_payload.get("content") or (resolved.block.props.get("content") if resolved.block else "") or "").strip()
         if not content:
             return self._result(artifact, resolved, "failed", "create_memory requires memory content.", run_id=run_id)
         memory = MemoryWriter(self.db).create_candidate(
@@ -316,7 +316,7 @@ class ArtifactActionRuntime:
             run_id=run_id,
             content=content,
             memory_type=str(merged_payload.get("type") or merged_payload.get("memory_type") or "task_experience"),
-            confidence=float(merged_payload.get("confidence") or (resolved.block.data.get("confidence") if resolved.block else 0.72) or 0.72),
+            confidence=float(merged_payload.get("confidence") or (resolved.block.props.get("confidence") if resolved.block else 0.72) or 0.72),
             source_artifact_id=artifact.id,
             reason="Created from artifact action runtime.",
             structured_payload={

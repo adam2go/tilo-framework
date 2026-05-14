@@ -1,6 +1,7 @@
 "use client";
 
 import type { ArtifactBlock } from "../../lib/types";
+import { blockData } from "../../lib/types";
 
 type BlockRenderer = (props: { block: ArtifactBlock }) => JSX.Element;
 
@@ -26,14 +27,14 @@ export const EXTENSION_ARTIFACT_BLOCK_TYPES = [
 ] as const;
 
 function MarkdownBlock({ block }: { block: ArtifactBlock }) {
-  return <section className="text-block">{String(block.data.content || "")}</section>;
+  return <section className="text-block">{String(blockData(block).content || "")}</section>;
 }
 
 function CardBlock({ block }: { block: ArtifactBlock }) {
   return (
     <section className="card-block">
-      <strong>{String(block.data.title || block.title || "Card")}</strong>
-      <span>{String(block.data.content || "")}</span>
+      <strong>{String(blockData(block).title || block.title || "Card")}</strong>
+      <span>{String(blockData(block).content || "")}</span>
     </section>
   );
 }
@@ -42,22 +43,22 @@ function RiskItemBlock({ block }: { block: ArtifactBlock }) {
   return (
     <section className="risk-block">
       <div>
-        <strong>{String(block.data.clause || block.title || "Clause")}</strong>
-        <span className={`risk-level ${String(block.data.risk_level || "medium")}`}>
-          {String(block.data.risk_level || "medium")}
+        <strong>{String(blockData(block).clause || block.title || "Clause")}</strong>
+        <span className={`risk-level ${String(blockData(block).risk_level || "medium")}`}>
+          {String(blockData(block).risk_level || "medium")}
         </span>
       </div>
-      <p>{String(block.data.issue || block.data.risk || "")}</p>
-      <small>{String(block.data.suggested_revision || "")}</small>
+      <p>{String(blockData(block).issue || blockData(block).risk || "")}</p>
+      <small>{String(blockData(block).suggested_revision || "")}</small>
     </section>
   );
 }
 
 function TableBlock({ block }: { block: ArtifactBlock }) {
-  const columns = ((block.data.columns as Array<string | { key: string; label: string }>) || []).map((column) =>
+  const columns = ((blockData(block).columns as Array<string | { key: string; label: string }>) || []).map((column) =>
     typeof column === "string" ? { key: column, label: column } : column
   );
-  const rows = (block.data.rows as Array<Record<string, string> | string[]>) || [];
+  const rows = (blockData(block).rows as Array<Record<string, string> | string[]>) || [];
   return (
     <div className="table-wrap">
       <table>
@@ -81,14 +82,14 @@ function TableBlock({ block }: { block: ArtifactBlock }) {
 function MetricBlock({ block }: { block: ArtifactBlock }) {
   return (
     <section className="metric-block">
-      <span>{String(block.data.label || block.title || "")}</span>
-      <strong>{String(block.data.value || "")}</strong>
+      <span>{String(blockData(block).label || block.title || "")}</span>
+      <strong>{String(blockData(block).value || "")}</strong>
     </section>
   );
 }
 
 function ListBlock({ block }: { block: ArtifactBlock }) {
-  const items = (block.data.items as string[]) || [];
+  const items = (blockData(block).items as string[]) || [];
   return (
     <ul className="artifact-list">
       {items.map((item) => <li key={item}>{item}</li>)}
@@ -97,10 +98,10 @@ function ListBlock({ block }: { block: ArtifactBlock }) {
 }
 
 function FormBlock({ block }: { block: ArtifactBlock }) {
-  const fields = (block.data.fields as Array<{ name?: string; label?: string; type?: string }>) || [];
+  const fields = (blockData(block).fields as Array<{ name?: string; label?: string; type?: string }>) || [];
   return (
     <section className="card-block">
-      <strong>{String(block.title || block.data.title || "Form")}</strong>
+      <strong>{String(block.title || blockData(block).title || "Form")}</strong>
       <div className="artifact-list">
         {fields.length ? fields.map((field, index) => (
           <span key={field.name || `${block.id}-field-${index}`}>{String(field.label || field.name || "Field")} · {String(field.type || "text")}</span>
@@ -111,14 +112,14 @@ function FormBlock({ block }: { block: ArtifactBlock }) {
 }
 
 function RiskPanelBlock({ block }: { block: ArtifactBlock }) {
-  const risks = (block.data.risks as Array<Record<string, unknown>>) || [];
+  const risks = (blockData(block).risks as Array<Record<string, unknown>>) || [];
   return (
     <section className="risk-block">
       <div>
-        <strong>{String(block.title || block.data.title || "Risk panel")}</strong>
-        <span className="risk-level high">{String(block.data.status || "review")}</span>
+        <strong>{String(block.title || blockData(block).title || "Risk panel")}</strong>
+        <span className="risk-level high">{String(blockData(block).status || "review")}</span>
       </div>
-      {block.data.summary ? <p>{String(block.data.summary)}</p> : null}
+      {blockData(block).summary ? <p>{String(blockData(block).summary)}</p> : null}
       {risks.length ? (
         <ul className="artifact-list">
           {risks.slice(0, 4).map((risk, index) => (
@@ -131,7 +132,7 @@ function RiskPanelBlock({ block }: { block: ArtifactBlock }) {
 }
 
 function KanbanBlock({ block }: { block: ArtifactBlock }) {
-  const columns = (block.data.columns as Array<{ id: string; title: string; cards: Array<{ id?: string; title: string; description?: string }> }>) || [];
+  const columns = (blockData(block).columns as Array<{ id: string; title: string; cards: Array<{ id?: string; title: string; description?: string }> }>) || [];
   return (
     <div className="kanban-block">
       {columns.map((column) => (
@@ -150,7 +151,7 @@ function KanbanBlock({ block }: { block: ArtifactBlock }) {
 }
 
 function TimelineBlock({ block }: { block: ArtifactBlock }) {
-  const items = (block.data.items as Array<{ time: string; title: string; description?: string }>) || [];
+  const items = (blockData(block).items as Array<{ time: string; title: string; description?: string }>) || [];
   return (
     <ol className="timeline-block">
       {items.map((item, index) => (
@@ -165,17 +166,17 @@ function TimelineBlock({ block }: { block: ArtifactBlock }) {
 }
 
 function ConfirmationActionBlock({ block }: { block: ArtifactBlock }) {
-  const actions = (block.data.actions as string[]) || [];
+  const actions = (blockData(block).actions as string[]) || [];
   return (
     <section className="confirmation-block">
-      <strong>{String(block.data.title || block.data.label || "Confirmation required")}</strong>
-      <span>{actions.length ? actions.join(" / ") : String(block.data.risk_level || "review")}</span>
+      <strong>{String(blockData(block).title || blockData(block).label || "Confirmation required")}</strong>
+      <span>{actions.length ? actions.join(" / ") : String(blockData(block).risk_level || "review")}</span>
     </section>
   );
 }
 
 function ExtensionFallbackBlock({ block }: { block: ArtifactBlock }) {
-  const summary = block.data.summary || block.data.content || block.data.description || block.title || "This extension block has no compact summary.";
+  const summary = blockData(block).summary || blockData(block).content || blockData(block).description || block.title || "This extension block has no compact summary.";
   return (
     <section className="unsupported-block">
       <strong>{String(block.title || "Extension block")}</strong>

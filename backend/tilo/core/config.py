@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     telegram_webhook_url: str = ""
     public_app_url: str = "http://localhost:3000"
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": (".env", "../.env"), "extra": "ignore"}
 
 
 @lru_cache

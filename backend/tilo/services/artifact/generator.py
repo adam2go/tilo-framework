@@ -1,16 +1,13 @@
 """Artifact generation — the bridge between agent reasoning and structured output.
 
-Every artifact_type (contract_review, dashboard, table, document) follows
-the same flow:
+AIP v1 flow:
+    1. AIPSpecGenerator calls the LLM with primitive block types + skill hints.
+    2. LLM generates a complete spec with views + blocks.
+    3. Falls back to deterministic spec when LLM is unavailable.
+    4. Persist and return the Artifact.
 
-    1. Detect artifact_type from the user message.
-    2. If LLM is enabled → call the model with a type-specific prompt to
-       generate structured data.  Streaming thinking is visible in trace.
-    3. Fall back to deterministic fixture data when LLM is disabled or
-       the model call fails.
-    4. Pass the structured data (LLM or fixture) to ArtifactSpecBuilder
-       which assembles the full ArtifactSpecV1 with blocks + views.
-    5. Persist and return the Artifact.
+Legacy v0.x flow (kept for backward compat when AIP generator fails):
+    Uses ArtifactSpecBuilder from spec.py with type-specific LLM schemas.
 """
 
 from typing import Any
@@ -20,9 +17,11 @@ from sqlalchemy.orm import Session
 
 from tilo.core.config import Settings, get_settings
 from tilo.models import Artifact, Memory, Run, Task
+from tilo.services.artifact.aip_generator import AIPSpecGenerator, ArtifactTypeDetector
 from tilo.services.artifact.contract_llm import ContractReviewLLMGenerator
 from tilo.services.artifact.persistence import ArtifactPersistenceService
-from tilo.services.artifact.spec import ArtifactSpecBuilder, ArtifactTypeDetector
+from tilo.services.artifact.spec import ArtifactSpecBuilder
+from tilo.services.demo import load_problematic_ai_service_agreement
 from tilo.services.models.client import ModelClient
 from tilo.services.models.errors import ModelClientError
 from tilo.services.models.prompts import (
@@ -55,60 +54,100 @@ class ArtifactGenerator:
     ) -> Artifact:
         artifact_type = self.detector.detect(task.input_message)
         settings = get_settings()
-        memory_snippets = [m.content for m in memories[:5]]
 
-        # --- LLM generation (all artifact types) ---
-        llm_data: dict[str, Any] | None = None
+        # --- AIP v1 path: unified LLM spec generation ---
+        schema: dict[str, Any] | None = None
         generation_mode = "deterministic"
 
         if settings.llm_enabled and settings.llm_api_key:
             on_thinking, on_content, running_step = self._setup_streaming(run, settings)
             try:
-                llm_data, generation_mode = self._call_llm(
-                    artifact_type, task, memories, tool_outputs,
-                    memory_snippets, settings, on_thinking, on_content,
+                client = ModelClient(settings)
+                # Resolve contract text for contract-review scenarios
+                contract_text = self._resolve_contract_text(task.input_message) if artifact_type == "contract_review" else None
+                aip_gen = AIPSpecGenerator(client=client)
+                schema = aip_gen.generate(
+                    task, run, memories, tool_outputs,
+                    contract_text=contract_text,
+                    on_thinking=on_thinking,
+                    on_content=on_content,
                 )
+                generation_mode = schema.pop("_generation_mode", "llm")
+                memory_candidate_data = schema.pop("_memory_candidate", None)
+            except Exception:
+                schema = None
             finally:
                 self._finish_streaming(running_step, generation_mode, artifact_type, settings)
         else:
             self.trace.record(
                 run.id, "llm_generation",
                 "Skipping LLM (deterministic mode)",
-                "No API key configured; composing artifact from fixtures.",
+                "No API key configured; using AIP deterministic fallback.",
                 output_json={"runtime_mode": "deterministic"},
             )
 
-        # --- Build spec + persist ---
-        schema = self.builder.build(
-            artifact_type, task, run, memories, tool_outputs,
-            contract_llm_data=llm_data.get("contract") if llm_data else None,
-            sales_llm_data=llm_data.get("sales") if llm_data else None,
-            competitive_llm_data=llm_data.get("competitive") if llm_data else None,
-            generation_mode=generation_mode,
-        )
-        # Inject AI-generated follow-up suggestions from whichever LLM data
-        # was produced. The frontend displays these as "猜你想问" chips.
-        follow_ups = self._extract_follow_ups(llm_data)
-        if follow_ups:
-            schema["follow_ups"] = follow_ups
+        # --- Fallback to legacy v0.x spec builder if AIP path failed ---
+        if schema is None:
+            schema = self._legacy_generate(
+                artifact_type, task, run, memories, tool_outputs, settings,
+            )
+            generation_mode = schema.pop("_generation_mode", "deterministic")
+
         artifact = self.persistence.create(task=task, run=run, artifact_type=artifact_type, schema_json=schema)
         self.trace.record(
             run.id, "generate_artifact", "Generate artifact",
-            f"Created {artifact_type} artifact.",
+            f"Created {artifact_type} artifact via {generation_mode}.",
             output_json={
                 "artifact_id": artifact.id,
                 "title": artifact.title,
                 "schema_version": artifact.schema_json.get("version"),
                 "action_count": len(artifact.schema_json.get("actions", [])),
+                "generation_mode": generation_mode,
             },
         )
         return artifact
 
     # ------------------------------------------------------------------ #
-    # LLM call dispatch                                                   #
+    # Legacy v0.x path (backward compat)                                  #
     # ------------------------------------------------------------------ #
 
-    def _call_llm(
+    def _legacy_generate(
+        self,
+        artifact_type: str,
+        task: Task,
+        run: Run,
+        memories: list[Memory],
+        tool_outputs: list[dict[str, Any]],
+        settings: Settings,
+    ) -> dict[str, Any]:
+        """Fall back to the v0.x ArtifactSpecBuilder."""
+        memory_snippets = [m.content for m in memories[:5]]
+        llm_data: dict[str, Any] | None = None
+        gen_mode = "deterministic"
+
+        if settings.llm_enabled and settings.llm_api_key:
+            try:
+                llm_data, gen_mode = self._call_legacy_llm(
+                    artifact_type, task, memories, tool_outputs,
+                    memory_snippets, settings, None, None,
+                )
+            except Exception:
+                pass
+
+        schema = self.builder.build(
+            artifact_type, task, run, memories, tool_outputs,
+            contract_llm_data=llm_data.get("contract") if llm_data else None,
+            sales_llm_data=llm_data.get("sales") if llm_data else None,
+            competitive_llm_data=llm_data.get("competitive") if llm_data else None,
+            generation_mode=gen_mode,
+        )
+        follow_ups = self._extract_follow_ups(llm_data)
+        if follow_ups:
+            schema["follow_ups"] = follow_ups
+        schema["_generation_mode"] = gen_mode
+        return schema
+
+    def _call_legacy_llm(
         self,
         artifact_type: str,
         task: Task,
@@ -119,11 +158,6 @@ class ArtifactGenerator:
         on_thinking: Any,
         on_content: Any,
     ) -> tuple[dict[str, Any], str]:
-        """Dispatch to the right LLM generator per artifact_type.
-
-        Returns (data_dict, mode) where data_dict maps a key like
-        "contract"/"sales"/"competitive" to the parsed pydantic model.
-        """
         if artifact_type == "contract_review":
             result = ContractReviewLLMGenerator(settings).generate(
                 task, memories, tool_outputs,
@@ -153,7 +187,6 @@ class ArtifactGenerator:
                 on_content=on_content,
             )
 
-        # document or unknown — no specialised LLM yet
         return None, "deterministic"
 
     def _call_generic_llm(
@@ -187,6 +220,30 @@ class ArtifactGenerator:
             return {key: data}, "llm"
         except (ModelClientError, ValidationError, ValueError):
             return None, "deterministic"
+
+    # ------------------------------------------------------------------ #
+    # Contract text resolution                                            #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _resolve_contract_text(message: str) -> str | None:
+        """Resolve the contract text to inject into the LLM prompt."""
+        if len(message) > 500:
+            return None
+        fixture_signals = [
+            "AI 客服", "ai service agreement", "service agreement",
+            "liability", "indemnity", "8.1", "8.2",
+            "合同", "条款", "责任上限", "赔偿",
+            "risky clauses", "flag risky",
+        ]
+        text_lower = message.lower()
+        if any(sig.lower() in text_lower for sig in fixture_signals):
+            try:
+                fixture = load_problematic_ai_service_agreement()
+                return fixture.content
+            except FileNotFoundError:
+                return None
+        return None
 
     # ------------------------------------------------------------------ #
     # Streaming trace helpers                                             #

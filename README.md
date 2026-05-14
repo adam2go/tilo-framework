@@ -1,14 +1,14 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>The open-source runtime for AI agents that render decisions, execute actions, and build confirmed memory.</strong>
+  <strong>Agent Interaction Protocol — the open-source runtime that turns Agent output into interactive, confirmable, memorable UI.</strong>
 </p>
 
 <p align="center">
   <a href="./README.zh-CN.md">中文</a> ·
+  <a href="./docs/AIP_DESIGN.md">AIP Design</a> ·
   <a href="./docs/INTEGRATION_GUIDE.md">Integration</a> ·
   <a href="./docs/BUILD_YOUR_FIRST_TILO_APP.md">Build an App</a> ·
-  <a href="./docs/ARTIFACT_ACTION_RUNTIME.md">Action Runtime</a> ·
   <a href="./docs/MEMORY.md">Memory</a> ·
   <a href="./docs/README.md">Docs</a>
 </p>
@@ -20,28 +20,27 @@
   <img alt="pip install" src="https://img.shields.io/badge/pip%20install-tilo-indigo" />
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688" />
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
-  <img alt="Dependencies" src="https://img.shields.io/badge/runtime_deps-8-green" />
 </p>
 
 <p align="center">
-  <img alt="Tilo Framework: AI-native product runtime — Goal → Surface → Decision → Action → Memory" src="./docs/assets/tilo-framework-overview.svg" />
+  <img alt="Tilo AIP: Agent Interaction Protocol — four-layer architecture" src="./docs/assets/tilo-framework-overview.svg" />
 </p>
 
 ---
 
 ## Why Tilo
 
-Most AI agent frameworks stop at **orchestrating LLM calls**. They give you chains, graphs, and tool routers — but leave you to figure out how to actually ship that as a product.
+The AI agent ecosystem already has great solutions for **tool calling** (MCP), **agent orchestration** (LangChain, CrewAI), and **agent communication** (A2A, ACP).
 
-Tilo picks up where they leave off. It is the **product runtime layer** between your agent's reasoning and your user's screen:
+What's missing? **The last mile between Agent output and user screen.**
 
-```text
-Goal → Surface → Decision → Action → Memory
+```
+MCP  = Agent's hands  (how agents call tools)
+A2A  = Agent's voice   (how agents talk to each other)
+Tilo = Agent's face    (how agent output becomes interactive UI)
 ```
 
-An agent powered by Tilo doesn't just return text. It **renders a focused UI**, asks the human for a **real decision**, executes the action through **backend-owned semantics**, and only commits to memory what the human **explicitly confirms**.
-
-This is the difference between an AI demo and an AI-native product.
+Tilo is an **Agent Interaction Protocol (AIP)**: a declarative JSON spec that turns agent output into interactive surfaces with built-in support for confirmation, memory, and traceability — across any frontend framework.
 
 ---
 
@@ -52,7 +51,7 @@ pip install tilo
 tilo serve
 ```
 
-That's it. Open `http://localhost:8000/api/health` to confirm the backend is running.
+Open `http://localhost:8000/api/health` to confirm the backend is running.
 
 For the full experience with the reference frontend:
 
@@ -60,34 +59,63 @@ For the full experience with the reference frontend:
 git clone https://github.com/adam2go/tilo-framework.git
 cd tilo-framework
 make install   # pip install + pnpm install
-make dev       # backend :8000 + frontend :3000
+make dev       # backend :8000 + frontend :4001
 ```
 
-Open `http://localhost:3000/demo` — pick a scenario and watch the agent think, render, and ask for your decision.
+Open `http://localhost:4001/demo` — pick a scenario and watch the agent think, render, and ask for your decision.
+
+---
+
+## Architecture: Four Layers
+
+### Layer 1 — Core Spec + Runtime
+
+~20 **primitive block types** (like HTML tags: `markdown`, `table`, `chart`, `diff`, `form`, `card`, …) plus an open extension mechanism. Any string is a valid block type — unknown types render with a generic JSON fallback.
+
+Three runtime pillars: **Memory Engine** (recall → candidate → confirm), **Confirmation Inbox** (gate high-risk actions), **Trace Recorder** (every step auditable).
+
+### Layer 2 — Protocol Adapters
+
+Zero-code bridges from external protocols into Tilo blocks:
+
+| Adapter | Status | Mapping |
+|---|---|---|
+| **MCP** | ✅ Implemented | TextContent→markdown, ImageContent→image, Resource→card |
+| **LangChain** | 🔌 Interface | TiloCallbackHandler → Tilo spec |
+| **A2A** | 🔌 Interface | A2A task result → Tilo spec |
+| **ACP** | 🔌 Interface | ACP message → Tilo spec |
+
+### Layer 3 — Renderer SDKs
+
+Tilo Spec JSON → any frontend. `@tilo/react` is the official reference. Developers can override any block type's renderer or build their own SDK for Vue, Flutter, Web Components, or terminal CLI.
+
+### Layer 4 — Skill Hints + LLM Composition
+
+Skills provide **hints** (recommended block types, view organization) to the LLM. The LLM has full autonomy to decide the final views, blocks, and layout. Skills are recommendations, not constraints.
 
 ---
 
 ## Three Built-in Demos
 
-Each demo exercises the same underlying runtime. The Canvas adapts automatically based on what the agent produces — no frontend changes needed.
+Each demo exercises the same runtime. The Canvas adapts automatically based on what the agent produces.
 
 | Scenario | What the agent does | Canvas views |
 |---|---|---|
-| **Contract Review** 📋 | Reads a full contract, flags 8 risks by clause, drafts conservative revisions | Risks · Clauses · Revision · Memory |
-| **Sales Follow-up** 📊 | Analyzes pipeline, ranks hot accounts, suggests outbound actions | Pipeline · Next Actions |
-| **Competitive Analysis** 🏆 | Compares market positioning, identifies gaps and strengths | Comparison · Next Steps |
+| **Contract Review** 📋 | Reads a full contract, flags risks by clause, drafts revisions | Risks · Clauses · Revision · Memory |
+| **Sales Follow-up** 📊 | Analyzes pipeline, ranks accounts, suggests outbound actions | Pipeline · Next Actions |
+| **Competitive Analysis** 🏆 | Compares positioning, identifies gaps and strengths | Comparison · Next Steps |
 
-All three support **multi-turn conversation**: after the first run completes, context-aware follow-up suggestions appear based on what the agent actually produced.
+All three support **multi-turn conversation** and **LLM-driven UI composition** — the LLM decides which block types and views to generate based on skill hints and user intent.
 
 ---
 
 ## What Makes Tilo Different
 
-### 1. Confirmed Memory — Not Automatic Memory
+### 1. Open Block Type System
 
-Many agents silently write to memory. This pollutes evaluations, stores wrong preferences, and erodes user trust.
+Unlike fixed component libraries, Tilo's ~20 primitives are **stable and extensible**. Use core types for 95% of cases. Define custom types for domain-specific needs — the frontend degrades gracefully with a generic JSON viewer.
 
-Tilo treats memory as a lifecycle with human gates:
+### 2. Confirmed Memory — Not Automatic Memory
 
 ```text
 Observation → Memory Candidate → Human Confirmation → Confirmed Memory
@@ -95,11 +123,7 @@ Observation → Memory Candidate → Human Confirmation → Confirmed Memory
 
 The agent proposes what it learned. The user decides what sticks.
 
-### 2. Backend-Owned Action Semantics
-
-In typical AI demos, a frontend button calls an API and mutates state directly. This breaks auditability and forces every channel to reimplement logic.
-
-Tilo routes every meaningful action through the Artifact Action Runtime:
+### 3. Backend-Owned Action Semantics
 
 ```text
 User click → ArtifactActionRuntime → UIInteractionEvent → Observation → Safe side effect
@@ -107,41 +131,22 @@ User click → ArtifactActionRuntime → UIInteractionEvent → Observation → 
 
 The frontend renders intent. The backend owns what happens.
 
-### 3. Artifact-Driven Canvas — Not Hardcoded UIs
+### 4. Protocol-Native Integration
 
-The right-hand Canvas is not a fixed dashboard. It reads `views` declared by each artifact and renders the matching block types. A contract review agent produces Risks/Clauses/Revision tabs. A sales agent produces Pipeline/Actions tabs. **The Canvas never changes — only the artifact does.**
-
-Any new agent can declare its own views and block types. The frontend stays unchanged.
-
-### 4. Lightweight by Design
-
-```text
-Backend:   8 runtime dependencies · 103 source files · pip install tilo
-Frontend:  4 runtime dependencies · 32 source files  · pnpm install
-```
-
-No LangChain. No vector database required. No heavyweight orchestration layer. SQLite works out of the box. Postgres when you're ready.
-
----
-
-## Protocol Boundary
-
-MCP connects tools. AG-UI streams agent/UI events. LangGraph orchestrates graphs. A2A routes between agents.
-
-Tilo doesn't compete with any of them — it sits one layer above. It owns the **product runtime loop**: the part where an agent's output becomes a human-facing decision, a backend action, and a confirmed memory. MCP, AG-UI, ACP, or A2A can all serve as boundary adapters underneath.
+Bring your own agent framework. Tilo adapters bridge MCP tool results, LangChain outputs, A2A tasks, and ACP messages into the same interactive Canvas — without rewriting your agent logic.
 
 ---
 
 ## How Developers Integrate
 
-Tilo is designed for gradual adoption. You don't rewrite your product.
-
 | Mode | When to use | What you touch |
 |---|---|---|
 | **Standalone** | Evaluate Tilo locally | `pip install tilo && tilo serve` |
-| **Backend sidecar** | You already have a frontend | Call Tilo REST APIs |
-| **Embedded components** | Want AI-native UI building blocks | Reuse React artifact/action components |
-| **Declarative app** | Package a repeatable agent workflow | `app.yaml` + `interaction.policy.yaml` |
+| **MCP adapter** | Already using MCP tools | `from tilo.adapters.mcp import mcp_content_to_blocks` |
+| **Backend sidecar** | Have your own frontend | Call Tilo REST APIs |
+| **Embedded components** | Want AI-native UI blocks | Reuse `@tilo/react` components with overrides |
+| **Skill author** | Package a repeatable workflow | `skill.yaml` with `block_hints` + `view_hints` |
+| **Declarative app** | Full agent workflow | `app.yaml` + `interaction.policy.yaml` |
 
 Core APIs:
 
@@ -149,94 +154,47 @@ Core APIs:
 POST /api/conversations                          Create a session
 POST /api/conversations/{id}/messages             Send a message → Task → Run
 GET  /api/runs/{id}/trace                         Live trace stream
-GET  /api/runs/{id}/surface-turns                 Rendered surfaces
 GET  /api/artifacts?workspace_id=...&task_id=...  Full artifact with views
 POST /api/memories/{id}/confirm                   Confirm a memory candidate
 ```
 
-See [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md) for the full guide.
-
----
-
-## Build an Agent App
-
-A Tilo app is a small declarative folder:
-
-```text
-my-agent/
-  app.yaml                    # Agent identity and capabilities
-  interaction.policy.yaml     # When to show UI vs. stay silent
-  fixtures/                   # Sample inputs (optional)
-  README.md
-```
-
-Scaffold one:
-
-```bash
-tilo init my-agent           # or: python scripts/create_app.py my-agent
-```
-
-Three built-in examples:
-
-```text
-examples/apps/contract-review-agent/
-examples/apps/sales-followup-agent/
-examples/apps/competitive-analysis-agent/
-```
-
-References: [`BUILD_YOUR_FIRST_TILO_APP.md`](./docs/BUILD_YOUR_FIRST_TILO_APP.md) · [`APP_MANIFEST.md`](./docs/APP_MANIFEST.md) · [`INTERACTION_POLICY.md`](./docs/INTERACTION_POLICY.md)
-
----
-
-## Runtime Model
-
-```text
-User Goal
-  → Task + Run
-    → Memory Recall
-    → Skill Selection
-    → Tool Execution
-    → LLM Generation (streaming thinking visible in trace)
-    → Interaction Policy (per-step: surface / silent / collect input)
-    → Artifact + Views (Canvas tabs auto-generated)
-    → Surface Turns (chat-side decisions)
-    → Confirmation Inbox (high-risk actions gated)
-    → Memory Candidates (human-confirmed only)
-```
-
-Every step is recorded in the Trace. Every action creates a UIInteractionEvent. Every memory requires confirmation. Nothing is hidden.
+See [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md) and [`docs/AIP_DESIGN.md`](./docs/AIP_DESIGN.md).
 
 ---
 
 ## Repository Structure
 
 ```text
-backend/       Python package `tilo` — FastAPI runtime, 8 deps, pip-installable
-frontend/      @tilo/frontend — Next.js reference UI, 4 deps, artifact-driven Canvas
+backend/       Python package `tilo` — FastAPI runtime, pip-installable
+  tilo/adapters/   MCP, LangChain, A2A, ACP protocol adapters
+  tilo/schemas/    AIP v1 spec: ~20 primitive block types + open extension
+  tilo/services/   Memory, Confirmation, Trace, Artifact, Skills
+frontend/      @tilo/react — Next.js reference UI, artifact-driven Canvas
+skills/        Skill YAML definitions with block_hints + view_hints
 examples/      Declarative agent apps and contract fixtures
-docs/          Architecture, protocols, integration guide, principles
+docs/          Architecture, AIP design, integration guide, principles
 evals/         Runtime quality checks and baseline metrics
-scripts/       App scaffold, validation, local verification
 ```
 
 ---
 
 ## Roadmap
 
-**v0.1 (current)** — Complete working loop with three end-to-end demos.
+**v0.1 (current)** — Complete working loop + AIP architecture.
 
-- [x] Backend + frontend run locally
 - [x] Task → Run → Trace → Artifact → Surface → Confirmation → Memory loop
 - [x] Three demo scenarios (contract, sales, competitive)
-- [x] Multi-turn conversation with context-aware follow-ups
-- [x] Artifact-driven Canvas with dynamic views
+- [x] Agent Interaction Protocol (AIP) with ~20 primitive block types
+- [x] LLM-driven UI composition with skill hints
+- [x] MCP adapter (implemented) + LangChain/A2A/ACP stubs
 - [x] `pip install tilo` + `tilo serve` CLI
-- [x] LLM streaming with visible thinking in trace
-- [ ] CI pipeline with green verification
+- [x] Multi-turn conversation + LLM streaming with visible thinking
+- [ ] Full adapter implementations (LangChain, A2A, ACP)
+- [ ] `@tilo/react` npm package with renderer override API
+- [ ] Skill marketplace + YAML-based skill loading
 - [ ] PyPI publication
-- [ ] npm package for frontend components
 
-**Future** — Skill marketplace, MCP adapter layer, multi-agent routing, real tool execution with confirmation gates.
+**Future** — Multi-agent routing, real tool execution with confirmation gates, community renderer SDKs.
 
 ---
 
@@ -248,11 +206,11 @@ Before contributing, please read:
 
 - [`AGENTS.md`](./AGENTS.md) — Development rules for AI coding agents
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-- [`docs/PROJECT_CONSTITUTION.md`](./docs/PROJECT_CONSTITUTION.md)
+- [`docs/AIP_DESIGN.md`](./docs/AIP_DESIGN.md) — Agent Interaction Protocol design
 
-The most important rule:
+The most important principle:
 
-> **Do not turn Tilo into "SaaS + AI sidebar". Preserve the AI-native runtime loop: Goal → Surface → Decision → Action → Memory.**
+> **MCP is the Agent's hands. Tilo is the Agent's face. Preserve the AIP loop: Goal → Spec → Interactive UI → Decision → Memory.**
 
 ---
 
