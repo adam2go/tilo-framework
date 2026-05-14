@@ -1,0 +1,165 @@
+<svg width="1600" height="920" viewBox="0 0 1600 920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(260 160) rotate(38) scale(520)">
+      <stop stop-color="#4338CA" stop-opacity="0.3"/><stop offset="1" stop-color="#070A12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1350 250) rotate(136) scale(500)">
+      <stop stop-color="#047857" stop-opacity="0.25"/><stop offset="1" stop-color="#070A12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(830 820) rotate(90) scale(620)">
+      <stop stop-color="#7C3AED" stop-opacity="0.2"/><stop offset="1" stop-color="#070A12" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M2 2L9 5L2 8" fill="none" stroke="#6366F1" stroke-width="1.5" stroke-linecap="round"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M2 2L9 5L2 8" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="920" fill="#070A12"/>
+  <rect width="1600" height="920" fill="url(#g1)"/>
+  <rect width="1600" height="920" fill="url(#g2)"/>
+  <rect width="1600" height="920" fill="url(#g3)"/>
+
+  <!-- Header -->
+  <rect x="60" y="40" width="200" height="44" rx="22" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+  <text x="84" y="69" fill="#E0E7FF" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="700">Tilo Framework</text>
+
+  <text x="60" y="140" fill="#F9FAFB" font-family="Inter,system-ui,sans-serif" font-size="58" font-weight="800">AI 原生产品运行时</text>
+  <text x="60" y="186" fill="#9CA3AF" font-family="Inter,system-ui,sans-serif" font-size="24">Agent 渲染决策界面 · 人类确认 · 记忆沉淀 · 动作安全执行</text>
+
+  <!-- ═══════ CORE LOOP (5 nodes) ═══════ -->
+  <!-- Goal -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="240" width="260" height="140" rx="20" fill="#0F172A" stroke="#312E81" stroke-width="1.5"/>
+    <rect x="82" y="262" width="72" height="30" rx="15" fill="#312E81"/>
+    <text x="94" y="283" fill="#C7D2FE" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600">目标</text>
+    <text x="82" y="324" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700">用户目标</text>
+    <text x="82" y="352" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">创建 Task + Run</text>
+  </g>
+
+  <!-- Surface -->
+  <g filter="url(#shadow)">
+    <rect x="370" y="240" width="260" height="140" rx="20" fill="#0F172A" stroke="#4338CA" stroke-width="1.5"/>
+    <rect x="392" y="262" width="72" height="30" rx="15" fill="#4338CA"/>
+    <text x="404" y="283" fill="#E0E7FF" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600">界面</text>
+    <text x="392" y="324" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700">聚焦 UI</text>
+    <text x="392" y="352" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">Artifact 驱动的 Canvas</text>
+  </g>
+
+  <!-- Decision -->
+  <g filter="url(#shadow)">
+    <rect x="680" y="240" width="260" height="140" rx="20" fill="#0F172A" stroke="#F59E0B" stroke-width="1.5"/>
+    <rect x="702" y="262" width="72" height="30" rx="15" fill="#78350F"/>
+    <text x="714" y="283" fill="#FDE68A" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600">决策</text>
+    <text x="702" y="324" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700">人类把关</text>
+    <text x="702" y="352" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">批准 / 拒绝 / 编辑</text>
+  </g>
+
+  <!-- Action -->
+  <g filter="url(#shadow)">
+    <rect x="990" y="240" width="260" height="140" rx="20" fill="#0F172A" stroke="#10B981" stroke-width="1.5"/>
+    <rect x="1012" y="262" width="72" height="30" rx="15" fill="#064E3B"/>
+    <text x="1024" y="283" fill="#A7F3D0" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600">行动</text>
+    <text x="1012" y="324" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700">安全执行</text>
+    <text x="1012" y="352" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">后端拥有语义</text>
+  </g>
+
+  <!-- Memory -->
+  <g filter="url(#shadow)">
+    <rect x="1300" y="240" width="260" height="140" rx="20" fill="#0F172A" stroke="#8B5CF6" stroke-width="1.5"/>
+    <rect x="1322" y="262" width="72" height="30" rx="15" fill="#4C1D95"/>
+    <text x="1334" y="283" fill="#DDD6FE" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="600">记忆</text>
+    <text x="1322" y="324" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="700">确认式记忆</text>
+    <text x="1322" y="352" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">自动 / 人工确认</text>
+  </g>
+
+  <!-- Arrows between core nodes -->
+  <line x1="320" y1="310" x2="368" y2="310" stroke="#6366F1" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="630" y1="310" x2="678" y2="310" stroke="#6366F1" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="940" y1="310" x2="988" y2="310" stroke="#10B981" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="1250" y1="310" x2="1298" y2="310" stroke="#8B5CF6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Memory → Goal feedback loop -->
+  <path d="M1430 382 L1430 420 Q1430 436 1414 436 L126 436 Q110 436 110 420 L110 382" fill="none" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <text x="720" y="454" fill="#7C3AED" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="500">记忆在下一次 Run 中被召回</text>
+
+  <!-- ═══════ MIDDLE LAYER ═══════ -->
+  <text x="60" y="510" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="600" letter-spacing="0.08em">AGENT 产出</text>
+
+  <g filter="url(#shadow)">
+    <rect x="60" y="530" width="360" height="160" rx="18" fill="#0F172A" stroke="#1E293B" stroke-width="1.5"/>
+    <text x="82" y="562" fill="#E0E7FF" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700">Artifact + Views</text>
+    <text x="82" y="588" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="14">动态 Canvas tab，来自 artifact.views</text>
+    <rect x="82" y="604" width="72" height="24" rx="12" fill="#1E1B4B"/><text x="94" y="621" fill="#A5B4FC" font-family="Inter,system-ui,sans-serif" font-size="12">风险</text>
+    <rect x="162" y="604" width="72" height="24" rx="12" fill="#1E1B4B"/><text x="174" y="621" fill="#A5B4FC" font-family="Inter,system-ui,sans-serif" font-size="12">条款</text>
+    <rect x="242" y="604" width="72" height="24" rx="12" fill="#1E1B4B"/><text x="254" y="621" fill="#A5B4FC" font-family="Inter,system-ui,sans-serif" font-size="12">修订</text>
+    <rect x="322" y="604" width="72" height="24" rx="12" fill="#1E1B4B"/><text x="334" y="621" fill="#A5B4FC" font-family="Inter,system-ui,sans-serif" font-size="12">管线</text>
+    <text x="82" y="660" fill="#64748B" font-family="Inter,system-ui,sans-serif" font-size="13">15+ block 类型 · 前端零硬编码</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="440" y="530" width="360" height="160" rx="18" fill="#0F172A" stroke="#1E293B" stroke-width="1.5"/>
+    <text x="462" y="562" fill="#E0E7FF" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700">Surface Turns</text>
+    <text x="462" y="588" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="14">对话中的聚焦决策</text>
+    <rect x="462" y="604" width="100" height="24" rx="12" fill="#1C2432"/><text x="474" y="621" fill="#93C5FD" font-family="Inter,system-ui,sans-serif" font-size="12">请求审批</text>
+    <rect x="570" y="604" width="100" height="24" rx="12" fill="#1C2432"/><text x="582" y="621" fill="#93C5FD" font-family="Inter,system-ui,sans-serif" font-size="12">收集输入</text>
+    <text x="462" y="660" fill="#64748B" font-family="Inter,system-ui,sans-serif" font-size="13">8 种 intent · 按步策略决定</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="820" y="530" width="360" height="160" rx="18" fill="#0F172A" stroke="#1E293B" stroke-width="1.5"/>
+    <text x="842" y="562" fill="#E0E7FF" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700">Trace 链路</text>
+    <text x="842" y="588" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="14">每一步可见可审计</text>
+    <rect x="842" y="604" width="64" height="24" rx="12" fill="#1A2332"/><text x="852" y="621" fill="#86EFAC" font-family="Inter,system-ui,sans-serif" font-size="12">召回</text>
+    <rect x="914" y="604" width="64" height="24" rx="12" fill="#1A2332"/><text x="924" y="621" fill="#86EFAC" font-family="Inter,system-ui,sans-serif" font-size="12">规划</text>
+    <rect x="986" y="604" width="58" height="24" rx="12" fill="#1A2332"/><text x="996" y="621" fill="#86EFAC" font-family="Inter,system-ui,sans-serif" font-size="12">LLM</text>
+    <rect x="1052" y="604" width="64" height="24" rx="12" fill="#1A2332"/><text x="1062" y="621" fill="#86EFAC" font-family="Inter,system-ui,sans-serif" font-size="12">思考</text>
+    <text x="842" y="660" fill="#64748B" font-family="Inter,system-ui,sans-serif" font-size="13">流式思考 · 无隐藏推理</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1200" y="530" width="360" height="160" rx="18" fill="#0F172A" stroke="#1E293B" stroke-width="1.5"/>
+    <text x="1222" y="562" fill="#E0E7FF" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="700">多轮上下文</text>
+    <text x="1222" y="588" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="14">会话 session + 历史轮次</text>
+    <rect x="1222" y="604" width="100" height="24" rx="12" fill="#1C2432"/><text x="1234" y="621" fill="#FBBF24" font-family="Inter,system-ui,sans-serif" font-size="12">追问建议</text>
+    <rect x="1330" y="604" width="100" height="24" rx="12" fill="#1C2432"/><text x="1342" y="621" fill="#FBBF24" font-family="Inter,system-ui,sans-serif" font-size="12">12 轮上下文</text>
+    <text x="1222" y="660" fill="#64748B" font-family="Inter,system-ui,sans-serif" font-size="13">上下文感知建议 · 中英文</text>
+  </g>
+
+  <!-- ═══════ BOTTOM: Infrastructure ═══════ -->
+  <text x="60" y="740" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="600" letter-spacing="0.08em">基础设施</text>
+
+  <rect x="60" y="760" width="230" height="64" rx="16" fill="#111827" stroke="#1F2937" stroke-width="1.5"/>
+  <text x="82" y="790" fill="#D1D5DB" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600">pip install tilo</text>
+  <text x="82" y="810" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13">8 个依赖 · tilo serve</text>
+
+  <rect x="310" y="760" width="230" height="64" rx="16" fill="#111827" stroke="#1F2937" stroke-width="1.5"/>
+  <text x="332" y="790" fill="#D1D5DB" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600">FastAPI 运行时</text>
+  <text x="332" y="810" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13">REST APIs · SQLite/Postgres</text>
+
+  <rect x="560" y="760" width="230" height="64" rx="16" fill="#111827" stroke="#1F2937" stroke-width="1.5"/>
+  <text x="582" y="790" fill="#D1D5DB" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600">交互策略引擎</text>
+  <text x="582" y="810" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13">仅必要时出 UI</text>
+
+  <rect x="810" y="760" width="230" height="64" rx="16" fill="#111827" stroke="#1F2937" stroke-width="1.5"/>
+  <text x="832" y="790" fill="#D1D5DB" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600">15+ LLM 厂商</text>
+  <text x="832" y="810" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13">OpenAI 兼容 · 流式输出</text>
+
+  <rect x="1060" y="760" width="230" height="64" rx="16" fill="#111827" stroke="#1F2937" stroke-width="1.5"/>
+  <text x="1082" y="790" fill="#D1D5DB" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600">声明式 App</text>
+  <text x="1082" y="810" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13">app.yaml + policy.yaml</text>
+
+  <rect x="1310" y="760" width="250" height="64" rx="16" fill="#111827" stroke="#1F2937" stroke-width="1.5"/>
+  <text x="1332" y="790" fill="#D1D5DB" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="600">@tilo/frontend</text>
+  <text x="1332" y="810" fill="#6B7280" font-family="Inter,system-ui,sans-serif" font-size="13">Next.js · 4 个依赖 · Canvas</text>
+
+  <!-- Bottom tagline -->
+  <text x="60" y="876" fill="#4B5563" font-family="Inter,system-ui,sans-serif" font-size="15">不是聊天机器人壳子，不是"SaaS + AI 侧边栏"。这是 Agent 输出变成人类决策、后端行动和确认记忆的运行时层。</text>
+  <text x="60" y="904" fill="#374151" font-family="Inter,system-ui,sans-serif" font-size="13">github.com/adam2go/tilo-framework · MIT License · v0.1.0</text>
+</svg>

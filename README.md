@@ -23,6 +23,10 @@
   <img alt="Dependencies" src="https://img.shields.io/badge/runtime_deps-8-green" />
 </p>
 
+<p align="center">
+  <img alt="Tilo Framework: AI-native product runtime — Goal → Surface → Decision → Action → Memory" src="./docs/assets/tilo-framework-overview.svg" />
+</p>
+
 ---
 
 ## Why Tilo

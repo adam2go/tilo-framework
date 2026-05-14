@@ -23,6 +23,10 @@
   <img alt="Dependencies" src="https://img.shields.io/badge/运行时依赖-8-green" />
 </p>
 
+<p align="center">
+  <img alt="Tilo Framework 架构总览：目标 → 界面 → 决策 → 行动 → 记忆" src="./docs/assets/tilo-framework-overview-zh.svg" />
+</p>
+
 ---
 
 ## 为什么是 Tilo
