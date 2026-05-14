@@ -86,6 +86,11 @@ class ArtifactGenerator:
             competitive_llm_data=llm_data.get("competitive") if llm_data else None,
             generation_mode=generation_mode,
         )
+        # Inject AI-generated follow-up suggestions from whichever LLM data
+        # was produced. The frontend displays these as "猜你想问" chips.
+        follow_ups = self._extract_follow_ups(llm_data)
+        if follow_ups:
+            schema["follow_ups"] = follow_ups
         artifact = self.persistence.create(task=task, run=run, artifact_type=artifact_type, schema_json=schema)
         self.trace.record(
             run.id, "generate_artifact", "Generate artifact",
@@ -219,3 +224,16 @@ class ArtifactGenerator:
                     "artifact_type": artifact_type,
                 },
             )
+
+    @staticmethod
+    def _extract_follow_ups(llm_data: dict[str, Any] | None) -> list[str]:
+        """Pull follow_ups from whichever LLM data object was produced."""
+        if not llm_data:
+            return []
+        for value in llm_data.values():
+            if value is None:
+                continue
+            fups = getattr(value, "follow_ups", None)
+            if fups and isinstance(fups, list):
+                return [str(f) for f in fups[:3]]
+        return []

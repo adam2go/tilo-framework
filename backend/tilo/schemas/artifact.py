@@ -175,6 +175,9 @@ class ArtifactSpecV1(BaseModel):
     # gracefully. This keeps backwards compatibility: every existing
     # artifact in the database remains valid.
     views: list[ArtifactView] = Field(default_factory=list)
+    # AI-generated follow-up suggestions based on the artifact content.
+    # The frontend displays these as "猜你想问" chips after a run completes.
+    follow_ups: list[str] = Field(default_factory=list)
 
     @field_validator("artifact_type")
     @classmethod

@@ -36,6 +36,7 @@ class ContractReviewLLMData(BaseModel):
     risks: list[ContractRisk]
     revision_draft: ContractRevisionDraft
     memory_candidate: ContractMemoryCandidate
+    follow_ups: list[str] = Field(default_factory=list, description="2-3 suggested follow-up questions the user might want to ask next")
 
     @field_validator("risks")
     @classmethod
@@ -87,7 +88,8 @@ class SalesFollowUpLLMData(BaseModel):
     insights: list[SalesInsight] = Field(min_length=1)
     actions: list[SalesAction] = Field(min_length=2)
     tool_preview: str = ""
-    memory_candidate: ContractMemoryCandidate  # reuse same shape
+    memory_candidate: ContractMemoryCandidate
+    follow_ups: list[str] = Field(default_factory=list)  # reuse same shape
 
     @field_validator("actions")
     @classmethod
@@ -119,6 +121,7 @@ class CompetitiveAnalysisLLMData(BaseModel):
     rows: list[CompetitorRow] = Field(min_length=2)
     next_steps: list[NextStep] = Field(min_length=1)
     memory_candidate: ContractMemoryCandidate
+    follow_ups: list[str] = Field(default_factory=list)
 
     @field_validator("rows")
     @classmethod

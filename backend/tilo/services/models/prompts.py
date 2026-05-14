@@ -39,8 +39,11 @@ def contract_review_user_prompt(
         '  "risk_summary": {"high_count": 3, "medium_count": 2, "low_count": 1, "summary": "..."},\n',
         '  "risks": [{"id": "risk_1", "clause": "...", "risk_level": "high", "issue": "...", "suggested_revision": "...", "evidence": "..."}],\n',
         '  "revision_draft": {"heading": "Conservative revision draft", "content": "...", "highlights": ["..."]},\n',
-        '  "memory_candidate": {"type": "preference", "content": "...", "confidence": 0.7}\n',
+        '  "memory_candidate": {"type": "preference", "content": "...", "confidence": 0.7},\n',
+        '  "follow_ups": ["suggested question 1", "suggested question 2"]\n',
         "}\n",
+        "\n",
+        "follow_ups: generate 2-3 natural follow-up questions the user would likely want to ask next, based on the review results. Make them specific to the findings, not generic.\n",
     ])
     return "".join(parts)
 
@@ -66,8 +69,11 @@ def sales_followup_user_prompt(task_message: str, memory_snippets: list[str]) ->
         '  "insights": [{"content": "..."}],\n'
         '  "actions": [{"id": "act_1", "title": "...", "detail": "...", "status": "ready"}],\n'
         '  "tool_preview": "short description of the next outbound tool call",\n'
-        '  "memory_candidate": {"type": "preference", "content": "...", "confidence": 0.7}\n'
+        '  "memory_candidate": {"type": "preference", "content": "...", "confidence": 0.7},\n'
+        '  "follow_ups": ["suggested question 1", "suggested question 2"]\n'
         "}\n"
+        "\n"
+        "follow_ups: generate 2-3 natural follow-up questions the user would likely want to ask next, based on the pipeline analysis. Make them specific.\n"
     )
 
 
@@ -91,6 +97,9 @@ def competitive_analysis_user_prompt(task_message: str, memory_snippets: list[st
         '  "summary": "one-paragraph analysis summary",\n'
         '  "rows": [{"company": "...", "positioning": "...", "strength": "...", "gap": "..."}],\n'
         '  "next_steps": [{"id": "ns_1", "title": "...", "detail": "...", "status": "ready"}],\n'
-        '  "memory_candidate": {"type": "preference", "content": "...", "confidence": 0.7}\n'
+        '  "memory_candidate": {"type": "preference", "content": "...", "confidence": 0.7},\n'
+        '  "follow_ups": ["suggested question 1", "suggested question 2"]\n'
         "}\n"
+        "\n"
+        "follow_ups: generate 2-3 natural follow-up questions the user would likely want to ask next, based on the competitive analysis. Make them specific.\n"
     )

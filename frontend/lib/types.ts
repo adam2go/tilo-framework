@@ -109,6 +109,7 @@ export type ArtifactSpecV1 = {
     block_ids: string[];
     renderer?: string | null;
   }>;
+  follow_ups?: string[];
 };
 
 export type Artifact = {
