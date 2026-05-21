@@ -22,6 +22,27 @@
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
 </p>
 
+---
+
+## See it in 60 seconds
+
+A real Tilo run — agent recalls memory, plans, calls tools, generates an
+interactive artifact, and hands it back to the user as live, clickable UI.
+**Zero LLM key required for this demo.**
+
+<!--
+  ▼ HERO VIDEO ▼
+  Replace this URL with the GitHub user-attachments link once uploaded:
+    1. Open https://github.com/adam2go/tilo-framework/issues/new
+    2. Drag examples/compressed/canvas-sf-trip.mp4 into the description
+    3. Copy the auto-generated user-attachments URL into the src below
+-->
+
+https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4
+
+> **Plan a SF weekend** — runs entirely from a baked-in fixture. Two more
+> demos (PR Review · Sales Briefing) further down. ↓
+
 <p align="center">
   <img alt="Tilo AIP: Agent Interaction Protocol — four-layer architecture" src="./docs/assets/tilo-framework-overview.svg" />
 </p>
@@ -112,28 +133,22 @@ Each demo exercises the same runtime. The Canvas adapts automatically based on w
 
 All three support **multi-turn conversation** and **LLM-driven UI composition** — the LLM decides which block types and views to generate based on skill hints and user intent.
 
-### 📹 Watch the demos
+### 📹 The other two demos
 
-> Click any thumbnail / link below to watch. Videos live in the [v0.1-demos GitHub Release][demos-release] (no signup, no tracking).
+> The SF Trip demo is at the top of this page. Below are the two LLM-driven scenarios:
 
 <table>
   <tr>
-    <td width="33%" valign="top">
+    <td width="50%" valign="top">
       <h4>🔍 PR Review</h4>
       <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4" controls width="100%"></video>
-      <sub>Auth refactor PR · diff + checklist + merge confirmation. <b>53s</b></sub><br/>
+      <sub>Auth-refactor PR · diffs + verification checklist + merge confirmation. <b>53s</b></sub><br/>
       <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">▶ Watch (42 MB)</a>
     </td>
-    <td width="33%" valign="top">
-      <h4>✈️ SF Trip</h4>
-      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4" controls width="100%"></video>
-      <sub>Runs offline — perfect first-time demo. <b>82s</b></sub><br/>
-      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4">▶ Watch (49 MB)</a>
-    </td>
-    <td width="33%" valign="top">
+    <td width="50%" valign="top">
       <h4>📊 Sales Briefing</h4>
       <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4" controls width="100%"></video>
-      <sub>Pipeline metrics + gated outbound email. <b>68s</b></sub><br/>
+      <sub>Pipeline metrics + recommended actions + gated outbound email. <b>68s</b></sub><br/>
       <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">▶ Watch (36 MB)</a>
     </td>
   </tr>

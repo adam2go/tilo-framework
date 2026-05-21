@@ -22,6 +22,26 @@
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
 </p>
 
+---
+
+## 60 秒看效果
+
+一次真实的 Tilo 运行 —— Agent 召回记忆、规划、调工具、生成可交互
+artifact，最后把它作为可点可拖的 UI 交还给用户。**这个 demo 不需要任何 LLM key。**
+
+<!--
+  ▼ HERO 视频 ▼
+  上传完成后把这里的 URL 替换为 GitHub user-attachments 链接：
+    1. 打开 https://github.com/adam2go/tilo-framework/issues/new
+    2. 把 examples/compressed/canvas-sf-trip.mp4 拖进描述框
+    3. 把自动生成的 user-attachments URL 粘贴到 src 里
+-->
+
+https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4
+
+> **Plan a SF weekend** —— 完全跑在内置 fixture 上。另外两个 demo（PR 评审 ·
+> 销售简报）见下文。 ↓
+
 <p align="center">
   <img alt="Tilo AIP 架构总览：四层架构 + 生态定位" src="./docs/assets/tilo-framework-overview-zh.svg" />
 </p>
@@ -112,28 +132,22 @@ Skill 向 LLM 提供**提示**（推荐的块类型、视图组织方式）。LL
 
 三个场景都支持**多轮对话**和 **LLM 驱动的 UI 组合**——LLM 根据 skill 提示和用户意图自主决定生成哪些 block 类型和 views。
 
-### 📹 观看 Demo 视频
+### 📹 另外两个 demo
 
-> 视频托管在 [v0.1-demos GitHub Release][demos-release]（无注册、无追踪）。
+> SF Trip 已经在页面顶部展示。下面是两个 LLM 驱动的场景：
 
 <table>
   <tr>
-    <td width="33%" valign="top">
+    <td width="50%" valign="top">
       <h4>🔍 PR Review</h4>
       <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4" controls width="100%"></video>
       <sub>Auth 改造 PR · diff + 验证清单 + 合并 confirmation。<b>53 秒</b></sub><br/>
       <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">▶ 观看 (42 MB)</a>
     </td>
-    <td width="33%" valign="top">
-      <h4>✈️ SF Trip</h4>
-      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4" controls width="100%"></video>
-      <sub>离线运行，最适合首次评估。<b>82 秒</b></sub><br/>
-      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4">▶ 观看 (49 MB)</a>
-    </td>
-    <td width="33%" valign="top">
+    <td width="50%" valign="top">
       <h4>📊 Sales Briefing</h4>
       <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4" controls width="100%"></video>
-      <sub>管线指标 + 把关后才发的外呼邮件。<b>68 秒</b></sub><br/>
+      <sub>管线指标 + 推荐动作 + 把关后才发的外呼邮件。<b>68 秒</b></sub><br/>
       <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">▶ 观看 (36 MB)</a>
     </td>
   </tr>
