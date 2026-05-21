@@ -59,10 +59,15 @@ For the full experience with the reference frontend:
 git clone https://github.com/adam2go/tilo-framework.git
 cd tilo-framework
 make install   # pip install + pnpm install
-make dev       # backend :8000 + frontend :4001
+make dev       # backend :8000 + frontend :4001 (Ctrl-C stops both)
 ```
 
-Open `http://localhost:4001/demo` — pick a scenario and watch the agent think, render, and ask for your decision.
+Two entry points:
+
+- `http://localhost:4001/demo` — classic scenario picker (Contract Review, Sales, Competitive)
+- `http://localhost:4001/canvas` — **3D Agent Canvas**: watch the agent stream a live trace and render an interactive spatial workspace
+
+> **Zero-config demo.** The canvas works without any LLM key — the "Plan a SF Weekend" sample runs from a baked-in fixture. Configure `LLM_ENABLED=true` + a provider key in `.env` to unlock the LLM-driven samples.
 
 ---
 
@@ -99,13 +104,44 @@ Skills provide **hints** (recommended block types, view organization) to the LLM
 
 Each demo exercises the same runtime. The Canvas adapts automatically based on what the agent produces.
 
-| Scenario | What the agent does | Canvas views |
+| Scenario | What the agent does | Mode |
 |---|---|---|
-| **Contract Review** 📋 | Reads a full contract, flags risks by clause, drafts revisions | Risks · Clauses · Revision · Memory |
-| **Sales Follow-up** 📊 | Analyzes pipeline, ranks accounts, suggests outbound actions | Pipeline · Next Actions |
-| **Competitive Analysis** 🏆 | Compares positioning, identifies gaps and strengths | Comparison · Next Steps |
+| **PR Review** 🔍 | Flags risky changes in a pull request, lists verification items, gates the merge with a confirmation | LLM |
+| **SF Trip** ✈️ | Plans a 3-day weekend with timeline, hotels, packing checklist, budget — fully interactive | offline · zero-config |
+| **Sales Briefing** 📊 | Surfaces pipeline metrics + recommended actions + a ready-to-send email behind a confirmation | LLM |
 
 All three support **multi-turn conversation** and **LLM-driven UI composition** — the LLM decides which block types and views to generate based on skill hints and user intent.
+
+### 📹 Watch the demos
+
+> Click any thumbnail / link below to watch. Videos live in the [v0.1-demos GitHub Release][demos-release] (no signup, no tracking).
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h4>🔍 PR Review</h4>
+      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4" controls width="100%"></video>
+      <sub>Auth refactor PR · diff + checklist + merge confirmation. <b>53s</b></sub><br/>
+      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">▶ Watch (42 MB)</a>
+    </td>
+    <td width="33%" valign="top">
+      <h4>✈️ SF Trip</h4>
+      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4" controls width="100%"></video>
+      <sub>Runs offline — perfect first-time demo. <b>82s</b></sub><br/>
+      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4">▶ Watch (49 MB)</a>
+    </td>
+    <td width="33%" valign="top">
+      <h4>📊 Sales Briefing</h4>
+      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4" controls width="100%"></video>
+      <sub>Pipeline metrics + gated outbound email. <b>68s</b></sub><br/>
+      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">▶ Watch (36 MB)</a>
+    </td>
+  </tr>
+</table>
+
+See [`docs/demos/`](./docs/demos/README.md) for the full goal text, expected blocks, and how to reproduce each demo locally.
+
+[demos-release]: https://github.com/adam2go/tilo-framework/releases/tag/v0.1-demos
 
 ---
 

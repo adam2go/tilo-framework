@@ -1,13 +1,24 @@
 .PHONY: dev dev-backend dev-frontend build test clean install
 
-# Quick start: run both backend and frontend in development mode
-dev: dev-backend dev-frontend
+# Ports — keep these in sync with README and .env.example (NEXT_PUBLIC_API_URL).
+BACKEND_PORT ?= 8000
+FRONTEND_PORT ?= 4001
+
+# Quick start: run backend and frontend together. Ctrl-C stops both.
+# (Uses a subshell trap so children don't get orphaned if you kill the make.)
+dev:
+	@echo "▸ backend  → http://127.0.0.1:$(BACKEND_PORT)"
+	@echo "▸ frontend → http://localhost:$(FRONTEND_PORT)/canvas"
+	@trap 'kill 0' INT TERM EXIT; \
+	  (cd backend && uvicorn tilo.main:app --host 127.0.0.1 --port $(BACKEND_PORT) --reload) & \
+	  (cd frontend && pnpm dev --port $(FRONTEND_PORT)) & \
+	  wait
 
 dev-backend:
-	cd backend && uvicorn tilo.main:app --host 127.0.0.1 --port 8000 --reload &
+	cd backend && uvicorn tilo.main:app --host 127.0.0.1 --port $(BACKEND_PORT) --reload
 
 dev-frontend:
-	cd frontend && pnpm dev --port 3000 &
+	cd frontend && pnpm dev --port $(FRONTEND_PORT)
 
 # Install everything
 install:

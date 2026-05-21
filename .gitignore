@@ -31,3 +31,10 @@ Thumbs.db
 .logs/
 
 .codebuddy/
+
+# Demo recordings live in GitHub Releases, never the repo.
+# (See docs/demos/README.md for the canonical URLs.)
+*.mp4
+*.mov
+*.webm
+*.m4v

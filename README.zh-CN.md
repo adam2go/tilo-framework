@@ -59,10 +59,15 @@ tilo serve
 git clone https://github.com/adam2go/tilo-framework.git
 cd tilo-framework
 make install   # pip install + pnpm install
-make dev       # 后端 :8000 + 前端 :4001
+make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 ```
 
-打开 `http://localhost:4001/demo`——选一个场景，看 Agent 思考、渲染、向你请示决策。
+两个入口：
+
+- `http://localhost:4001/demo` —— 经典场景选择器（合同审查 / 销售 / 竞品分析）
+- `http://localhost:4001/canvas` —— **3D Agent Canvas**：实时观看 Agent 流式 trace + 在 3D 空间渲染可交互工作台
+
+> **零配置即可跑通。** Canvas 在没有任何 LLM key 时也能工作 —— "Plan a SF Weekend" 用内置 fixture 跑完整流程。在 `.env` 中设置 `LLM_ENABLED=true` 加上 provider key 即可解锁另外两个 LLM 驱动样例。
 
 ---
 
@@ -99,13 +104,44 @@ Skill 向 LLM 提供**提示**（推荐的块类型、视图组织方式）。LL
 
 每个 Demo 都跑在同一套运行时上。Canvas 根据 Agent 产出的 Artifact 自动适配。
 
-| 场景 | Agent 做了什么 | Canvas 视图 |
+| 场景 | Agent 做了什么 | 模式 |
 |---|---|---|
-| **合同审查** 📋 | 阅读完整合同，按条款标注风险，起草修订意见 | 风险 · 条款 · 修订 · 记忆 |
-| **销售跟进** 📊 | 分析管线，排序热门客户，建议外呼行动 | 管线 · 行动计划 |
-| **竞品分析** 🏆 | 对比市场定位，识别差距和优势 | 对比 · 下一步 |
+| **PR Review** 🔍 | 标注 PR 风险点，列出验证清单，用 confirmation 把控合并 | LLM |
+| **SF Trip** ✈️ | 生成 3 天周末行程，含 timeline、酒店、打包清单和预算，全部可交互 | 离线 · 零配置 |
+| **Sales Briefing** 📊 | 输出管线指标 + 推荐动作 + 待发送邮件草稿（confirmation 把关） | LLM |
 
 三个场景都支持**多轮对话**和 **LLM 驱动的 UI 组合**——LLM 根据 skill 提示和用户意图自主决定生成哪些 block 类型和 views。
+
+### 📹 观看 Demo 视频
+
+> 视频托管在 [v0.1-demos GitHub Release][demos-release]（无注册、无追踪）。
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h4>🔍 PR Review</h4>
+      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4" controls width="100%"></video>
+      <sub>Auth 改造 PR · diff + 验证清单 + 合并 confirmation。<b>53 秒</b></sub><br/>
+      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">▶ 观看 (42 MB)</a>
+    </td>
+    <td width="33%" valign="top">
+      <h4>✈️ SF Trip</h4>
+      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4" controls width="100%"></video>
+      <sub>离线运行，最适合首次评估。<b>82 秒</b></sub><br/>
+      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4">▶ 观看 (49 MB)</a>
+    </td>
+    <td width="33%" valign="top">
+      <h4>📊 Sales Briefing</h4>
+      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4" controls width="100%"></video>
+      <sub>管线指标 + 把关后才发的外呼邮件。<b>68 秒</b></sub><br/>
+      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">▶ 观看 (36 MB)</a>
+    </td>
+  </tr>
+</table>
+
+完整的 goal 文本、预期生成块、本地复现方式见 [`docs/demos/`](./docs/demos/README.md)。
+
+[demos-release]: https://github.com/adam2go/tilo-framework/releases/tag/v0.1-demos
 
 ---
 
