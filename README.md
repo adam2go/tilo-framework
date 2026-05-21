@@ -30,15 +30,7 @@ A real Tilo run — agent recalls memory, plans, calls tools, generates an
 interactive artifact, and hands it back to the user as live, clickable UI.
 **Zero LLM key required for this demo.**
 
-<!--
-  ▼ HERO VIDEO ▼
-  Replace this URL with the GitHub user-attachments link once uploaded:
-    1. Open https://github.com/adam2go/tilo-framework/issues/new
-    2. Drag examples/compressed/canvas-sf-trip.mp4 into the description
-    3. Copy the auto-generated user-attachments URL into the src below
--->
-
-https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4
+https://github.com/user-attachments/assets/1afed79d-e85e-414a-954f-e0be136b9c7d
 
 > **Plan a SF weekend** — runs entirely from a baked-in fixture. Two more
 > demos (PR Review · Sales Briefing) further down. ↓
@@ -141,15 +133,17 @@ All three support **multi-turn conversation** and **LLM-driven UI composition** 
   <tr>
     <td width="50%" valign="top">
       <h4>🔍 PR Review</h4>
-      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4" controls width="100%"></video>
-      <sub>Auth-refactor PR · diffs + verification checklist + merge confirmation. <b>53s</b></sub><br/>
-      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">▶ Watch (42 MB)</a>
+
+https://github.com/user-attachments/assets/3795a3a8-aedb-4996-ae18-42f7c3e2c45f
+
+  <sub>Auth-refactor PR · diffs + verification checklist + merge confirmation. <b>53s</b> · <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">HQ download (42 MB)</a></sub>
     </td>
     <td width="50%" valign="top">
       <h4>📊 Sales Briefing</h4>
-      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4" controls width="100%"></video>
-      <sub>Pipeline metrics + recommended actions + gated outbound email. <b>68s</b></sub><br/>
-      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">▶ Watch (36 MB)</a>
+
+https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
+
+  <sub>Pipeline metrics + recommended actions + gated outbound email. <b>68s</b> · <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">HQ download (36 MB)</a></sub>
     </td>
   </tr>
 </table>

@@ -29,15 +29,7 @@
 一次真实的 Tilo 运行 —— Agent 召回记忆、规划、调工具、生成可交互
 artifact，最后把它作为可点可拖的 UI 交还给用户。**这个 demo 不需要任何 LLM key。**
 
-<!--
-  ▼ HERO 视频 ▼
-  上传完成后把这里的 URL 替换为 GitHub user-attachments 链接：
-    1. 打开 https://github.com/adam2go/tilo-framework/issues/new
-    2. 把 examples/compressed/canvas-sf-trip.mp4 拖进描述框
-    3. 把自动生成的 user-attachments URL 粘贴到 src 里
--->
-
-https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sf-trip.mp4
+https://github.com/user-attachments/assets/1afed79d-e85e-414a-954f-e0be136b9c7d
 
 > **Plan a SF weekend** —— 完全跑在内置 fixture 上。另外两个 demo（PR 评审 ·
 > 销售简报）见下文。 ↓
@@ -140,15 +132,17 @@ Skill 向 LLM 提供**提示**（推荐的块类型、视图组织方式）。LL
   <tr>
     <td width="50%" valign="top">
       <h4>🔍 PR Review</h4>
-      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4" controls width="100%"></video>
-      <sub>Auth 改造 PR · diff + 验证清单 + 合并 confirmation。<b>53 秒</b></sub><br/>
-      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">▶ 观看 (42 MB)</a>
+
+https://github.com/user-attachments/assets/3795a3a8-aedb-4996-ae18-42f7c3e2c45f
+
+  <sub>Auth 改造 PR · diff + 验证清单 + 合并 confirmation。<b>53 秒</b> · <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-pr-review.mp4">高清下载 (42 MB)</a></sub>
     </td>
     <td width="50%" valign="top">
       <h4>📊 Sales Briefing</h4>
-      <video src="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4" controls width="100%"></video>
-      <sub>管线指标 + 推荐动作 + 把关后才发的外呼邮件。<b>68 秒</b></sub><br/>
-      <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">▶ 观看 (36 MB)</a>
+
+https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
+
+  <sub>管线指标 + 推荐动作 + 把关后才发的外呼邮件。<b>68 秒</b> · <a href="https://github.com/adam2go/tilo-framework/releases/download/v0.1-demos/canvas-sales-briefing.mp4">高清下载 (36 MB)</a></sub>
     </td>
   </tr>
 </table>
