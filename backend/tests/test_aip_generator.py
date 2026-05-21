@@ -19,9 +19,9 @@ def test_skill_hint_detection_sales() -> None:
     assert hint == _DEMO_SKILL_HINTS["sales_dashboard"]
 
 
-def test_skill_hint_detection_competitive() -> None:
-    hint = _detect_skill_hint("Analyze our competitive landscape")
-    assert hint == _DEMO_SKILL_HINTS["competitive_analysis"]
+def test_skill_hint_detection_code_review() -> None:
+    hint = _detect_skill_hint("Review this pull request from the auth refactor branch")
+    assert hint == _DEMO_SKILL_HINTS["code_review"]
 
 
 def test_skill_hint_detection_generic() -> None:
@@ -33,10 +33,10 @@ def test_artifact_type_detector() -> None:
     d = ArtifactTypeDetector()
     assert d.detect("review this contract") == "contract_review"
     assert d.detect("follow up with sales leads") == "dashboard"
-    assert d.detect("competitive analysis of market") == "table"
+    assert d.detect("review this pull request") == "code_review"
     assert d.detect("help me write a report") == "document"
     assert d.detect("审查这份合同") == "contract_review"
-    assert d.detect("分析竞品") == "table"
+    assert d.detect("代码评审一下这个 PR") == "code_review"
 
 
 def test_aip_deterministic_fallback() -> None:
@@ -53,8 +53,12 @@ def test_aip_deterministic_fallback() -> None:
 
 
 def test_aip_deterministic_fallback_chinese() -> None:
+    """Even with Chinese input, the demo fallback now returns English titles
+    so the Canvas demo stays consistent. The hint detector still triggers
+    contract scenario via Chinese keywords."""
     task = Task(id="t2", workspace_id="ws", title="Test", input_message="审查这份合同")
     run = Run(id="r2", task_id="t2")
     gen = AIPSpecGenerator(client=None)
     result = gen.generate(task, run, [], [])
-    assert "分析结果" in result["title"]
+    assert result["title"] == "Contract Review"
+    assert len(result["blocks"]) >= 5  # Rich multi-block output

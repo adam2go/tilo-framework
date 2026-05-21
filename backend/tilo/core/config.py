@@ -14,8 +14,12 @@ class Settings(BaseSettings):
     llm_provider: str = "openai"
     llm_api_key: str = ""
     llm_base_url: str = ""
-    llm_timeout_seconds: int = 60
+    llm_timeout_seconds: int = 120
     llm_max_retries: int = 2
+    # When False, request providers like Kimi K2.6 / Qwen3-Thinking to skip
+    # extended chain-of-thought. Tilo's spec generator is a structured-output
+    # task — thinking adds 60-180s of latency for no quality gain.
+    llm_thinking_enabled: bool = False
     anthropic_api_key: str = ""
     deepseek_api_key: str = ""
     google_api_key: str = ""

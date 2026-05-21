@@ -17,6 +17,10 @@ export default function Home() {
               Open Demo
               <ArrowRight size={16} />
             </Link>
+            <Link className="primary-link" href="/canvas" style={{ background: "linear-gradient(135deg, #6366f1, #a855f7)" }}>
+              3D Canvas
+              <ArrowRight size={16} />
+            </Link>
             <a
               className="secondary-link"
               href="https://github.com/adam2go/tilo-framework"

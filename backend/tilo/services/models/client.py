@@ -161,6 +161,11 @@ class ModelClient:
         }
         if response_format:
             payload["response_format"] = response_format
+        # Disable extended thinking on providers/models that default to it
+        # (Kimi K2.6, Qwen3-Thinking, etc.). For deterministic structured
+        # output we don't need 60-180s of chain-of-thought reasoning.
+        if not self.settings.llm_thinking_enabled and self._supports_thinking_toggle():
+            payload["thinking"] = {"type": "disabled"}
 
         try:
             data = await self._post_json(url, payload, headers={"Authorization": f"Bearer {self.api_key}"})
@@ -175,12 +180,35 @@ class ModelClient:
                 data = await self._post_json(
                     url, retry_payload, headers={"Authorization": f"Bearer {self.api_key}"}
                 )
+            elif "thinking" in message:
+                # Provider doesn't recognize the thinking field — drop it.
+                retry_payload = dict(payload)
+                retry_payload.pop("thinking", None)
+                data = await self._post_json(
+                    url, retry_payload, headers={"Authorization": f"Bearer {self.api_key}"}
+                )
             else:
                 raise
         content = data["choices"][0]["message"]["content"]
         if not isinstance(content, str) or not content.strip():
             raise ModelProviderError("Model provider returned empty content")
         return content
+
+    def _supports_thinking_toggle(self) -> bool:
+        """Whether the active provider/model accepts `thinking.type` field.
+
+        Conservative whitelist — when in doubt we'd rather not send the
+        field than risk a 400 from providers that don't know it.
+        """
+        provider = self.provider
+        model = (self.settings.default_model or "").lower()
+        if provider in {"moonshot", "kimi"}:
+            return True
+        if provider in {"tencent", "tencent_deepseek"} and "kimi" in model:
+            return True
+        if provider in {"qwen", "dashscope"} and ("thinking" in model or "qwq" in model):
+            return True
+        return False
 
     async def _chat_text_anthropic(self, *, system: str, user: str, temperature: float) -> str:
         url = f"{self.base_url}/messages"
@@ -291,6 +319,8 @@ class ModelClient:
             "stream": True,
             "response_format": {"type": "json_object"},
         }
+        if not self.settings.llm_thinking_enabled and self._supports_thinking_toggle():
+            payload["thinking"] = {"type": "disabled"}
         try:
             content = await self._stream_openai_compatible(url, payload, on_thinking, on_content)
         except ModelProviderError as exc:
@@ -300,6 +330,9 @@ class ModelClient:
                 content = await self._stream_openai_compatible(url, payload, on_thinking, on_content)
             elif "response_format" in message or "json_object" in message:
                 payload.pop("response_format", None)
+                content = await self._stream_openai_compatible(url, payload, on_thinking, on_content)
+            elif "thinking" in message:
+                payload.pop("thinking", None)
                 content = await self._stream_openai_compatible(url, payload, on_thinking, on_content)
             else:
                 raise
