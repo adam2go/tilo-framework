@@ -16,7 +16,7 @@
 
   <!-- 标题 -->
   <text x="800" y="56" text-anchor="middle" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="700" letter-spacing="-0.5">Tilo — Agent 交互协议 (AIP)</text>
-  <text x="800" y="86" text-anchor="middle" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">将 Agent 输出转化为可交互、可确认、可记忆的用户界面的开源运行时</text>
+  <text x="800" y="86" text-anchor="middle" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">面向 AI 原生软件的开源运行时 — Agent 自主生成 UI，用户行为以结构化信号回流</text>
 
   <!-- ===== 第一层：核心 Spec + 运行时 ===== -->
   <rect x="60" y="120" width="1480" height="180" rx="14" fill="#111827" stroke="#1E293B" stroke-width="1.5"/>
@@ -141,9 +141,9 @@
 
   <rect x="920" y="826" width="520" height="56" rx="10" fill="url(#aip)" fill-opacity="0.15" stroke="#6366F1" stroke-width="1.5"/>
   <text x="1180" y="852" text-anchor="middle" fill="#A5B4FC" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700">Tilo AIP</text>
-  <text x="1180" y="872" text-anchor="middle" fill="#C7D2FE" font-family="Inter,system-ui,sans-serif" font-size="11">Agent 的脸 — 输出 → 交互界面 → 决策 → 记忆</text>
+  <text x="1180" y="872" text-anchor="middle" fill="#C7D2FE" font-family="Inter,system-ui,sans-serif" font-size="11">Agent 的脸 + 耳 — 渲染 UI，观察交互，学习，循环</text>
 
-  <text x="800" y="918" text-anchor="middle" fill="#475569" font-family="Inter,system-ui,sans-serif" font-size="11">MCP 是 Agent 的手 · Tilo 是 Agent 的脸</text>
+  <text x="800" y="918" text-anchor="middle" fill="#475569" font-family="Inter,system-ui,sans-serif" font-size="11">MCP 是 Agent 的手 · Tilo 是 Agent 的脸 + 耳</text>
 
   <!-- 层间箭头 -->
   <line x1="800" y1="300" x2="800" y2="320" stroke="#334155" stroke-width="1.5"/>

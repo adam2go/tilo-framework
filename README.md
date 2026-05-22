@@ -1,7 +1,7 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>Agent Interaction Protocol — the open-source runtime that turns Agent output into interactive, confirmable, memorable UI.</strong>
+  <strong>The open-source runtime for AI-native software — agents author the UI, every user action returns as structured signal.</strong>
 </p>
 
 <p align="center">
@@ -43,17 +43,39 @@ https://github.com/user-attachments/assets/1afed79d-e85e-414a-954f-e0be136b9c7d
 
 ## Why Tilo
 
-The AI agent ecosystem already has great solutions for **tool calling** (MCP), **agent orchestration** (LangChain, CrewAI), and **agent communication** (A2A, ACP).
+The AI agent ecosystem has good answers for **tool calling** (MCP),
+**orchestration** (LangChain, CrewAI), and **agent-to-agent communication**
+(A2A, ACP).
 
-What's missing? **The last mile between Agent output and user screen.**
+What's still missing is the **runtime for AI-native software** — software
+where the agent doesn't drive a UI built for humans, but **authors the UI
+itself**, and every user action flows back to the agent as structured
+signal.
 
 ```
-MCP  = Agent's hands  (how agents call tools)
-A2A  = Agent's voice   (how agents talk to each other)
-Tilo = Agent's face    (how agent output becomes interactive UI)
+MCP   = Agent's hands         (call tools)
+A2A   = Agent's voice          (talk to other agents)
+Tilo  = Agent's face + ears    (render UI, observe what users do with it)
 ```
 
-Tilo is an **Agent Interaction Protocol (AIP)**: a declarative JSON spec that turns agent output into interactive surfaces with built-in support for confirmation, memory, and traceability — across any frontend framework.
+Tilo is an **Agent Interaction Protocol (AIP)**: a declarative JSON spec
+that closes the loop between agent and user. The agent emits a spec; the
+runtime renders it as interactive UI; every click, edit, or confirmation
+is captured as a typed `UIInteractionEvent` and fed into the agent's next
+turn — without DOM scraping or pixel inspection.
+
+### Tilo and Browser Use solve different problems
+
+|                            | **Browser Use**                                  | **Tilo**                                              |
+|----------------------------|--------------------------------------------------|-------------------------------------------------------|
+| Software it powers         | Existing apps designed for humans                | New apps where the agent generates the UI             |
+| Agent's relationship to UI | Drives a UI it didn't author                     | Authors the UI from a spec on every turn              |
+| User → agent feedback      | Inferred from screenshots and DOM                | Captured as structured `UIInteractionEvent`           |
+| Where it fits              | Automating workflows on existing software        | Building AI-native products from the ground up        |
+
+If you need to automate an existing app, Browser Use is the right tool.
+Tilo is for the case where you can choose what the UI looks like, and
+you want it shaped for both humans and agents from day one.
 
 ---
 
@@ -77,7 +99,7 @@ make dev       # backend :8000 + frontend :4001 (Ctrl-C stops both)
 
 Two entry points:
 
-- `http://localhost:4001/demo` — classic scenario picker (Contract Review, Sales, Competitive)
+- `http://localhost:4001/demo` — classic scenario picker
 - `http://localhost:4001/canvas` — **3D Agent Canvas**: watch the agent stream a live trace and render an interactive spatial workspace
 
 > **Zero-config demo.** The canvas works without any LLM key — the "Plan a SF Weekend" sample runs from a baked-in fixture. Configure `LLM_ENABLED=true` + a provider key in `.env` to unlock the LLM-driven samples.
@@ -115,19 +137,13 @@ Skills provide **hints** (recommended block types, view organization) to the LLM
 
 ## Three Built-in Demos
 
-Each demo exercises the same runtime. The Canvas adapts automatically based on what the agent produces.
-
 | Scenario | What the agent does | Mode |
 |---|---|---|
 | **PR Review** 🔍 | Flags risky changes in a pull request, lists verification items, gates the merge with a confirmation | LLM |
 | **SF Trip** ✈️ | Plans a 3-day weekend with timeline, hotels, packing checklist, budget — fully interactive | offline · zero-config |
 | **Sales Briefing** 📊 | Surfaces pipeline metrics + recommended actions + a ready-to-send email behind a confirmation | LLM |
 
-All three support **multi-turn conversation** and **LLM-driven UI composition** — the LLM decides which block types and views to generate based on skill hints and user intent.
-
-### 📹 The other two demos
-
-> The SF Trip demo is at the top of this page. Below are the two LLM-driven scenarios:
+The SF Trip video is at the top of this page. The other two:
 
 <table>
   <tr>
@@ -148,37 +164,34 @@ https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
   </tr>
 </table>
 
-See [`docs/demos/`](./docs/demos/README.md) for the full goal text, expected blocks, and how to reproduce each demo locally.
+See [`docs/demos/`](./docs/demos/README.md) for the full goal text and reproduction steps.
 
 [demos-release]: https://github.com/adam2go/tilo-framework/releases/tag/v0.1-demos
 
 ---
 
-## What Makes Tilo Different
+## The Two-Way Loop, Concretely
 
-### 1. Open Block Type System
-
-Unlike fixed component libraries, Tilo's ~20 primitives are **stable and extensible**. Use core types for 95% of cases. Define custom types for domain-specific needs — the frontend degrades gracefully with a generic JSON viewer.
-
-### 2. Confirmed Memory — Not Automatic Memory
+Most "agent UI" frameworks ship one direction: agent → UI. Tilo ships
+both directions, and the second one is where the leverage is.
 
 ```text
-Observation → Memory Candidate → Human Confirmation → Confirmed Memory
+1.  Agent emits AIP spec        →  blocks + views, declarative JSON
+2.  Renderer paints UI          →  React (reference) / your own SDK
+3.  User clicks / edits / confirms
+4.  Frontend → POST /api/interactions
+5.  Backend writes UIInteractionEvent + ContextReflection observation
+6.  Next agent turn picks up recent events via AgentContextBuilder
+7.  Agent reasons over what the user actually did, not pixels.
 ```
 
-The agent proposes what it learned. The user decides what sticks.
+Two design choices keep this safe:
 
-### 3. Backend-Owned Action Semantics
-
-```text
-User click → ArtifactActionRuntime → UIInteractionEvent → Observation → Safe side effect
-```
-
-The frontend renders intent. The backend owns what happens.
-
-### 4. Protocol-Native Integration
-
-Bring your own agent framework. Tilo adapters bridge MCP tool results, LangChain outputs, A2A tasks, and ACP messages into the same interactive Canvas — without rewriting your agent logic.
+- **Confirmed memory, not automatic memory.** The agent proposes what it
+  learned (`memory_card`); the user decides what sticks.
+- **Backend-owned action semantics.** The frontend renders intent; the
+  backend (via `ArtifactActionRuntime`) decides what actually happens —
+  so high-risk actions stay gated behind a `confirmation` block.
 
 ---
 
@@ -228,7 +241,7 @@ evals/         Runtime quality checks and baseline metrics
 **v0.1 (current)** — Complete working loop + AIP architecture.
 
 - [x] Task → Run → Trace → Artifact → Surface → Confirmation → Memory loop
-- [x] Three demo scenarios (contract, sales, competitive)
+- [x] Three demo scenarios (PR Review, SF Trip, Sales Briefing)
 - [x] Agent Interaction Protocol (AIP) with ~20 primitive block types
 - [x] LLM-driven UI composition with skill hints
 - [x] MCP adapter (implemented) + LangChain/A2A/ACP stubs
@@ -255,7 +268,8 @@ Before contributing, please read:
 
 The most important principle:
 
-> **MCP is the Agent's hands. Tilo is the Agent's face. Preserve the AIP loop: Goal → Spec → Interactive UI → Decision → Memory.**
+> **MCP is the Agent's hands. Tilo is the Agent's face and ears.
+> Preserve the AIP loop: Goal → Spec → Interactive UI → Observation → Memory.**
 
 ---
 

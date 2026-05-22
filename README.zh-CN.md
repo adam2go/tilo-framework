@@ -1,7 +1,7 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>Agent 交互协议（AIP）— 将 Agent 输出转化为可交互、可确认、可记忆的用户界面的开源运行时。</strong>
+  <strong>面向 AI 原生软件的开源运行时 —— Agent 自主生成 UI，用户的每次操作都以结构化信号回流到 Agent。</strong>
 </p>
 
 <p align="center">
@@ -42,17 +42,34 @@ https://github.com/user-attachments/assets/1afed79d-e85e-414a-954f-e0be136b9c7d
 
 ## 为什么是 Tilo
 
-AI Agent 生态已经有了很好的**工具调用**方案（MCP）、**编排框架**（LangChain、CrewAI）、**通信协议**（A2A、ACP）。
+AI Agent 生态已经有了很好的**工具调用**方案（MCP）、**编排框架**（LangChain、CrewAI）、
+**Agent 间通信协议**（A2A、ACP）。
 
-缺的是什么？**Agent 输出到用户屏幕的最后一公里。**
+仍然缺失的是 **AI 原生软件的运行时** —— 在这种软件里，Agent 不是去驱动一个为人类
+设计的 UI，而是 **自己生成 UI**，用户的每次操作都以结构化信号回流到 Agent。
 
 ```
-MCP  = Agent 的手（调用工具）
-A2A  = Agent 的嘴（Agent 间通信）
-Tilo = Agent 的脸（输出 → 可交互界面）
+MCP   = Agent 的手           （调用工具）
+A2A   = Agent 的嘴            （Agent 间通信）
+Tilo  = Agent 的脸 + 耳        （渲染 UI，观察用户对它做了什么）
 ```
 
-Tilo 是一个 **Agent 交互协议（AIP）**：一套声明式 JSON spec，把 Agent 输出变成带有确认、记忆、可追溯能力的交互界面——支持任何前端框架渲染。
+Tilo 是一套 **Agent 交互协议（AIP）**：声明式 JSON spec，闭合 Agent 与用户之间的
+回路。Agent 产出 spec；运行时把它渲染为可交互 UI；用户的每次点击、编辑、确认都被
+捕获为一条带类型的 `UIInteractionEvent`，注入到 Agent 的下一轮推理中 ——
+不需要 DOM 抓取，也不需要像素级识别。
+
+### Tilo 与 Browser Use 解决的是不同问题
+
+|                          | **Browser Use**                                 | **Tilo**                                              |
+|--------------------------|-------------------------------------------------|-------------------------------------------------------|
+| 服务的软件类型           | 已有的、为人类设计的 App                        | 由 Agent 自己生成 UI 的新型 App                       |
+| Agent 与 UI 的关系       | 驱动一个不是它设计的 UI                         | 在每一轮对话里，按 spec 生成 UI                       |
+| 用户 → Agent 的反馈      | 从截图和 DOM 中推断                             | 以结构化 `UIInteractionEvent` 直接回传                |
+| 适用场景                 | 自动化已有软件中的工作流                        | 从零构建 AI 原生产品                                  |
+
+如果你要自动化的是已有的 App，Browser Use 是更合适的工具。Tilo 适合的场景是：
+你能决定 UI 长什么样，且希望它从第一天起就同时为人类和 Agent 设计。
 
 ---
 
@@ -76,7 +93,7 @@ make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 
 两个入口：
 
-- `http://localhost:4001/demo` —— 经典场景选择器（合同审查 / 销售 / 竞品分析）
+- `http://localhost:4001/demo` —— 经典场景选择器
 - `http://localhost:4001/canvas` —— **3D Agent Canvas**：实时观看 Agent 流式 trace + 在 3D 空间渲染可交互工作台
 
 > **零配置即可跑通。** Canvas 在没有任何 LLM key 时也能工作 —— "Plan a SF Weekend" 用内置 fixture 跑完整流程。在 `.env` 中设置 `LLM_ENABLED=true` 加上 provider key 即可解锁另外两个 LLM 驱动样例。
@@ -114,19 +131,13 @@ Skill 向 LLM 提供**提示**（推荐的块类型、视图组织方式）。LL
 
 ## 三个内置 Demo
 
-每个 Demo 都跑在同一套运行时上。Canvas 根据 Agent 产出的 Artifact 自动适配。
-
 | 场景 | Agent 做了什么 | 模式 |
 |---|---|---|
 | **PR Review** 🔍 | 标注 PR 风险点，列出验证清单，用 confirmation 把控合并 | LLM |
 | **SF Trip** ✈️ | 生成 3 天周末行程，含 timeline、酒店、打包清单和预算，全部可交互 | 离线 · 零配置 |
 | **Sales Briefing** 📊 | 输出管线指标 + 推荐动作 + 待发送邮件草稿（confirmation 把关） | LLM |
 
-三个场景都支持**多轮对话**和 **LLM 驱动的 UI 组合**——LLM 根据 skill 提示和用户意图自主决定生成哪些 block 类型和 views。
-
-### 📹 另外两个 demo
-
-> SF Trip 已经在页面顶部展示。下面是两个 LLM 驱动的场景：
+SF Trip 视频在页面顶部。另外两个：
 
 <table>
   <tr>
@@ -147,37 +158,33 @@ https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
   </tr>
 </table>
 
-完整的 goal 文本、预期生成块、本地复现方式见 [`docs/demos/`](./docs/demos/README.md)。
+完整的 goal 文本与本地复现步骤见 [`docs/demos/`](./docs/demos/README.md)。
 
 [demos-release]: https://github.com/adam2go/tilo-framework/releases/tag/v0.1-demos
 
 ---
 
-## Tilo 的差异点
+## 双向闭环：具体长什么样
 
-### 1. 开放的块类型系统
-
-不同于固定的组件库，Tilo 的 ~20 个原语类型是**稳定且可扩展的**。95% 的场景用核心类型，领域特殊需求定义自定义类型——前端用通用 JSON 查看器优雅降级。
-
-### 2. 确认式记忆——不是自动写入
+大多数 "Agent UI" 框架只做了一个方向：Agent → UI。Tilo 同时做两个方向，
+**第二个方向才是杠杆所在**。
 
 ```text
-观察 → 记忆候选 → 用户确认 → 确认后的记忆
+1.  Agent 产出 AIP spec       →  blocks + views，声明式 JSON
+2.  渲染器绘制 UI             →  React（参考实现）/ 你自己的 SDK
+3.  用户点击 / 编辑 / 确认
+4.  前端 → POST /api/interactions
+5.  后端写入 UIInteractionEvent + ContextReflection 观察
+6.  Agent 下一轮通过 AgentContextBuilder 拿到最近的事件
+7.  Agent 推理的不是像素，而是用户实际做了什么。
 ```
 
-Agent 提出"我学到了什么"。用户决定什么能留下。
+两条设计原则保证安全：
 
-### 3. 后端拥有动作语义
-
-```text
-用户点击 → 动作运行时 → UI 交互事件 → 观察记录 → 安全副作用
-```
-
-前端只渲染意图。后端拥有语义。
-
-### 4. 协议原生集成
-
-带上你自己的 Agent 框架。Tilo 适配器把 MCP 工具结果、LangChain 输出、A2A 任务、ACP 消息桥接到同一个交互 Canvas——不需要重写你的 Agent 逻辑。
+- **确认式记忆，不是自动写入。** Agent 提出"我学到了什么"（`memory_card`）；
+  用户决定什么留下。
+- **后端拥有动作语义。** 前端只渲染意图；后端（`ArtifactActionRuntime`）
+  决定实际发生什么 —— 高风险动作始终被 `confirmation` 块门控。
 
 ---
 
@@ -227,7 +234,7 @@ evals/         运行时质量检查和 baseline 指标
 **v0.1（当前）**——完整工作闭环 + AIP 架构。
 
 - [x] Task → Run → Trace → Artifact → Surface → Confirmation → Memory 完整闭环
-- [x] 三个 Demo 场景（合同审查、销售跟进、竞品分析）
+- [x] 三个 Demo 场景（PR Review、SF Trip、Sales Briefing）
 - [x] Agent 交互协议（AIP）：~20 个原语块类型
 - [x] LLM 驱动的 UI 组合 + Skill 提示
 - [x] MCP 适配器（已实现）+ LangChain/A2A/ACP 接口
@@ -254,7 +261,8 @@ Tilo 还处于早期阶段，完全开源，欢迎参与。
 
 最重要的原则：
 
-> **MCP 是 Agent 的手，Tilo 是 Agent 的脸。始终保留 AIP 闭环：目标 → Spec → 交互界面 → 决策 → 记忆。**
+> **MCP 是 Agent 的手，Tilo 是 Agent 的脸 + 耳。
+> 始终保留 AIP 闭环：目标 → Spec → 交互界面 → 观察 → 记忆。**
 
 ---
 

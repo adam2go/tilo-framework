@@ -17,7 +17,7 @@
 
   <!-- Title -->
   <text x="800" y="56" text-anchor="middle" fill="#F1F5F9" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="700" letter-spacing="-0.5">Tilo — Agent Interaction Protocol</text>
-  <text x="800" y="86" text-anchor="middle" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">The open-source runtime that turns Agent output into interactive, confirmable, memorable UI</text>
+  <text x="800" y="86" text-anchor="middle" fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-size="15">The open-source runtime for AI-native software — agents author the UI, users' actions flow back as signal</text>
 
   <!-- ===== Layer 1: Core Spec + Runtime ===== -->
   <rect x="60" y="120" width="1480" height="180" rx="14" fill="#111827" stroke="#1E293B" stroke-width="1.5"/>
@@ -144,9 +144,9 @@
 
   <rect x="920" y="826" width="520" height="56" rx="10" fill="url(#aip)" fill-opacity="0.15" stroke="#6366F1" stroke-width="1.5"/>
   <text x="1180" y="852" text-anchor="middle" fill="#A5B4FC" font-family="Inter,system-ui,sans-serif" font-size="16" font-weight="700">Tilo AIP</text>
-  <text x="1180" y="872" text-anchor="middle" fill="#C7D2FE" font-family="Inter,system-ui,sans-serif" font-size="11">Agent's face — output → interactive UI → decision → memory</text>
+  <text x="1180" y="872" text-anchor="middle" fill="#C7D2FE" font-family="Inter,system-ui,sans-serif" font-size="11">Agent's face + ears — render UI, observe interactions, learn, repeat</text>
 
-  <text x="800" y="918" text-anchor="middle" fill="#475569" font-family="Inter,system-ui,sans-serif" font-size="11">MCP is the Agent's hands · Tilo is the Agent's face</text>
+  <text x="800" y="918" text-anchor="middle" fill="#475569" font-family="Inter,system-ui,sans-serif" font-size="11">MCP is the Agent's hands · Tilo is the Agent's face + ears</text>
 
   <!-- Arrows between layers -->
   <line x1="800" y1="300" x2="800" y2="320" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
