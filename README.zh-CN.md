@@ -244,11 +244,11 @@ evals/         运行时质量检查和 baseline 指标
 - [x] Alembic 驱动的 schema 版本化迁移
 - [x] `pip install tilo` + `tilo serve` CLI
 - [x] 多轮对话 + LLM streaming + 思考过程实时可见
+- [x] chart、diff、timeline、kanban、code、tool_preview、memory_card 块完整渲染
+- [x] 发布到 PyPI —— `pip install tilo` 已上线
 - [ ] A2A / ACP 适配器完整实现
-- [ ] chart、diff、timeline、kanban 块在 `@tilo/react` 中完整渲染
 - [ ] `@tilo/react` npm 包发布
 - [ ] Skill 市场 + YAML 技能加载
-- [ ] 发布到 PyPI
 
 **未来**——多 Agent 路由、带确认门控的真实工具执行、Slack / 邮件渠道适配器、社区渲染器 SDK。
 

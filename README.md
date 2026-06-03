@@ -251,11 +251,11 @@ evals/         Runtime quality checks and baseline metrics
 - [x] Alembic-managed schema migrations
 - [x] `pip install tilo` + `tilo serve` CLI
 - [x] Multi-turn conversation + LLM streaming with visible thinking
+- [x] Chart, diff, timeline, kanban, code, tool_preview, memory_card block rendering
+- [x] PyPI publication — `pip install tilo` is live
 - [ ] A2A / ACP adapter implementations
-- [ ] Chart, diff, timeline, kanban block rendering in `@tilo/react`
 - [ ] `@tilo/react` npm package published to npm
 - [ ] Skill marketplace + YAML-based skill loading
-- [ ] PyPI publication
 
 **Future** — Multi-agent routing, real tool execution with confirmation gates, Slack / email channel adapters, community renderer SDKs.
 
