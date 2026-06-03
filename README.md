@@ -121,7 +121,7 @@ Zero-code bridges from external protocols into Tilo blocks:
 | Adapter | Status | Mapping |
 |---|---|---|
 | **MCP** | ✅ Implemented | TextContent→markdown, ImageContent→image, Resource→card |
-| **LangChain** | 🔌 Interface | TiloCallbackHandler → Tilo spec |
+| **LangChain** | ✅ Implemented | `TiloCallbackHandler` captures LLM text, tool calls, and structured output as typed blocks |
 | **A2A** | 🔌 Interface | A2A task result → Tilo spec |
 | **ACP** | 🔌 Interface | ACP message → Tilo spec |
 
@@ -201,6 +201,7 @@ Two design choices keep this safe:
 |---|---|---|
 | **Standalone** | Evaluate Tilo locally | `pip install tilo && tilo serve` |
 | **MCP adapter** | Already using MCP tools | `from tilo.adapters.mcp import mcp_content_to_blocks` |
+| **LangChain adapter** | Using LangChain / LangGraph | `from tilo.adapters.langchain import TiloCallbackHandler` |
 | **Backend sidecar** | Have your own frontend | Call Tilo REST APIs |
 | **Embedded components** | Want AI-native UI blocks | Reuse `@tilo/react` components with overrides |
 | **Skill author** | Package a repeatable workflow | `skill.yaml` with `block_hints` + `view_hints` |
@@ -244,15 +245,19 @@ evals/         Runtime quality checks and baseline metrics
 - [x] Three demo scenarios (PR Review, SF Trip, Sales Briefing)
 - [x] Agent Interaction Protocol (AIP) with ~20 primitive block types
 - [x] LLM-driven UI composition with skill hints
-- [x] MCP adapter (implemented) + LangChain/A2A/ACP stubs
+- [x] MCP adapter — `mcp_content_to_blocks`, `mcp_tool_result_to_spec`
+- [x] LangChain adapter — `TiloCallbackHandler` + `langchain_result_to_spec`
+- [x] Three declarative example apps (contract-review, sales-followup, code-review)
+- [x] Alembic-managed schema migrations
 - [x] `pip install tilo` + `tilo serve` CLI
 - [x] Multi-turn conversation + LLM streaming with visible thinking
-- [ ] Full adapter implementations (LangChain, A2A, ACP)
-- [ ] `@tilo/react` npm package with renderer override API
+- [ ] A2A / ACP adapter implementations
+- [ ] Chart, diff, timeline, kanban block rendering in `@tilo/react`
+- [ ] `@tilo/react` npm package published to npm
 - [ ] Skill marketplace + YAML-based skill loading
 - [ ] PyPI publication
 
-**Future** — Multi-agent routing, real tool execution with confirmation gates, community renderer SDKs.
+**Future** — Multi-agent routing, real tool execution with confirmation gates, Slack / email channel adapters, community renderer SDKs.
 
 ---
 

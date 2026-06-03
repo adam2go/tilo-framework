@@ -115,7 +115,7 @@ make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 | 适配器 | 状态 | 映射 |
 |---|---|---|
 | **MCP** | ✅ 已实现 | TextContent→markdown，ImageContent→image，Resource→card |
-| **LangChain** | 🔌 接口 | TiloCallbackHandler → Tilo spec |
+| **LangChain** | ✅ 已实现 | `TiloCallbackHandler` 捕获 LLM 文本、工具调用和结构化输出，映射为带类型的块 |
 | **A2A** | 🔌 接口 | A2A task result → Tilo spec |
 | **ACP** | 🔌 接口 | ACP message → Tilo spec |
 
@@ -194,6 +194,7 @@ https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
 |---|---|---|
 | **独立运行** | 本地评估 Tilo | `pip install tilo && tilo serve` |
 | **MCP 适配器** | 已在用 MCP 工具 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
+| **LangChain 适配器** | 使用 LangChain / LangGraph | `from tilo.adapters.langchain import TiloCallbackHandler` |
 | **后端 sidecar** | 已有自己的前端 | 调用 Tilo REST APIs |
 | **嵌入组件** | 想用 AI-native UI 块 | 复用 `@tilo/react` 组件 + override |
 | **Skill 作者** | 封装可复用工作流 | `skill.yaml` + `block_hints` + `view_hints` |
@@ -237,15 +238,19 @@ evals/         运行时质量检查和 baseline 指标
 - [x] 三个 Demo 场景（PR Review、SF Trip、Sales Briefing）
 - [x] Agent 交互协议（AIP）：~20 个原语块类型
 - [x] LLM 驱动的 UI 组合 + Skill 提示
-- [x] MCP 适配器（已实现）+ LangChain/A2A/ACP 接口
+- [x] MCP 适配器 —— `mcp_content_to_blocks`、`mcp_tool_result_to_spec`
+- [x] LangChain 适配器 —— `TiloCallbackHandler` + `langchain_result_to_spec`
+- [x] 三个声明式示例 App（合同审查、销售跟进、代码审查）
+- [x] Alembic 驱动的 schema 版本化迁移
 - [x] `pip install tilo` + `tilo serve` CLI
 - [x] 多轮对话 + LLM streaming + 思考过程实时可见
-- [ ] 完整适配器实现（LangChain、A2A、ACP）
-- [ ] `@tilo/react` npm 包 + 渲染器覆盖 API
+- [ ] A2A / ACP 适配器完整实现
+- [ ] chart、diff、timeline、kanban 块在 `@tilo/react` 中完整渲染
+- [ ] `@tilo/react` npm 包发布
 - [ ] Skill 市场 + YAML 技能加载
 - [ ] 发布到 PyPI
 
-**未来**——多 Agent 路由、带确认门控的真实工具执行、社区渲染器 SDK。
+**未来**——多 Agent 路由、带确认门控的真实工具执行、Slack / 邮件渠道适配器、社区渲染器 SDK。
 
 ---
 
