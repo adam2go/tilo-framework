@@ -33,6 +33,7 @@
           "type": "string"
         },
         "payload": {
+          "additionalProperties": true,
           "title": "Payload",
           "type": "object"
         },
@@ -120,6 +121,7 @@
       "properties": {
         "blocks": {
           "items": {
+            "additionalProperties": true,
             "type": "object"
           },
           "title": "Blocks",
@@ -170,6 +172,7 @@
           "type": "array"
         },
         "data": {
+          "additionalProperties": true,
           "title": "Data",
           "type": "object"
         },
@@ -283,6 +286,7 @@
         "inline_keyboard": {
           "items": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array"
@@ -338,6 +342,7 @@
       "type": "array"
     },
     "metadata": {
+      "additionalProperties": true,
       "title": "Metadata",
       "type": "object"
     },

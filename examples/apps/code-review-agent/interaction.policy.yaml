@@ -1,0 +1,90 @@
+id: code-review-agent-policy
+version: "0.1"
+
+# Surface Protocol Phase 1: each rule declares an explicit `intent:` from
+# the closed Surface Protocol vocabulary (docs/SURFACE_PROTOCOL.md §3).
+# The legacy `surface:` field is retained for backward-compatible renderers.
+
+budget:
+  max_mini_surfaces_per_run: 4
+  max_confirmations_per_run: 1
+  max_memory_cards_per_run: 1
+
+rules:
+  - id: security-finding-needs-decision
+    when:
+      artifact_type: code_review
+      risk_level: high
+      requires_user_decision: true
+      category: security
+    decision: mini_surface
+    intent: request_approval
+    surface: MiniIssueCard
+    reason: security_finding_requires_human_decision_before_merge
+
+  - id: bug-finding-needs-decision
+    when:
+      artifact_type: code_review
+      risk_level: high
+      requires_user_decision: true
+      category: bug
+    decision: mini_surface
+    intent: request_approval
+    surface: MiniIssueCard
+    reason: critical_bug_requires_human_decision_before_merge
+
+  - id: medium-finding-no-ui
+    when:
+      artifact_type: code_review
+      risk_level: medium
+    decision: no_ui
+    reason: agent_can_annotate_medium_findings_autonomously
+
+  - id: low-finding-no-ui
+    when:
+      artifact_type: code_review
+      risk_level: low
+    decision: no_ui
+    reason: low_severity_findings_do_not_interrupt_flow
+
+  - id: open-full-review
+    when:
+      user_action: open_full_review
+    decision: rich_surface
+    intent: escalate_to_rich
+    surface: CodeReviewArtifact
+    reason: user_requested_full_review_details
+
+  - id: merge-approved
+    when:
+      user_action: approve_merge
+    decision: mini_surface
+    intent: present_result
+    surface: MiniApprovalCard
+    reason: merge_approval_needs_confirmation_preview
+
+  - id: capture-review-preference
+    when:
+      signal: user_preference_detected
+    decision: no_ui
+    reason: reviewer_preference_captured_as_memory_candidate
+
+  - id: ask-about-scope
+    when:
+      signal: review_scope_needed
+    decision: mini_surface
+    intent: offer_choices
+    surface: MiniChoiceCard
+    reason: clarify_review_scope_before_proceeding
+
+  - id: text-explanation-enough
+    when:
+      signal: text_explanation_requested
+    decision: ask_text
+    reason: brief_explanations_do_not_need_a_surface
+
+  - id: general-followup-no-ui
+    when:
+      signal: general_followup
+    decision: no_ui
+    reason: general_followup_does_not_need_ui

@@ -1,0 +1,37 @@
+id: code-review-agent
+version: "0.1"
+name: Code Review Agent
+description: Reviews pull request diffs for bugs, security issues, and performance problems. Flags high-severity findings for human decision before merge.
+
+entry:
+  type: conversation
+  default_prompt: Please review this pull request and flag any bugs, security vulnerabilities, or performance issues that need attention before merging.
+
+runtime:
+  model: default
+  deterministic_fallback: true
+  memory: enabled
+  interaction_policy: interaction.policy.yaml
+
+surfaces:
+  mini:
+    - MiniIssueCard
+    - MiniApprovalCard
+    - MiniMemoryCard
+    - MiniChoiceCard
+  rich:
+    - CodeReviewArtifact
+
+sample_inputs:
+  - type: pr_diff
+    name: auth-refactor-pr
+    path: ../../fixtures/code-review-sample.md
+
+tools:
+  - name: code_parser
+    required: false
+  - name: security_scanner
+    required: false
+
+channels:
+  - web
