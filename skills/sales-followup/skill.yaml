@@ -1,0 +1,19 @@
+name: sales-followup
+version: 1.0.0
+description: Sales pipeline analysis, account insights, and follow-up action planning.
+
+block_hints:
+  - type: metric
+    use_when: "Displaying pipeline KPIs (hot accounts, projected revenue, pending decisions)"
+  - type: card
+    use_when: "Highlighting key insights about accounts or deals"
+  - type: list
+    use_when: "Listing recommended follow-up actions with status"
+  - type: tool_preview
+    use_when: "Previewing outbound actions (email drafts, CRM updates)"
+
+view_hints: |
+  For sales follow-up tasks, organize into these views:
+  - "Pipeline" tab: metric blocks for KPIs + insight cards
+  - "Actions" tab: action item list + tool preview for outbound steps
+  Adapt based on the number of accounts and urgency of follow-ups.

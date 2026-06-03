@@ -1,6 +1,12 @@
 id: contract-review-policy
 version: "0.1"
 
+# Phase 1 of the Surface Protocol refactor: each rule now declares an
+# explicit `intent:` from the closed Surface Protocol vocabulary
+# (docs/SURFACE_PROTOCOL.md §3). The legacy `surface:` field is retained
+# during the migration window for backward-compatible renderers; it will
+# be removed in a later milestone (see docs/REFACTOR_BLUEPRINT.md Phase 6).
+
 budget:
   max_mini_surfaces_per_run: 3
   max_confirmations_per_run: 2
@@ -14,6 +20,7 @@ rules:
       requires_user_decision: true
       category: liability
     decision: mini_surface
+    intent: request_approval
     surface: MiniIssueCard
     reason: high_risk_human_confirmation_required
 
@@ -28,6 +35,7 @@ rules:
     when:
       user_action: open_full_review
     decision: rich_surface
+    intent: escalate_to_rich
     surface: ContractReviewArtifact
     reason: user_requested_details
 
@@ -35,20 +43,21 @@ rules:
     when:
       user_action: approve_revision
     decision: mini_surface
+    intent: present_result
     surface: MiniRevisionPreview
     reason: approved_revision_needs_compact_preview
 
   - id: memory-after-preference
     when:
       signal: user_preference_detected
-    decision: mini_surface
-    surface: MiniMemoryCard
-    reason: memory_requires_user_control
+    decision: no_ui
+    reason: memories_are_auto_confirmed_no_ui_needed
 
   - id: draft-email-choice
     when:
       signal: draft_email_requested
     decision: mini_surface
+    intent: offer_choices
     surface: MiniChoiceCard
     reason: draft_email_requires_user_choice_before_external_action
 

@@ -41,10 +41,17 @@ export type ArtifactBlock = {
   id: string;
   type: string;
   title?: string | null;
-  data: Record<string, unknown>;
+  /** AIP v1 uses `props`; v0.x used `data`. Both are supported. */
+  props?: Record<string, unknown>;
+  data?: Record<string, unknown>;
   actions?: ArtifactAction[];
   state_binding?: StateBinding | null;
 };
+
+/** Resolve block data — prefers `props` (AIP v1), falls back to `data` (v0.x). */
+export function blockData(block: ArtifactBlock): Record<string, unknown> {
+  return block.props ?? block.data ?? {};
+}
 
 export type ArtifactAction = {
   id: string;
@@ -92,8 +99,8 @@ export type ProvenanceRef = {
 };
 
 export type ArtifactSpecV1 = {
-  version: "artifact_spec.v1";
-  artifact_type: string;
+  version: "artifact_spec.v1" | "tilo/aip/v1";
+  artifact_type?: string;
   title: string;
   status: "draft" | "streaming" | "ready" | "failed";
   blocks: ArtifactBlock[];
@@ -101,6 +108,16 @@ export type ArtifactSpecV1 = {
   provenance: ProvenanceRef[];
   memory_refs: string[];
   run_id?: string | null;
+  views?: Array<{
+    id: string;
+    label: string;
+    icon?: string | null;
+    description?: string | null;
+    layout?: string | null;
+    block_ids: string[];
+    renderer?: string | null;
+  }>;
+  follow_ups?: string[];
 };
 
 export type Artifact = {

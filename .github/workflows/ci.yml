@@ -29,6 +29,8 @@ jobs:
         run: |
           python scripts/validate_app.py examples/apps/contract-review-agent
           python scripts/validate_app.py examples/apps/sales-followup-agent
+      - name: Regenerate surface schema (Python version may differ)
+        run: python scripts/export_surface_schema.py
       - name: Run backend tests
         run: python -m pytest backend/tests
       - name: Run baseline eval

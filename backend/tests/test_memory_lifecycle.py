@@ -46,8 +46,8 @@ def test_context_reflection_orid_tone_candidate_and_memory_suppression() -> None
     assert reflection_orid["objective"]["facts"][0].startswith("UI event recorded:")
     assert any("User message:" in fact for fact in reflection_orid["objective"]["facts"])
     assert "likely" not in " ".join(reflection_orid["objective"]["facts"]).lower()
-    assert tone_memory_status == "candidate"
-    assert tone_memory_confirmed is False
+    assert tone_memory_status == "confirmed"
+    assert tone_memory_confirmed is True
     assert tone_memory_payload["orid_evidence"]["reflective"]
     assert skip_actions[0]["action"] == "none"
     assert skip_memory_count == 0

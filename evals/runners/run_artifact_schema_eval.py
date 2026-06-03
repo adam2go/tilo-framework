@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BACKEND_PATH = ROOT / "backend"
 sys.path.insert(0, str(BACKEND_PATH if BACKEND_PATH.exists() else ROOT))
 
-from app.schemas.artifact import ArtifactSpecV1, SUPPORTED_BLOCK_TYPES  # noqa: E402
+from tilo.schemas.artifact import ArtifactSpecV1, SUPPORTED_BLOCK_TYPES  # noqa: E402
 
 
 DATASET = ROOT / "evals" / "datasets" / "artifact_schema_cases.jsonl"

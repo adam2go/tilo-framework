@@ -26,8 +26,8 @@ os.environ["OPENAI_API_KEY"] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app.main import app  # noqa: E402
-from app.services.demo import load_problematic_ai_service_agreement  # noqa: E402
+from tilo.main import app  # noqa: E402
+from tilo.services.demo import load_problematic_ai_service_agreement  # noqa: E402
 
 RENDERABLE_BLOCK_TYPES = {
     "action_queue",

@@ -55,6 +55,22 @@ export async function sendConversationMessage(sessionId: string, payload: {
   });
 }
 
+export async function startConversationMessage(sessionId: string, payload: {
+  content: string;
+  attachments?: Record<string, unknown>[];
+}) {
+  return apiFetch<{
+    session_id: string;
+    task_id: string;
+    run_id: string;
+    status: string;
+    artifact_id?: string | null;
+  }>(`/api/conversations/${sessionId}/messages/async`, {
+    method: "POST",
+    body: JSON.stringify({ attachments: [], ...payload })
+  });
+}
+
 export async function createConversationSession(payload: {
   app_id: string;
   workspace_id: string;
@@ -105,4 +121,10 @@ export async function appendObservationForInteraction(sessionId: string, interac
     method: "POST",
     body: JSON.stringify({ interaction_id: interactionId })
   });
+}
+
+export async function listArtifactsForRun(workspaceId: string, taskId: string) {
+  return apiFetch<Artifact[]>(
+    `/api/artifacts?workspace_id=${encodeURIComponent(workspaceId)}&task_id=${encodeURIComponent(taskId)}`,
+  );
 }

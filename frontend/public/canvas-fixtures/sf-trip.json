@@ -1,0 +1,225 @@
+{
+  "title": "3-Day San Francisco Weekend Trip Plan",
+  "views": [
+    {
+      "id": "itinerary",
+      "label": "Itinerary",
+      "block_ids": [
+        "summary-card",
+        "day-timeline",
+        "packing-checklist",
+        "trip-actions"
+      ]
+    },
+    {
+      "id": "logistics",
+      "label": "Logistics",
+      "block_ids": [
+        "hotel-table",
+        "budget-metric",
+        "group-form"
+      ]
+    },
+    {
+      "id": "memory",
+      "label": "Memory",
+      "block_ids": [
+        "plan-rating",
+        "travel-memory"
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "summary-card",
+      "type": "card",
+      "title": "Trip Overview",
+      "props": {
+        "severity": "info",
+        "content": "3 days in San Francisco for 2 people, late September. Mix of iconic landmarks (Golden Gate Bridge, Alcatraz, Fisherman's Wharf), local food (Chinatown, Mission burritos, Ferry Plaza), and a day trip to Napa Valley. Budget ~$3,000 total excluding flights. Weather is typically sunny and mild (60-75°F)."
+      }
+    },
+    {
+      "id": "day-timeline",
+      "type": "timeline",
+      "title": "Day-by-Day Itinerary",
+      "props": {
+        "items": [
+          {
+            "time": "Day 1 – City Icons",
+            "title": "Golden Gate Bridge, Fisherman's Wharf, Alcatraz",
+            "description": "Morning: bike across Golden Gate Bridge. Afternoon: lunch at Fisherman's Wharf, then ferry to Alcatraz (book ahead). Evening: dinner in North Beach."
+          },
+          {
+            "time": "Day 2 – Local Culture",
+            "title": "Chinatown, Mission District, Ferry Building",
+            "description": "Morning: dim sum in Chinatown. Afternoon: Mission District murals and Mission burrito. Evening: Ferry Building for dinner and bay views."
+          },
+          {
+            "time": "Day 3 – Napa Day Trip",
+            "title": "Wine Tasting in Napa Valley",
+            "description": "Rent a car or join a tour. Visit 2-3 wineries (e.g., Domaine Carneros, V. Sattui). Lunch at a vineyard. Return to SF for farewell dinner."
+          }
+        ]
+      }
+    },
+    {
+      "id": "packing-checklist",
+      "type": "checklist",
+      "title": "Packing & Pre-Departure",
+      "props": {
+        "items": [
+          {
+            "text": "Book Alcatraz tickets (reserve at least 2 weeks ahead)",
+            "detail": "Online – $45/person",
+            "checked": false
+          },
+          {
+            "text": "Reserve Napa wine tour or rental car",
+            "detail": "Tours ~$150/person, car rental ~$80/day",
+            "checked": false
+          },
+          {
+            "text": "Pack layers (SF is foggy & cool; Napa is warm)",
+            "detail": "Jacket, scarf, comfortable shoes",
+            "checked": false
+          },
+          {
+            "text": "Bring reusable water bottle and sunscreen",
+            "detail": "Californian sun can be strong",
+            "checked": false
+          },
+          {
+            "text": "Print or download offline maps",
+            "detail": "Cell service spotty in parts of Napa",
+            "checked": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "trip-actions",
+      "type": "button_group",
+      "title": "Quick Actions",
+      "props": {
+        "buttons": [
+          {
+            "label": "Book Flights",
+            "action_id": "book_flights",
+            "variant": "primary"
+          },
+          {
+            "label": "Save Itinerary",
+            "action_id": "save_itinerary",
+            "variant": "default"
+          },
+          {
+            "label": "Share with Companion",
+            "action_id": "share_trip",
+            "variant": "default"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hotel-table",
+      "type": "table",
+      "title": "Hotel Options (2 nights, late Sept)",
+      "props": {
+        "columns": [
+          {
+            "key": "name",
+            "label": "Hotel"
+          },
+          {
+            "key": "area",
+            "label": "Neighborhood"
+          },
+          {
+            "key": "price",
+            "label": "Total (USD)"
+          },
+          {
+            "key": "rating",
+            "label": "Rating"
+          }
+        ],
+        "rows": [
+          {
+            "name": "Hotel Zephyr",
+            "area": "Fisherman's Wharf",
+            "price": "$480",
+            "rating": "4.2"
+          },
+          {
+            "name": "The Mosser",
+            "area": "SoMa / Union Square",
+            "price": "$360",
+            "rating": "4.0"
+          },
+          {
+            "name": "HI San Francisco Downtown Hostel",
+            "area": "Union Square",
+            "price": "$180",
+            "rating": "3.9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "budget-metric",
+      "type": "metric",
+      "title": "Budget Breakdown (per person, ex. flights)",
+      "props": {
+        "label": "Total Budget",
+        "value": "$1,500",
+        "delta": {
+          "hotels": "$240",
+          "food": "$350",
+          "activities": "$450",
+          "transport": "$200",
+          "napa day": "$260"
+        }
+      }
+    },
+    {
+      "id": "group-form",
+      "type": "form",
+      "title": "Adjust Group Size",
+      "props": {
+        "fields": [
+          {
+            "name": "group_size",
+            "label": "Number of travelers",
+            "kind": "number"
+          }
+        ]
+      }
+    },
+    {
+      "id": "plan-rating",
+      "type": "rating",
+      "title": "Rate This Plan",
+      "props": {
+        "label": "Overall satisfaction",
+        "value": 4,
+        "max": 5
+      }
+    },
+    {
+      "id": "travel-memory",
+      "type": "memory_card",
+      "title": "Your Travel Preferences",
+      "props": {
+        "content": "User prefers a balanced trip with iconic sights, local food experiences, and a wine country day trip. Budget is moderate ($1,500/person). Focus on convenience and pre-booking key activities. Liked the idea of interactive checklists and flexible hotel options.",
+        "confidence": 0.9
+      }
+    }
+  ],
+  "follow_ups": [
+    "Refine the itinerary with specific restaurant recommendations",
+    "Calculate adjusted budget if group size changes",
+    "Compare Napa day tour options vs. self-drive",
+    "Save this plan as a reusable template for future trips"
+  ]
+}

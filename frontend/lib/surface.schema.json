@@ -1,0 +1,384 @@
+{
+  "$comment": "Generated from backend/app/schemas/surface.py via scripts/export_surface_schema.py. Do not edit by hand.",
+  "$defs": {
+    "ArtifactAction": {
+      "properties": {
+        "action_type": {
+          "title": "Action Type",
+          "type": "string"
+        },
+        "confirmation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmation Id"
+        },
+        "confirmation_required": {
+          "default": false,
+          "title": "Confirmation Required",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "payload": {
+          "title": "Payload",
+          "type": "object"
+        },
+        "state_binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StateBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "action_type"
+      ],
+      "title": "ArtifactAction",
+      "type": "object"
+    },
+    "BlockCompat": {
+      "enum": [
+        "graceful",
+        "strict"
+      ],
+      "title": "BlockCompat",
+      "type": "string"
+    },
+    "BudgetHint": {
+      "enum": [
+        "mini",
+        "rich"
+      ],
+      "title": "BudgetHint",
+      "type": "string"
+    },
+    "EmailFallback": {
+      "properties": {
+        "html": {
+          "minLength": 1,
+          "title": "Html",
+          "type": "string"
+        }
+      },
+      "required": [
+        "html"
+      ],
+      "title": "EmailFallback",
+      "type": "object"
+    },
+    "ProvenanceRef": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "title": "ProvenanceRef",
+      "type": "object"
+    },
+    "SlackFallback": {
+      "properties": {
+        "blocks": {
+          "items": {
+            "type": "object"
+          },
+          "title": "Blocks",
+          "type": "array"
+        }
+      },
+      "title": "SlackFallback",
+      "type": "object"
+    },
+    "StateBinding": {
+      "properties": {
+        "entity_id": {
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "entity_type": {
+          "title": "Entity Type",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        }
+      },
+      "required": [
+        "entity_type",
+        "entity_id"
+      ],
+      "title": "StateBinding",
+      "type": "object"
+    },
+    "SurfaceBlock": {
+      "description": "One block in a SurfaceSpec.\n\n`data` is validated against the type-specific shape in `_BLOCK_TYPE_TO_DATA`.\nOn validation, `data` is normalized to the *parsed* model dump so downstream\ncode can rely on shape stability.",
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ArtifactAction"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "data": {
+          "title": "Data",
+          "type": "object"
+        },
+        "fallback_text": {
+          "minLength": 1,
+          "title": "Fallback Text",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "state_binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StateBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "$ref": "#/$defs/SurfaceBlockType"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "fallback_text"
+      ],
+      "title": "SurfaceBlock",
+      "type": "object"
+    },
+    "SurfaceBlockType": {
+      "enum": [
+        "heading",
+        "text",
+        "evidence",
+        "comparison",
+        "decision",
+        "form",
+        "progress",
+        "list",
+        "link",
+        "editable",
+        "artifact_link",
+        "fallback"
+      ],
+      "title": "SurfaceBlockType",
+      "type": "string"
+    },
+    "SurfaceFallbacks": {
+      "additionalProperties": true,
+      "properties": {
+        "email": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmailFallback"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "slack": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SlackFallback"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "telegram": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TelegramFallback"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SurfaceFallbacks",
+      "type": "object"
+    },
+    "SurfaceIntent": {
+      "enum": [
+        "request_approval",
+        "collect_input",
+        "present_result",
+        "offer_choices",
+        "confirm_memory",
+        "show_progress",
+        "escalate_to_rich",
+        "ask_clarification"
+      ],
+      "title": "SurfaceIntent",
+      "type": "string"
+    },
+    "TelegramFallback": {
+      "properties": {
+        "inline_keyboard": {
+          "items": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "title": "Inline Keyboard",
+          "type": "array"
+        }
+      },
+      "title": "TelegramFallback",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "block_compat": {
+      "$ref": "#/$defs/BlockCompat",
+      "default": "graceful"
+    },
+    "blocks": {
+      "items": {
+        "$ref": "#/$defs/SurfaceBlock"
+      },
+      "minItems": 1,
+      "title": "Blocks",
+      "type": "array"
+    },
+    "budget_hint": {
+      "$ref": "#/$defs/BudgetHint"
+    },
+    "fallback_text": {
+      "minLength": 1,
+      "title": "Fallback Text",
+      "type": "string"
+    },
+    "fallbacks": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SurfaceFallbacks"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "intent": {
+      "$ref": "#/$defs/SurfaceIntent"
+    },
+    "memory_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Memory Refs",
+      "type": "array"
+    },
+    "metadata": {
+      "title": "Metadata",
+      "type": "object"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/ProvenanceRef"
+      },
+      "title": "Provenance",
+      "type": "array"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "tilo.surface.v1",
+      "default": "tilo.surface.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "surface_id": {
+      "minLength": 1,
+      "title": "Surface Id",
+      "type": "string"
+    },
+    "turn_id": {
+      "minLength": 1,
+      "title": "Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "surface_id",
+    "turn_id",
+    "run_id",
+    "intent",
+    "budget_hint",
+    "blocks",
+    "fallback_text"
+  ],
+  "title": "SurfaceSpecV1",
+  "type": "object"
+}
