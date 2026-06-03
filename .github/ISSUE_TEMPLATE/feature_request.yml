@@ -1,0 +1,57 @@
+name: Feature Request
+description: Propose a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting, please check that this aligns with the [project direction](../CONTRIBUTING.md):
+        Tilo is an AI-native product runtime — not a generic chatbot or dashboard template.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the ROAM loop does this touch?
+      options:
+        - Render (artifact / surface)
+        - Observe (conversation turns / observations)
+        - Act (artifact actions / confirmations)
+        - Memorize (memory lifecycle)
+        - Developer experience (SDK / API / docs)
+        - Example apps
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the user or developer pain point.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like to see? API changes, new artifacts, new action types, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you thought about?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a PR for this feature

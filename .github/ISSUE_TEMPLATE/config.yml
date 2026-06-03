@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / Discussion
+    url: https://github.com/adam2go/tilo-framework/discussions
+    about: Ask questions or share ideas in GitHub Discussions
+  - name: Documentation
+    url: https://github.com/adam2go/tilo-framework/tree/main/docs
+    about: Browse the docs before opening an issue

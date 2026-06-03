@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/adam2go/tilo-framework/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/adam2go/tilo-framework/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="License" src="https://img.shields.io/github/license/adam2go/tilo-framework" />
   <img alt="Stars" src="https://img.shields.io/github/stars/adam2go/tilo-framework?style=social" />
   <img alt="Forks" src="https://img.shields.io/github/forks/adam2go/tilo-framework?style=social" />
@@ -95,6 +96,21 @@ User action -> ArtifactActionRuntime -> UIInteractionEvent -> ConversationTurn(o
 ```
 
 前端只渲染意图，后端拥有动作语义。
+
+---
+
+## 和同类框架的对比
+
+| | LangGraph | CrewAI | AutoGPT | **Tilo** |
+|---|---|---|---|---|
+| 核心抽象 | Workflow 图 | Agent 团队 | 自主循环 | **产品运行时闭环** |
+| 人机协作 | 可选检查点 | 极少 | 极少 | **一等公民：每个动作都经后端运行时** |
+| 记忆模型 | 图状态 | 团队记忆 | 自动写入 | **候选 → 用户确认 → 持久化** |
+| UI / 界面 | 无 | 无 | 无 | **带动作语义的 Artifact Spec** |
+| 审计链路 | 图 trace | 日志 | 日志 | **UIInteractionEvent + ConversationTurn(observation)** |
+| 最适合 | 复杂工作流编排 | 多 Agent 协作 | 自主任务 | **有人类决策的 AI-native 产品流程** |
+
+Tilo 不是 LangGraph 或 CrewAI 的替代品，而是位于它们之上的**产品运行时层**。你可以用 LangGraph 编排内部 Agent 逻辑，用 Tilo 处理界面、决策和记忆生命周期。
 
 ---
 

@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/adam2go/tilo-framework/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/adam2go/tilo-framework/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="License" src="https://img.shields.io/github/license/adam2go/tilo-framework" />
   <img alt="Stars" src="https://img.shields.io/github/stars/adam2go/tilo-framework?style=social" />
   <img alt="Forks" src="https://img.shields.io/github/forks/adam2go/tilo-framework?style=social" />
@@ -92,6 +93,21 @@ User action -> ArtifactActionRuntime -> UIInteractionEvent -> ConversationTurn(o
 ```
 
 The frontend renders intent. The backend owns action semantics.
+
+---
+
+## How Tilo compares
+
+| | LangGraph | CrewAI | AutoGPT | **Tilo** |
+|---|---|---|---|---|
+| Primary abstraction | Workflow graph | Agent crew | Autonomous loop | **Product runtime loop** |
+| Human-in-the-loop | Optional checkpoint | Minimal | Minimal | **First-class: every action routes through backend runtime** |
+| Memory model | Graph state | Crew memory | Auto-write | **Candidate → human confirmation → durable** |
+| UI / surface | None | None | None | **Artifact spec with action semantics** |
+| Audit trail | Graph trace | Logs | Logs | **UIInteractionEvent + ConversationTurn(observation)** |
+| Best for | Complex workflows | Multi-agent tasks | Autonomous tasks | **AI-native product flows with human decisions** |
+
+Tilo is not a replacement for LangGraph or CrewAI — it is the **product runtime layer** that sits above them. You can use LangGraph to orchestrate the internal agent logic and Tilo to handle the surface, decision, and memory lifecycle with the human.
 
 ---
 
