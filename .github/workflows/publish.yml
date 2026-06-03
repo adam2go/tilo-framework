@@ -1,0 +1,35 @@
+name: Publish to PyPI
+
+# Triggered when a version tag is pushed: git tag v0.1.0 && git push --tags
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-publish:
+    name: Build and publish tilo to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi          # Must match the environment name in PyPI trusted publishing
+    permissions:
+      id-token: write          # Required for OIDC trusted publishing (no API token needed)
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build sdist and wheel
+        working-directory: backend
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: backend/dist/
