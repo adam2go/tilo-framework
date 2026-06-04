@@ -247,7 +247,7 @@ evals/         运行时质量检查和 baseline 指标
 - [x] chart、diff、timeline、kanban、code、tool_preview、memory_card 块完整渲染
 - [x] 发布到 PyPI —— `pip install tilo` 已上线
 - [ ] A2A / ACP 适配器完整实现
-- [ ] `@adam2go/tilo-react` npm 包发布
+- [x] `@adam2go/tilo-react` npm 包已发布 —— `npm install @adam2go/tilo-react`
 - [ ] Skill 市场 + YAML 技能加载
 
 **未来**——多 Agent 路由、带确认门控的真实工具执行、Slack / 邮件渠道适配器、社区渲染器 SDK。

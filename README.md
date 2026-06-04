@@ -254,7 +254,7 @@ evals/         Runtime quality checks and baseline metrics
 - [x] Chart, diff, timeline, kanban, code, tool_preview, memory_card block rendering
 - [x] PyPI publication — `pip install tilo` is live
 - [ ] A2A / ACP adapter implementations
-- [ ] `@adam2go/tilo-react` npm package published to npm
+- [x] `@adam2go/tilo-react` npm package published — `npm install @adam2go/tilo-react`
 - [ ] Skill marketplace + YAML-based skill loading
 
 **Future** — Multi-agent routing, real tool execution with confirmation gates, Slack / email channel adapters, community renderer SDKs.
