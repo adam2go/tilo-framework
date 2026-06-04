@@ -1,11 +1,11 @@
-# @tilo/react
+# @adam2go/tilo-react
 
 React renderer SDK for [Tilo](https://github.com/adam2go/tilo-framework) — render agent-authored surfaces, artifact blocks, and the two-way AIP action loop in any React app.
 
 ```bash
-npm install @tilo/react recharts lucide-react
+npm install @adam2go/tilo-react recharts lucide-react
 # or
-pnpm add @tilo/react recharts lucide-react
+pnpm add @adam2go/tilo-react recharts lucide-react
 ```
 
 ## Quick start
@@ -13,7 +13,7 @@ pnpm add @tilo/react recharts lucide-react
 ### Render a surface spec
 
 ```tsx
-import { TiloRenderer, createTiloClient, useTiloSurface } from "@tilo/react";
+import { TiloRenderer, createTiloClient, useTiloSurface } from "@adam2go/tilo-react";
 
 const client = createTiloClient({ baseUrl: "http://localhost:8000" });
 
@@ -44,7 +44,7 @@ function MyApp({ runId }: { runId: string }) {
 ### Render an artifact block
 
 ```tsx
-import { renderArtifactBlock } from "@tilo/react";
+import { renderArtifactBlock } from "@adam2go/tilo-react";
 
 // Works with any AIP v1 block (chart, diff, code, timeline, kanban, …)
 const block = {
@@ -63,8 +63,8 @@ const block = {
 ### Override a block renderer
 
 ```tsx
-import { TiloRenderer } from "@tilo/react";
-import type { BlockProps } from "@tilo/react";
+import { TiloRenderer } from "@adam2go/tilo-react";
+import type { BlockProps } from "@adam2go/tilo-react";
 
 function MyDecision({ block, fire }: BlockProps<"decision">) {
   return (
@@ -119,14 +119,14 @@ function MyDecision({ block, fire }: BlockProps<"decision">) {
 
 ## Tailwind CSS
 
-`@tilo/react` components use Tailwind CSS utility classes. Add the package to your `tailwind.config.js` content scan:
+`@adam2go/tilo-react` components use Tailwind CSS utility classes. Add the package to your `tailwind.config.js` content scan:
 
 ```js
 // tailwind.config.js
 module.exports = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./node_modules/@tilo/react/dist/**/*.{js,mjs}",
+    "./node_modules/@adam2go/tilo-react/dist/**/*.{js,mjs}",
   ],
 };
 ```

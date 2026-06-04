@@ -127,7 +127,7 @@ Zero-code bridges from external protocols into Tilo blocks:
 
 ### Layer 3 — Renderer SDKs
 
-Tilo Spec JSON → any frontend. `@tilo/react` is the official reference. Developers can override any block type's renderer or build their own SDK for Vue, Flutter, Web Components, or terminal CLI.
+Tilo Spec JSON → any frontend. `@adam2go/tilo-react` is the official reference. Developers can override any block type's renderer or build their own SDK for Vue, Flutter, Web Components, or terminal CLI.
 
 ### Layer 4 — Skill Hints + LLM Composition
 
@@ -203,7 +203,7 @@ Two design choices keep this safe:
 | **MCP adapter** | Already using MCP tools | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **LangChain adapter** | Using LangChain / LangGraph | `from tilo.adapters.langchain import TiloCallbackHandler` |
 | **Backend sidecar** | Have your own frontend | Call Tilo REST APIs |
-| **Embedded components** | Want AI-native UI blocks | Reuse `@tilo/react` components with overrides |
+| **Embedded components** | Want AI-native UI blocks | Reuse `@adam2go/tilo-react` components with overrides |
 | **Skill author** | Package a repeatable workflow | `skill.yaml` with `block_hints` + `view_hints` |
 | **Declarative app** | Full agent workflow | `app.yaml` + `interaction.policy.yaml` |
 
@@ -228,7 +228,7 @@ backend/       Python package `tilo` — FastAPI runtime, pip-installable
   tilo/adapters/   MCP, LangChain, A2A, ACP protocol adapters
   tilo/schemas/    AIP v1 spec: ~20 primitive block types + open extension
   tilo/services/   Memory, Confirmation, Trace, Artifact, Skills
-frontend/      @tilo/react — Next.js reference UI, artifact-driven Canvas
+frontend/      @adam2go/tilo-react — Next.js reference UI, artifact-driven Canvas
 skills/        Skill YAML definitions with block_hints + view_hints
 examples/      Declarative agent apps and contract fixtures
 docs/          Architecture, AIP design, integration guide, principles
@@ -254,7 +254,7 @@ evals/         Runtime quality checks and baseline metrics
 - [x] Chart, diff, timeline, kanban, code, tool_preview, memory_card block rendering
 - [x] PyPI publication — `pip install tilo` is live
 - [ ] A2A / ACP adapter implementations
-- [ ] `@tilo/react` npm package published to npm
+- [ ] `@adam2go/tilo-react` npm package published to npm
 - [ ] Skill marketplace + YAML-based skill loading
 
 **Future** — Multi-agent routing, real tool execution with confirmation gates, Slack / email channel adapters, community renderer SDKs.

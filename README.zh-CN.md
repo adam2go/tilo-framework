@@ -121,7 +121,7 @@ make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 
 ### 第三层 — 渲染器 SDK
 
-Tilo Spec JSON → 任何前端。`@tilo/react` 是官方参考实现。开发者可以覆盖任何 block type 的渲染器，也可以为 Vue、Flutter、Web Components 或终端 CLI 构建自己的 SDK。
+Tilo Spec JSON → 任何前端。`@adam2go/tilo-react` 是官方参考实现。开发者可以覆盖任何 block type 的渲染器，也可以为 Vue、Flutter、Web Components 或终端 CLI 构建自己的 SDK。
 
 ### 第四层 — Skill 提示 + LLM 动态组合
 
@@ -196,7 +196,7 @@ https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
 | **MCP 适配器** | 已在用 MCP 工具 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **LangChain 适配器** | 使用 LangChain / LangGraph | `from tilo.adapters.langchain import TiloCallbackHandler` |
 | **后端 sidecar** | 已有自己的前端 | 调用 Tilo REST APIs |
-| **嵌入组件** | 想用 AI-native UI 块 | 复用 `@tilo/react` 组件 + override |
+| **嵌入组件** | 想用 AI-native UI 块 | 复用 `@adam2go/tilo-react` 组件 + override |
 | **Skill 作者** | 封装可复用工作流 | `skill.yaml` + `block_hints` + `view_hints` |
 | **声明式 App** | 完整 Agent 工作流 | `app.yaml` + `interaction.policy.yaml` |
 
@@ -221,7 +221,7 @@ backend/       Python 包 `tilo` — FastAPI 运行时，pip 可安装
   tilo/adapters/   MCP、LangChain、A2A、ACP 协议适配器
   tilo/schemas/    AIP v1 spec：~20 个原语块类型 + 开放扩展
   tilo/services/   记忆、确认、追踪、Artifact、技能
-frontend/      @tilo/react — Next.js 参考 UI，Artifact 驱动的 Canvas
+frontend/      @adam2go/tilo-react — Next.js 参考 UI，Artifact 驱动的 Canvas
 skills/        Skill YAML 定义（block_hints + view_hints）
 examples/      声明式 Agent App 和合同 fixture
 docs/          架构、AIP 设计、集成指南、设计原则
@@ -247,7 +247,7 @@ evals/         运行时质量检查和 baseline 指标
 - [x] chart、diff、timeline、kanban、code、tool_preview、memory_card 块完整渲染
 - [x] 发布到 PyPI —— `pip install tilo` 已上线
 - [ ] A2A / ACP 适配器完整实现
-- [ ] `@tilo/react` npm 包发布
+- [ ] `@adam2go/tilo-react` npm 包发布
 - [ ] Skill 市场 + YAML 技能加载
 
 **未来**——多 Agent 路由、带确认门控的真实工具执行、Slack / 邮件渠道适配器、社区渲染器 SDK。
