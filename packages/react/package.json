@@ -1,0 +1,55 @@
+{
+  "name": "@tilo/react",
+  "version": "0.1.0",
+  "description": "React renderer SDK for Tilo Agent Interaction Protocol (AIP) — render agent-authored surfaces, artifact blocks, and the two-way action loop.",
+  "keywords": [
+    "ai",
+    "agent",
+    "react",
+    "tilo",
+    "aip",
+    "llm",
+    "artifact",
+    "surface"
+  ],
+  "license": "MIT",
+  "author": "adam2go",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adam2go/tilo-framework.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/adam2go/tilo-framework#readme",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "lucide-react": ">=0.400",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "recharts": ">=2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.30",
+    "@types/react-dom": "^18.3.7",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
