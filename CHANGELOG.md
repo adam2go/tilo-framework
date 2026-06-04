@@ -9,6 +9,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **OpenAI adapter** (`tilo.adapters.openai`) — `tilo_spec_from_completion()` + `TiloCompletionHandler` for streaming; auto-maps text/JSON/tool_calls to typed AIP blocks
+- **Anthropic adapter** (`tilo.adapters.anthropic_sdk`) — `tilo_spec_from_message()` + `TiloMessageHandler`; handles text, tool_use, and streaming via `on_text()` / `on_event()`
+- **`tilo init` overhaul** — scaffolds a complete runnable project: `.env`, `requirements.txt`, `hello.py` (end-to-end demo), `openai_agent.py`, and `README.md`
+- **`examples/integrations/`** — copy-paste ready examples for OpenAI, Anthropic, and LangChain
+- **5-minute quickstart tutorial** (`docs/tutorials/quickstart.md`)
 - GitHub issue templates (bug report, feature request)
 - GitHub PR template
 - CI status badge in README

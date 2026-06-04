@@ -118,10 +118,12 @@ Three runtime pillars: **Memory Engine** (recall → candidate → confirm), **C
 
 Zero-code bridges from external protocols into Tilo blocks:
 
-| Adapter | Status | Mapping |
+| Adapter | Status | One-liner |
 |---|---|---|
-| **MCP** | ✅ Implemented | TextContent→markdown, ImageContent→image, Resource→card |
-| **LangChain** | ✅ Implemented | `TiloCallbackHandler` captures LLM text, tool calls, and structured output as typed blocks |
+| **OpenAI** | ✅ Implemented | `from tilo.adapters.openai import tilo_spec_from_completion` |
+| **Anthropic** | ✅ Implemented | `from tilo.adapters.anthropic_sdk import tilo_spec_from_message` |
+| **LangChain** | ✅ Implemented | `from tilo.adapters.langchain import TiloCallbackHandler` |
+| **MCP** | ✅ Implemented | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **A2A** | 🔌 Interface | A2A task result → Tilo spec |
 | **ACP** | 🔌 Interface | ACP message → Tilo spec |
 
@@ -199,9 +201,11 @@ Two design choices keep this safe:
 
 | Mode | When to use | What you touch |
 |---|---|---|
-| **Standalone** | Evaluate Tilo locally | `pip install tilo && tilo serve` |
-| **MCP adapter** | Already using MCP tools | `from tilo.adapters.mcp import mcp_content_to_blocks` |
+| **Standalone** | Evaluate Tilo locally | `pip install tilo && tilo init myapp && tilo serve` |
+| **OpenAI adapter** | Using OpenAI SDK | `from tilo.adapters.openai import tilo_spec_from_completion` |
+| **Anthropic adapter** | Using Anthropic SDK | `from tilo.adapters.anthropic_sdk import tilo_spec_from_message` |
 | **LangChain adapter** | Using LangChain / LangGraph | `from tilo.adapters.langchain import TiloCallbackHandler` |
+| **MCP adapter** | Using MCP tools | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **Backend sidecar** | Have your own frontend | Call Tilo REST APIs |
 | **Embedded components** | Want AI-native UI blocks | Reuse `@adam2go/tilo-react` components with overrides |
 | **Skill author** | Package a repeatable workflow | `skill.yaml` with `block_hints` + `view_hints` |
@@ -217,7 +221,7 @@ GET  /api/artifacts?workspace_id=...&task_id=...  Full artifact with views
 POST /api/memories/{id}/confirm                   Confirm a memory candidate
 ```
 
-See [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md) and [`docs/AIP_DESIGN.md`](./docs/AIP_DESIGN.md).
+See the [5-minute quickstart](./docs/tutorials/quickstart.md), [`examples/integrations/`](./examples/integrations/), [`docs/INTEGRATION_GUIDE.md`](./docs/INTEGRATION_GUIDE.md) and [`docs/AIP_DESIGN.md`](./docs/AIP_DESIGN.md).
 
 ---
 
@@ -253,6 +257,8 @@ evals/         Runtime quality checks and baseline metrics
 - [x] Multi-turn conversation + LLM streaming with visible thinking
 - [x] Chart, diff, timeline, kanban, code, tool_preview, memory_card block rendering
 - [x] PyPI publication — `pip install tilo` is live
+- [x] OpenAI adapter — `tilo_spec_from_completion()` + `TiloCompletionHandler`
+- [x] Anthropic adapter — `tilo_spec_from_message()` + `TiloMessageHandler`
 - [ ] A2A / ACP adapter implementations
 - [x] `@adam2go/tilo-react` npm package published — `npm install @adam2go/tilo-react`
 - [ ] Skill marketplace + YAML-based skill loading

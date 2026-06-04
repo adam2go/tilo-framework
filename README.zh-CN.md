@@ -112,10 +112,12 @@ make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 
 外部协议零代码桥接为 Tilo blocks：
 
-| 适配器 | 状态 | 映射 |
+| 适配器 | 状态 | 一行接入 |
 |---|---|---|
-| **MCP** | ✅ 已实现 | TextContent→markdown，ImageContent→image，Resource→card |
-| **LangChain** | ✅ 已实现 | `TiloCallbackHandler` 捕获 LLM 文本、工具调用和结构化输出，映射为带类型的块 |
+| **OpenAI** | ✅ 已实现 | `from tilo.adapters.openai import tilo_spec_from_completion` |
+| **Anthropic** | ✅ 已实现 | `from tilo.adapters.anthropic_sdk import tilo_spec_from_message` |
+| **LangChain** | ✅ 已实现 | `from tilo.adapters.langchain import TiloCallbackHandler` |
+| **MCP** | ✅ 已实现 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **A2A** | 🔌 接口 | A2A task result → Tilo spec |
 | **ACP** | 🔌 接口 | ACP message → Tilo spec |
 
@@ -192,9 +194,11 @@ https://github.com/user-attachments/assets/1847718a-586d-4e80-b9fd-6eade1d35b35
 
 | 模式 | 适合场景 | 接触面 |
 |---|---|---|
-| **独立运行** | 本地评估 Tilo | `pip install tilo && tilo serve` |
-| **MCP 适配器** | 已在用 MCP 工具 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
+| **独立运行** | 本地评估 Tilo | `pip install tilo && tilo init myapp && tilo serve` |
+| **OpenAI 适配器** | 使用 OpenAI SDK | `from tilo.adapters.openai import tilo_spec_from_completion` |
+| **Anthropic 适配器** | 使用 Anthropic SDK | `from tilo.adapters.anthropic_sdk import tilo_spec_from_message` |
 | **LangChain 适配器** | 使用 LangChain / LangGraph | `from tilo.adapters.langchain import TiloCallbackHandler` |
+| **MCP 适配器** | 已在用 MCP 工具 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **后端 sidecar** | 已有自己的前端 | 调用 Tilo REST APIs |
 | **嵌入组件** | 想用 AI-native UI 块 | 复用 `@adam2go/tilo-react` 组件 + override |
 | **Skill 作者** | 封装可复用工作流 | `skill.yaml` + `block_hints` + `view_hints` |
@@ -246,6 +250,8 @@ evals/         运行时质量检查和 baseline 指标
 - [x] 多轮对话 + LLM streaming + 思考过程实时可见
 - [x] chart、diff、timeline、kanban、code、tool_preview、memory_card 块完整渲染
 - [x] 发布到 PyPI —— `pip install tilo` 已上线
+- [x] OpenAI 适配器 —— `tilo_spec_from_completion()` + `TiloCompletionHandler`
+- [x] Anthropic 适配器 —— `tilo_spec_from_message()` + `TiloMessageHandler`
 - [ ] A2A / ACP 适配器完整实现
 - [x] `@adam2go/tilo-react` npm 包已发布 —— `npm install @adam2go/tilo-react`
 - [ ] Skill 市场 + YAML 技能加载
