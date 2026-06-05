@@ -1,6 +1,24 @@
 """OpenAI → Tilo AIP adapter.
 
-Converts OpenAI ChatCompletion (and streaming) responses into Tilo AIP specs.
+Two usage modes:
+
+1. FULL GENERATION — LLM generates a rich AIP spec from scratch (recommended):
+    from tilo.adapters.openai import generate_aip_spec
+    from openai import OpenAI
+
+    spec = generate_aip_spec(
+        client=OpenAI(),
+        goal="Review this SaaS contract for payment and IP risks.",
+        skill="contract_review",          # or "auto" to detect
+        document=contract_text,           # optional
+    )
+    # spec.blocks → chart, diff, table, confirmation, memory_card, follow_ups...
+
+2. CONVERT existing responses (wraps output already received):
+    from tilo.adapters.openai import tilo_spec_from_completion
+
+    spec = tilo_spec_from_completion(existing_response)
+
 No hard dependency on the openai package at import time — duck-typed interface.
 
 Usage (direct conversion):
@@ -288,3 +306,60 @@ class TiloCompletionHandler:
         self._text_parts.clear()
         self._tool_calls.clear()
         self._model = "openai"
+
+
+# --------------------------------------------------------------------------- #
+# Full AIP generation (recommended entry point)                                #
+# --------------------------------------------------------------------------- #
+
+def generate_aip_spec(
+    client: Any,
+    goal: str,
+    *,
+    model: str = "gpt-4o",
+    skill: str | None = "auto",
+    document: str | None = None,
+    memories: list[str] | None = None,
+    language: str | None = None,
+) -> Any:
+    """Generate a full Tilo AIP spec by prompting the LLM with the AIP format.
+
+    Unlike ``tilo_spec_from_completion()`` which converts existing output,
+    this function prompts the LLM to generate a rich, structured AIP spec
+    directly — including chart, diff, timeline, kanban, confirmation, and
+    memory_card blocks, organised into views with follow-up suggestions.
+
+    Args:
+        client:    An ``openai.OpenAI()`` instance.
+        goal:      What the artifact should address.
+        model:     Model to use (default: "gpt-4o").
+        skill:     "auto" to detect from goal, or one of:
+                   "contract_review", "code_review", "sales_dashboard",
+                   "trip_planning", "competitive_analysis", "data_analysis".
+        document:  Optional document text (contract, PR diff, etc.).
+        memories:  Optional list of recalled user preference strings.
+        language:  "en" to force English, "zh" for Chinese output.
+
+    Returns:
+        A validated ``ArtifactSpecV1`` instance.
+
+    Example:
+        from openai import OpenAI
+        from tilo.adapters.openai import generate_aip_spec
+
+        spec = generate_aip_spec(
+            client=OpenAI(),
+            goal="Review this contract for payment and liability risks.",
+            skill="contract_review",
+            document=contract_text,
+        )
+        print(spec.title)
+        print([b.type for b in spec.blocks])
+        # → ["card", "chart", "table", "diff", "checklist", "confirmation", "memory_card"]
+    """
+    from tilo.generate import generate_with_openai
+    return generate_with_openai(
+        client, goal,
+        model=model, skill=skill, document=document,
+        memories=memories, language=language,
+    )

@@ -273,3 +273,62 @@ class TiloMessageHandler:
         """Clear accumulated state for reuse."""
         self._text_parts.clear()
         self._tool_blocks.clear()
+
+
+# --------------------------------------------------------------------------- #
+# Full AIP generation (recommended entry point)                                #
+# --------------------------------------------------------------------------- #
+
+def generate_aip_spec(
+    client: Any,
+    goal: str,
+    *,
+    model: str = "claude-opus-4-8",
+    skill: str | None = "auto",
+    document: str | None = None,
+    memories: list[str] | None = None,
+    language: str | None = None,
+    max_tokens: int = 4096,
+) -> Any:
+    """Generate a full Tilo AIP spec by prompting Claude with the AIP format.
+
+    Unlike ``tilo_spec_from_message()`` which converts existing output,
+    this function prompts Claude to generate a rich, structured AIP spec
+    directly — including chart, diff, timeline, confirmation, and
+    memory_card blocks, organised into views with follow-up suggestions.
+
+    Args:
+        client:     An ``anthropic.Anthropic()`` instance.
+        goal:       What the artifact should address.
+        model:      Claude model (default: "claude-opus-4-8").
+        skill:      "auto" to detect from goal, or one of:
+                    "contract_review", "code_review", "sales_dashboard",
+                    "trip_planning", "competitive_analysis", "data_analysis".
+        document:   Optional document text (contract, PR diff, etc.).
+        memories:   Optional list of recalled user preference strings.
+        language:   "en" to force English, "zh" for Chinese output.
+        max_tokens: Max tokens for the response (default: 4096).
+
+    Returns:
+        A validated ``ArtifactSpecV1`` instance.
+
+    Example:
+        import anthropic
+        from tilo.adapters.anthropic_sdk import generate_aip_spec
+
+        spec = generate_aip_spec(
+            client=anthropic.Anthropic(),
+            goal="Review this PR for security vulnerabilities.",
+            skill="code_review",
+            document=pr_diff,
+        )
+        print([b.type for b in spec.blocks])
+        # → ["card", "diff", "table", "checklist", "confirmation", "memory_card"]
+    """
+    from tilo.generate import generate_with_anthropic
+    return generate_with_anthropic(
+        client, goal,
+        model=model, skill=skill, document=document,
+        memories=memories, language=language,
+        max_tokens=max_tokens,
+    )

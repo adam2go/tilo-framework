@@ -1,7 +1,8 @@
-from tilo.api.routes import agents, apps, artifacts, channels, confirmations, conversations, demo, feedback, interactions, memories, messages, projects, runs, skills, system, tasks, tools, workspaces
+from tilo.api.routes import agents, apps, artifacts, channels, confirmations, conversations, demo, feedback, interactions, memories, messages, playground, projects, runs, skills, system, tasks, tools, workspaces
 
 routers = [
     system.router,
+    playground.router,
     apps.router,
     workspaces.router,
     projects.router,

@@ -345,3 +345,57 @@ class TiloCallbackHandler:
         """Clear all captured state. Allows reuse across multiple chain runs."""
         self.blocks.clear()
         self._tool_names.clear()
+
+
+# --------------------------------------------------------------------------- #
+# Full AIP generation (recommended entry point)                                #
+# --------------------------------------------------------------------------- #
+
+def generate_aip_spec(
+    llm: Any,
+    goal: str,
+    *,
+    skill: str | None = "auto",
+    document: str | None = None,
+    memories: list[str] | None = None,
+    language: str | None = None,
+) -> Any:
+    """Generate a full Tilo AIP spec using any LangChain chat model.
+
+    Unlike ``TiloCallbackHandler`` which captures existing chain output,
+    this function prompts the LLM with the full AIP format so it generates
+    a rich, structured spec — including chart, diff, confirmation, and
+    memory_card blocks organised into views with follow-up suggestions.
+
+    Args:
+        llm:       Any LangChain chat model (ChatOpenAI, ChatAnthropic, etc.).
+        goal:      What the artifact should address.
+        skill:     "auto" to detect from goal, or one of:
+                   "contract_review", "code_review", "sales_dashboard",
+                   "trip_planning", "competitive_analysis", "data_analysis".
+        document:  Optional document text (contract, PR diff, etc.).
+        memories:  Optional list of recalled user preference strings.
+        language:  "en" to force English, "zh" for Chinese output.
+
+    Returns:
+        A validated ``ArtifactSpecV1`` instance.
+
+    Example:
+        from langchain_openai import ChatOpenAI
+        from tilo.adapters.langchain import generate_aip_spec
+
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
+        spec = generate_aip_spec(
+            llm=llm,
+            goal="Analyse Q3 sales pipeline and recommend follow-up actions.",
+            skill="sales_dashboard",
+        )
+        print([b.type for b in spec.blocks])
+        # → ["metric", "metric", "card", "list", "tool_preview", "memory_card"]
+    """
+    from tilo.generate import generate_with_langchain
+    return generate_with_langchain(
+        llm, goal,
+        skill=skill, document=document,
+        memories=memories, language=language,
+    )
