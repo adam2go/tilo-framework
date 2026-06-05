@@ -8,16 +8,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Added
+### Added — one-line LLM → interactive UI
+- **`tilo.generate(goal, model=…)`** — one line from any LLM to a full AIP spec;
+  provider auto-detected from the model name (gpt-* → OpenAI, claude-* → Anthropic).
+  The LLM authors the full surface (chart, diff, confirmation, memory_card, …),
+  not just a wrapped response.
+- **`tilo.prompt.AIPPromptBuilder`** — bring-your-own LLM client. `system_prompt()`,
+  `user_prompt()`, `messages_openai/anthropic/langchain()`, and `parse()` (validates
+  + normalises raw LLM output into an AIP spec).
+- **12 built-in skills** (was 4): + incident_response, meeting_summary, bug_report,
+  document_review, research_summary, onboarding_plan. `from_skill_file()` loads
+  custom `skill.yaml`.
+- **`generate_aip_spec()`** added to the OpenAI, Anthropic, and LangChain adapters.
+
+### Added — zero-setup rendering
+- **`tilo.view(spec)`** — opens a rendered surface in the browser (temp HTTP server).
+- **`tilo.notebook(spec)`** — inline rendering in Jupyter / Colab.
+- **`tilo.to_html(spec)` / `tilo.save_html(spec)`** — self-contained HTML, no CDN,
+  no framework. Pure-JS renderer for all 20 block types incl. SVG charts.
+- **`tilo serve` welcome page** at `/` + live **`/playground`** spec editor.
+- **`tilo demo`** — opens a sample surface instantly.
+
+### Added — adapters & examples
 - **OpenAI adapter** (`tilo.adapters.openai`) — `tilo_spec_from_completion()` + `TiloCompletionHandler` for streaming; auto-maps text/JSON/tool_calls to typed AIP blocks
 - **Anthropic adapter** (`tilo.adapters.anthropic_sdk`) — `tilo_spec_from_message()` + `TiloMessageHandler`; handles text, tool_use, and streaming via `on_text()` / `on_event()`
-- **`tilo init` overhaul** — scaffolds a complete runnable project: `.env`, `requirements.txt`, `hello.py` (end-to-end demo), `openai_agent.py`, and `README.md`
-- **`examples/integrations/`** — copy-paste ready examples for OpenAI, Anthropic, and LangChain
+- **`tilo init` overhaul** — scaffolds a `generate()`+`view()` `hello.py`, plus `server_demo.py` for the full ROAM loop
+- **`examples/integrations/`** — copy-paste ready examples (quickstart, OpenAI, Anthropic, LangChain)
 - **5-minute quickstart tutorial** (`docs/tutorials/quickstart.md`)
-- GitHub issue templates (bug report, feature request)
-- GitHub PR template
-- CI status badge in README
-- Comparison table vs LangGraph / CrewAI / AutoGPT in README
+- GitHub issue templates, PR template, CI badge, comparison table vs LangGraph / CrewAI / AutoGPT
+
+### Fixed
+- Skill detection: `" pr"` no longer misfires on words like "production" (word-boundary match)
 
 ---
 
