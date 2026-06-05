@@ -35,6 +35,7 @@ Prompt builder (bring-your-own LLM client):
 from tilo.generate import (
     TiloGenerationError,
     generate,
+    generate_batch,
     generate_followup,
     generate_with_anthropic,
     generate_with_langchain,
@@ -46,6 +47,7 @@ from tilo.viewer import load_spec, notebook, save_html, save_spec, to_html, view
 __all__ = [
     # Generation
     "generate",
+    "generate_batch",
     "generate_followup",
     "generate_with_openai",
     "generate_with_anthropic",

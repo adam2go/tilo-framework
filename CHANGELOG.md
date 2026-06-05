@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **`generate_batch(goals, …)`** — generate many surfaces concurrently (thread
+  pool; N goals finish in ~the slowest one's time). Order preserved; per-item
+  failures yield a fallback instead of aborting the batch.
+
+### Changed
+- Removed internal V1.0 build-process docs from `docs/` (history is in git +
+  the CHANGELOG); dropped the stale "Active Refactor" framing in the docs index.
+- Stopped tracking the `frontend/tsconfig.tsbuildinfo` build cache.
+
+---
+
 ## [0.3.0] — 2026-06-05
 
 ### Added — robustness, providers, ergonomics

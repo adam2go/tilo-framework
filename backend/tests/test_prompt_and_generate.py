@@ -719,3 +719,74 @@ class TestBaseUrl:
         gen._make_openai_client(None, base_url="http://localhost:11434/v1")
         assert created["base_url"] == "http://localhost:11434/v1"
         assert created["api_key"] == "not-needed"  # local servers accept anything
+
+
+# --------------------------------------------------------------------------- #
+# generate_batch — concurrent multi-goal generation                           #
+# --------------------------------------------------------------------------- #
+
+class TestGenerateBatch:
+    def test_batch_returns_one_spec_per_goal_in_order(self, monkeypatch):
+        import sys
+        gen = sys.modules["tilo.generate"]
+        from tilo.schemas.artifact import ArtifactSpecV1
+
+        def fake_generate(goal, **kwargs):
+            return ArtifactSpecV1.model_validate({
+                "version": "tilo/aip/v1", "title": goal, "status": "ready",
+                "blocks": [{"id": "b", "type": "markdown", "props": {"content": goal}}],
+                "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+            })
+        monkeypatch.setattr(gen, "generate", fake_generate)
+
+        goals = ["alpha", "beta", "gamma", "delta", "epsilon"]
+        specs = gen.generate_batch(goals, model="gpt-4o", max_workers=3)
+        assert [s.title for s in specs] == goals  # order preserved
+
+    def test_empty_batch_returns_empty(self):
+        import sys
+        gen = sys.modules["tilo.generate"]
+        assert gen.generate_batch([], model="gpt-4o") == []
+
+    def test_batch_failure_yields_fallback_not_abort(self, monkeypatch):
+        import sys
+        gen = sys.modules["tilo.generate"]
+        from tilo.schemas.artifact import ArtifactSpecV1
+
+        def fake_generate(goal, **kwargs):
+            if goal == "boom":
+                # Non-strict generate would return a fallback; simulate that.
+                return ArtifactSpecV1.model_validate(gen._fallback_spec(goal))
+            return ArtifactSpecV1.model_validate({
+                "version": "tilo/aip/v1", "title": goal, "status": "ready",
+                "blocks": [{"id": "b", "type": "markdown", "props": {"content": "ok"}}],
+                "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+            })
+        monkeypatch.setattr(gen, "generate", fake_generate)
+
+        specs = gen.generate_batch(["ok1", "boom", "ok2"], model="gpt-4o")
+        assert len(specs) == 3
+        assert all(isinstance(s, ArtifactSpecV1) for s in specs)
+
+    def test_batch_is_concurrent(self, monkeypatch):
+        # Each fake call sleeps; with concurrency the total time is far less
+        # than the serial sum.
+        import sys, time
+        gen = sys.modules["tilo.generate"]
+        from tilo.schemas.artifact import ArtifactSpecV1
+
+        def slow_generate(goal, **kwargs):
+            time.sleep(0.1)
+            return ArtifactSpecV1.model_validate({
+                "version": "tilo/aip/v1", "title": goal, "status": "ready",
+                "blocks": [{"id": "b", "type": "markdown", "props": {"content": "x"}}],
+                "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+            })
+        monkeypatch.setattr(gen, "generate", slow_generate)
+
+        goals = ["g"] * 8
+        t0 = time.perf_counter()
+        gen.generate_batch(goals, model="gpt-4o", max_workers=8)
+        elapsed = time.perf_counter() - t0
+        # Serial would be ~0.8s; concurrent (8 workers) should be well under 0.4s.
+        assert elapsed < 0.4, f"batch not concurrent enough: {elapsed:.2f}s"

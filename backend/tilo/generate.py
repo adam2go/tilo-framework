@@ -436,6 +436,67 @@ def generate_followup(
     )
 
 
+def generate_batch(
+    goals: list[str],
+    *,
+    model: str | None = None,
+    api_key: str | None = None,
+    provider: str | None = None,
+    base_url: str | None = None,
+    skill: str | None = "auto",
+    language: str | None = None,
+    temperature: float = 0.3,
+    repair: bool = True,
+    max_workers: int = 4,
+) -> list[ArtifactSpecV1]:
+    """Generate many surfaces concurrently — one per goal.
+
+    LLM calls are network-bound, so this runs them in a thread pool: N goals
+    finish in roughly the time of the slowest one rather than the sum. Results
+    are returned in the same order as ``goals``.
+
+    Per-item failures never abort the batch: with ``repair`` and the default
+    non-strict behaviour, a failed item yields a minimal fallback spec, so the
+    returned list always has one spec per goal.
+
+    Args:
+        goals:       The list of goals to generate surfaces for.
+        model:       Model name (provider auto-detected, as in ``generate``).
+        api_key / provider / base_url: as in ``generate``.
+        skill:       Skill hint applied to every goal ("auto" detects per goal).
+        language:    "en" / "zh" applied to every goal.
+        temperature: Sampling temperature.
+        repair:      Repair invalid JSON once per item.
+        max_workers: Maximum concurrent requests (default 4).
+
+    Returns:
+        A list of ``ArtifactSpecV1`` aligned with ``goals``.
+
+    Example:
+        specs = tilo.generate_batch(
+            ["Review contract A", "Review contract B", "Summarise Q3 pipeline"],
+            model="gpt-4o",
+        )
+        for s in specs:
+            tilo.save_html(s, f"{s.title}.html")
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _one(goal: str) -> ArtifactSpecV1:
+        return generate(
+            goal,
+            model=model, api_key=api_key, provider=provider, base_url=base_url,
+            skill=skill, language=language, temperature=temperature,
+            repair=repair, strict=False,
+        )
+
+    if not goals:
+        return []
+    workers = max(1, min(max_workers, len(goals)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(_one, goals))
+
+
 # --------------------------------------------------------------------------- #
 # Client construction with actionable errors                                   #
 # --------------------------------------------------------------------------- #

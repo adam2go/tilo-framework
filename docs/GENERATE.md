@@ -92,6 +92,23 @@ spec = tilo.generate("Review this contract", model="gpt-4o")
 deeper = tilo.generate_followup(spec, spec.follow_ups[0], model="gpt-4o")
 ```
 
+### Batch: many surfaces at once
+
+LLM calls are network-bound, so `generate_batch` runs them concurrently —
+N goals finish in roughly the time of the slowest one, not the sum. Results
+keep the input order, and a failed item yields a fallback rather than
+aborting the batch.
+
+```python
+specs = tilo.generate_batch(
+    ["Review contract A", "Review contract B", "Summarise Q3 pipeline"],
+    model="gpt-4o",
+    max_workers=4,
+)
+for s in specs:
+    tilo.save_html(s, f"{s.title}.html")
+```
+
 ### Save & reload specs
 
 ```python
