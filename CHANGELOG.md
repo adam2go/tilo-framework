@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [0.3.0] — 2026-06-05
 
 ### Added — robustness, providers, ergonomics
 - **`base_url`** on `generate()` — use any OpenAI-compatible provider (DeepSeek,
