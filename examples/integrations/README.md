@@ -2,15 +2,59 @@
 
 Complete, copy-paste ready examples for adding Tilo to your existing LLM stack.
 
+## Start here
+
+```bash
+pip install tilo openai
+export OPENAI_API_KEY=sk-...
+python examples/integrations/quickstart.py
+```
+
+That's the whole thing — the LLM generates a full interactive surface
+(chart, diff, checklist, confirmation, memory card) and it opens in your
+browser. No React, no build step. Runs without an API key too (shows a
+deterministic sample).
+
 ## Quick pick
 
 | You use | Example file | Install |
 |---|---|---|
+| **Just want to see it** | [`quickstart.py`](./quickstart.py) | `pip install tilo openai` |
 | OpenAI SDK | [`openai_example.py`](./openai_example.py) | `pip install tilo openai` |
 | Anthropic SDK | [`anthropic_example.py`](./anthropic_example.py) | `pip install tilo anthropic` |
 | LangChain | [`langchain_example.py`](./langchain_example.py) | `pip install tilo langchain-openai langchain-core` |
 
-## The one-liner pattern
+## Two ways to use Tilo
+
+### 1. Generate a full surface (recommended)
+
+The LLM is prompted with the complete AIP block vocabulary, so it produces
+a rich, structured surface — charts, diffs, confirmations, memory cards,
+organised into views with follow-up suggestions.
+
+```python
+import tilo
+
+spec = tilo.generate(
+    "Review this contract for payment and liability risks.",
+    model="gpt-4o",          # or claude-opus-4-8, auto-detected
+    skill="contract_review", # or "auto"
+)
+tilo.view(spec)              # opens in browser, no React needed
+```
+
+Provider-specific (use your existing client):
+
+```python
+from tilo.adapters.openai import generate_aip_spec
+from openai import OpenAI
+
+spec = generate_aip_spec(OpenAI(), "Plan a Tokyo trip", skill="trip_planning")
+```
+
+### 2. Convert an existing response
+
+Already have an LLM response? Wrap it (simpler blocks — text/metric/table/tool).
 
 Every adapter follows the same pattern: **LLM response → Tilo AIP spec → render with `@adam2go/tilo-react`**.
 
