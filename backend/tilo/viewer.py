@@ -605,6 +605,48 @@ def save_html(
     return p.resolve()
 
 
+def save_spec(spec: Any, path: str | Path) -> Path:
+    """Save a Tilo AIP spec as a JSON file (round-trippable with ``load_spec``).
+
+    Unlike ``save_html`` (which is for viewing), this saves the raw spec so you
+    can reload, edit, or re-render it later — e.g. to keep a review template.
+
+    Args:
+        spec: An ``ArtifactSpecV1`` instance, a dict, or a JSON string.
+        path: Output file path (e.g. "review.json").
+
+    Returns:
+        The resolved Path of the saved file.
+
+    Example:
+        tilo.save_spec(spec, "contract-template.json")
+        later = tilo.load_spec("contract-template.json")
+    """
+    p = Path(path)
+    p.write_text(json.dumps(_to_dict(spec), indent=2, ensure_ascii=False), encoding="utf-8")
+    return p.resolve()
+
+
+def load_spec(path: str | Path) -> Any:
+    """Load a Tilo AIP spec from a JSON file saved with ``save_spec``.
+
+    Returns a validated ``ArtifactSpecV1`` when the schema is available,
+    otherwise the raw dict. The result is accepted by ``view`` / ``to_html``.
+
+    Args:
+        path: Path to a spec JSON file.
+
+    Returns:
+        An ``ArtifactSpecV1`` (validated) or a dict.
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    try:
+        from tilo.schemas.artifact import ArtifactSpecV1
+        return ArtifactSpecV1.model_validate(data)
+    except Exception:  # noqa: BLE001 — fall back to the raw dict
+        return data
+
+
 def view(
     spec: Any,
     title: str | None = None,

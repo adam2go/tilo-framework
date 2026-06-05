@@ -20,7 +20,22 @@ from pathlib import Path
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="tilo",
-        description="Tilo — AI-native product runtime framework",
+        description="Tilo — turn any LLM into an interactive UI.",
+        epilog=(
+            "Examples:\n"
+            "  tilo demo                 Open a sample surface in your browser\n"
+            "  tilo init myapp           Scaffold a project (hello.py uses your LLM)\n"
+            "  tilo serve                Start the API + live /playground\n"
+            "\n"
+            "In Python:\n"
+            "  import tilo\n"
+            "  spec = tilo.generate('Review this contract', model='gpt-4o')\n"
+            "  tilo.view(spec)           # opens in your browser, no React needed\n"
+            "\n"
+            "Set OPENAI_API_KEY (or ANTHROPIC_API_KEY) for live generation.\n"
+            "Docs: https://github.com/adam2go/tilo-framework"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command")
 

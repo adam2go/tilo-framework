@@ -481,3 +481,145 @@ class TestParseRobustness:
         assert result is not None
         validated = ArtifactSpecV1.model_validate(result)
         assert len(validated.blocks) == 2
+
+
+# --------------------------------------------------------------------------- #
+# Hardened generate(): repair, validation handling, temperature, strict       #
+# --------------------------------------------------------------------------- #
+
+class TestGenerateHardening:
+    def _client_returning(self, *responses):
+        """OpenAI client whose successive calls return the given strings."""
+        from unittest.mock import MagicMock
+        client = MagicMock()
+        seq = list(responses)
+        def _create(**kwargs):
+            msg = MagicMock(); msg.content = seq.pop(0)
+            choice = MagicMock(); choice.message = msg
+            r = MagicMock(); r.choices = [choice]; r.model = "gpt-4o"
+            return r
+        client.chat.completions.create.side_effect = _create
+        return client
+
+    def test_repair_recovers_invalid_first_response(self):
+        from tilo.generate import generate_with_openai
+        good = '{"title":"Fixed","blocks":[{"id":"b","type":"markdown","props":{"content":"ok"}}],"views":[],"follow_ups":[]}'
+        client = self._client_returning("not json at all", good)
+        spec = generate_with_openai(client, "goal", model="gpt-4o", repair=True)
+        assert spec.title == "Fixed"
+        assert client.chat.completions.create.call_count == 2
+
+    def test_no_repair_falls_back(self):
+        from tilo.generate import generate_with_openai
+        client = self._client_returning("not json")
+        spec = generate_with_openai(client, "review a contract", model="gpt-4o", repair=False)
+        # fallback spec is still valid
+        assert len(spec.blocks) >= 1
+        assert client.chat.completions.create.call_count == 1
+
+    def test_strict_raises_on_failure(self):
+        from tilo.generate import generate_with_openai, TiloGenerationError
+        client = self._client_returning("garbage", "still garbage")
+        with pytest.raises(TiloGenerationError):
+            generate_with_openai(client, "goal", model="gpt-4o", repair=True, strict=True)
+
+    def test_invalid_schema_triggers_repair(self):
+        from tilo.generate import generate_with_openai
+        # First response: valid JSON but invalid spec (no blocks) → should repair
+        bad = '{"title":"T","blocks":[],"views":[],"follow_ups":[]}'
+        good = '{"title":"Good","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}'
+        client = self._client_returning(bad, good)
+        spec = generate_with_openai(client, "goal", model="gpt-4o", repair=True)
+        assert spec.title == "Good"
+
+    def test_temperature_passed_through(self):
+        from tilo.generate import generate_with_openai
+        good = '{"title":"T","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}'
+        client = self._client_returning(good)
+        generate_with_openai(client, "goal", model="gpt-4o", temperature=0.0)
+        call = client.chat.completions.create.call_args
+        assert call.kwargs["temperature"] == 0.0
+
+
+class TestApiKeyErrors:
+    def test_openai_missing_key_actionable(self, monkeypatch):
+        from tilo.generate import generate, TiloGenerationError
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        with pytest.raises(TiloGenerationError) as exc:
+            generate("goal", model="gpt-4o")
+        assert "OPENAI_API_KEY" in str(exc.value)
+
+    def test_anthropic_missing_key_actionable(self, monkeypatch):
+        from tilo.generate import generate, TiloGenerationError
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        try:
+            import anthropic  # noqa: F401
+        except ImportError:
+            # SDK not installed → the actionable error tells you to install it.
+            with pytest.raises(ImportError) as exc:
+                generate("goal", model="claude-opus-4-8")
+            assert "anthropic" in str(exc.value).lower()
+            return
+        with pytest.raises(TiloGenerationError) as exc:
+            generate("goal", model="claude-opus-4-8")
+        assert "ANTHROPIC_API_KEY" in str(exc.value)
+
+    def test_unknown_model_raises_value_error(self):
+        from tilo.generate import generate
+        with pytest.raises(ValueError):
+            generate("goal", model="llama-3-70b")
+
+
+class TestGenerateFollowup:
+    def test_followup_builds_on_previous(self, monkeypatch):
+        import sys
+        # `tilo.generate` the attribute is the function (shadows the submodule),
+        # so reach the module object via sys.modules.
+        gen = sys.modules["tilo.generate"]
+        from tilo.schemas.artifact import ArtifactSpecV1
+
+        previous = ArtifactSpecV1.model_validate({
+            "version": "tilo/aip/v1", "title": "Contract Review", "status": "ready",
+            "blocks": [{"id": "b", "type": "card", "props": {"content": "High liability risk"}}],
+            "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+            "follow_ups": ["Compare to industry standard"],
+        })
+
+        captured = {}
+        def fake_generate(goal, **kwargs):
+            captured["goal"] = goal
+            captured["document"] = kwargs.get("document")
+            return previous
+        monkeypatch.setattr(gen, "generate", fake_generate)
+
+        gen.generate_followup(previous, "Compare to industry standard", model="gpt-4o")
+        assert "Compare to industry standard" in captured["goal"]
+        assert "Contract Review" in captured["goal"]
+        # The previous spec is summarised into the document context
+        assert "High liability risk" in captured["document"]
+
+
+class TestSpecPersistence:
+    def test_save_and_load_roundtrip(self, tmp_path):
+        from tilo.viewer import save_spec, load_spec
+        spec = {
+            "version": "tilo/aip/v1", "title": "Template", "status": "ready",
+            "blocks": [{"id": "b", "type": "heading", "props": {"text": "Hi"}}],
+            "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+        }
+        path = save_spec(spec, tmp_path / "t.json")
+        assert path.exists()
+        loaded = load_spec(path)
+        assert loaded.title == "Template"
+
+    def test_load_returns_validated_model(self, tmp_path):
+        from tilo.viewer import save_spec, load_spec
+        from tilo.schemas.artifact import ArtifactSpecV1
+        spec = {
+            "version": "tilo/aip/v1", "title": "X", "status": "ready",
+            "blocks": [{"id": "b", "type": "markdown", "props": {"content": "y"}}],
+            "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+        }
+        save_spec(spec, tmp_path / "s.json")
+        loaded = load_spec(tmp_path / "s.json")
+        assert isinstance(loaded, ArtifactSpecV1)

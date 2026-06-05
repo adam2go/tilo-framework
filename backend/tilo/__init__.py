@@ -33,20 +33,24 @@ Prompt builder (bring-your-own LLM client):
 """
 
 from tilo.generate import (
+    TiloGenerationError,
     generate,
+    generate_followup,
     generate_with_anthropic,
     generate_with_langchain,
     generate_with_openai,
 )
 from tilo.prompt import AIPPromptBuilder, BUILTIN_SKILLS, detect_skill
-from tilo.viewer import notebook, save_html, to_html, view
+from tilo.viewer import load_spec, notebook, save_html, save_spec, to_html, view
 
 __all__ = [
     # Generation
     "generate",
+    "generate_followup",
     "generate_with_openai",
     "generate_with_anthropic",
     "generate_with_langchain",
+    "TiloGenerationError",
     # Prompt builder
     "AIPPromptBuilder",
     "detect_skill",
@@ -55,5 +59,7 @@ __all__ = [
     "view",
     "to_html",
     "save_html",
+    "save_spec",
+    "load_spec",
     "notebook",
 ]
