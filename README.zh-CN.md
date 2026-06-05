@@ -1,15 +1,15 @@
 # Tilo Framework
 
 <p align="center">
-  <strong>面向 AI 原生软件的开源运行时 —— Agent 自主生成 UI，用户的每次操作都以结构化信号回流到 Agent。</strong>
+  <strong>把任何 LLM 变成可交互 UI。一行 Python —— 无需 React，无需前端配置。</strong>
 </p>
 
 <p align="center">
   <a href="./README.md">English</a> ·
+  <a href="./docs/tutorials/quickstart.md">5 分钟上手</a> ·
   <a href="./docs/AIP_DESIGN.md">AIP 设计文档</a> ·
   <a href="./docs/INTEGRATION_GUIDE.md">集成指南</a> ·
-  <a href="./docs/BUILD_YOUR_FIRST_TILO_APP.md">构建 App</a> ·
-  <a href="./docs/MEMORY.md">Memory</a> ·
+  <a href="./examples/integrations/">示例</a> ·
   <a href="./docs/README.md">文档</a>
 </p>
 
@@ -18,13 +18,59 @@
   <img alt="Stars" src="https://img.shields.io/github/stars/adam2go/tilo-framework?style=social" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-blue" />
   <img alt="pip install" src="https://img.shields.io/badge/pip%20install-tilo-indigo" />
-  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688" />
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-reference_UI-black" />
+  <img alt="npm" src="https://img.shields.io/badge/npm-@adam2go/tilo--react-cb3837" />
 </p>
 
 ---
 
-## 60 秒看效果
+## 30 秒生成第一个界面
+
+```bash
+pip install tilo openai
+```
+
+```python
+import tilo
+
+spec = tilo.generate(
+    "审查这份 SaaS 合同的付款、责任和知识产权风险。",
+    model="gpt-4o",          # 或 claude-opus-4-8，自动识别 provider
+)
+
+tilo.view(spec)              # 在浏览器中打开，就这么简单
+```
+
+LLM 不再返回一大段文字，而是生成一个**结构化、可交互的界面**：风险雷达图、
+修订前后对比、检查清单、人工审批门控、记忆候选卡片，组织成多个标签页。
+**零前端配置**即可渲染。
+
+<p align="center">
+  <img alt="一个 Tilo 界面：标题、指标、雷达图、diff、检查清单、确认门控和记忆卡片 —— 全部由一次 LLM 调用生成" src="./docs/assets/tilo-surface-hero.png" width="620" />
+</p>
+
+> 没有 API key？运行 `tilo demo` 即可打开这个示例界面。
+> 想动手试试？`tilo serve` 然后打开 `http://localhost:8000/playground`
+> —— 实时编辑器：粘贴任意 spec，立即渲染。
+
+---
+
+## 为什么在 LLM 越来越强时仍有价值
+
+模型越强，文字答案越好 —— 但一大段文字终究还是一大段文字。瓶颈不在模型
+**知道什么**，而在用户**如何对它采取行动**。Tilo 把模型输出变成用户可以
+**点击、编辑、批准、拒绝**的东西，再把这些操作变成模型可以学习的结构化信号。
+
+无论模型多强，三件事始终有价值：
+
+1. **结构化 UI 胜过纯文字**：做决策时，一张风险图 + 审批门控永远胜过三段文字。
+2. **人工确认是基础设施，不是功能**：模型越强 → 执行的动作风险越高 → 你需要
+   *更多*结构化门控，而不是更少。
+3. **确认式记忆，而非自动记忆**：一个自信的模型自动存入错误偏好是危险的。
+   Tilo 提出候选，由人确认。
+
+---
+
+## 完整 ROAM 闭环 Demo
 
 一次真实的 Tilo 运行 —— Agent 召回记忆、规划、调工具、生成可交互
 artifact，最后把它作为可点可拖的 UI 交还给用户。**这个 demo 不需要任何 LLM key。**
@@ -37,6 +83,30 @@ https://github.com/user-attachments/assets/1afed79d-e85e-414a-954f-e0be136b9c7d
 <p align="center">
   <img alt="Tilo AIP 架构总览：四层架构 + 生态定位" src="./docs/assets/tilo-framework-overview-zh.svg" />
 </p>
+
+---
+
+## 与你的技术栈无缝集成
+
+已经在用 OpenAI、Anthropic 或 LangChain？一行 import 即可。
+
+```python
+# OpenAI
+from tilo.adapters.openai import generate_aip_spec
+spec = generate_aip_spec(OpenAI(), "分析 Q3 销售管线", skill="sales_dashboard")
+
+# Anthropic
+from tilo.adapters.anthropic_sdk import generate_aip_spec
+spec = generate_aip_spec(Anthropic(), "审查这个 PR", skill="code_review", document=diff)
+
+# LangChain / LangGraph
+from tilo.adapters.langchain import generate_aip_spec
+spec = generate_aip_spec(ChatOpenAI(model="gpt-4o"), "规划一次东京之旅")
+```
+
+12 个内置 **skill**（合同审查、代码评审、事故响应、会议纪要、bug 报告、行程
+规划……）为你的领域定制输出 —— 也可以加载你自己的 `skill.yaml`。用
+`AIPPromptBuilder` 接入任意 LLM 客户端，或转换你已有的响应。
 
 ---
 
