@@ -253,3 +253,73 @@ class TestPlaygroundRoutes:
         r = self._client().get("/api/health")
         assert r.status_code == 200
         assert r.json()["status"] == "ok"
+
+
+# --------------------------------------------------------------------------- #
+# Playground live-generate endpoint                                           #
+# --------------------------------------------------------------------------- #
+
+class TestPlaygroundGenerate:
+    def _client(self):
+        from fastapi.testclient import TestClient
+        from tilo.main import app
+        return TestClient(app)
+
+    def test_capabilities_shape(self):
+        r = self._client().get("/api/playground/capabilities")
+        assert r.status_code == 200
+        body = r.json()
+        assert "llm_available" in body
+        assert "skills" in body
+        assert "contract_review" in body["skills"]
+
+    def test_generate_without_llm_returns_helpful_error(self, monkeypatch):
+        # Force "no LLM configured"
+        from tilo.services.models import client as client_mod
+
+        monkeypatch.setattr(
+            client_mod.ModelClient, "capabilities",
+            lambda self: {"configured": False, "provider": "none"},
+        )
+        from tilo.core.config import get_settings
+        settings = get_settings()
+        monkeypatch.setattr(settings, "llm_enabled", False, raising=False)
+
+        r = self._client().post("/api/playground/generate", json={"goal": "review a contract"})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["spec"] is None
+        assert body["error"]
+        assert "LLM" in body["error"]
+
+    def test_generate_with_mocked_llm(self, monkeypatch):
+        import json as _json
+        from tilo.services.models import client as client_mod
+        from tilo.core.config import get_settings
+
+        settings = get_settings()
+        monkeypatch.setattr(settings, "llm_enabled", True, raising=False)
+        monkeypatch.setattr(
+            client_mod.ModelClient, "capabilities",
+            lambda self: {"configured": True, "provider": "mock"},
+        )
+        fake_spec = {
+            "title": "Mocked Review",
+            "blocks": [{"id": "b", "type": "heading", "props": {"text": "Hi", "severity": "info"}}],
+            "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
+            "follow_ups": ["next?"],
+        }
+        monkeypatch.setattr(
+            client_mod.ModelClient, "chat_json_sync",
+            lambda self, **kw: fake_spec,
+        )
+
+        r = self._client().post(
+            "/api/playground/generate",
+            json={"goal": "review a contract", "skill": "contract_review"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["error"] is None
+        assert body["spec"]["title"] == "Mocked Review"
+        assert body["spec"]["version"] == "tilo/aip/v1"

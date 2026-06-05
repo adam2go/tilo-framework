@@ -11,11 +11,65 @@ import json
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
-from tilo.prompt import BUILTIN_SKILLS
+from tilo.core.config import get_settings
+from tilo.prompt import AIPPromptBuilder, BUILTIN_SKILLS
+from tilo.services.models.client import ModelClient
 from tilo.viewer import _CHART_JS, _CSS, _RENDER_JS
 
 router = APIRouter(tags=["playground"])
+
+
+class GenerateRequest(BaseModel):
+    goal: str
+    skill: str | None = "auto"
+    document: str | None = None
+
+
+@router.get("/api/playground/capabilities")
+def playground_capabilities() -> dict[str, object]:
+    """Report whether live LLM generation is available in the playground."""
+    settings = get_settings()
+    caps = ModelClient(settings).capabilities()
+    return {
+        "llm_available": bool(settings.llm_enabled and caps["configured"]),
+        "provider": caps.get("provider"),
+        "skills": list(BUILTIN_SKILLS.keys()),
+    }
+
+
+@router.post("/api/playground/generate")
+def playground_generate(req: GenerateRequest) -> dict[str, object]:
+    """Generate an AIP spec from a goal using the backend's configured LLM.
+
+    Returns ``{spec, error}``. When no LLM is configured, ``error`` explains
+    how to enable it and ``spec`` is null (the UI falls back to the editor).
+    """
+    settings = get_settings()
+    client = ModelClient(settings)
+    caps = client.capabilities()
+    if not (settings.llm_enabled and caps["configured"]):
+        return {
+            "spec": None,
+            "error": "No LLM configured. Set LLM_ENABLED=true and a provider key "
+                     "in .env, or paste a spec into the editor.",
+        }
+
+    builder = AIPPromptBuilder(req.goal, skill=req.skill, document=req.document)
+    try:
+        raw = client.chat_json_sync(
+            system=builder.system_prompt(),
+            user=builder.user_prompt(),
+            schema_name="aip_playground",
+            temperature=0.3,
+        )
+        spec = builder.parse(json.dumps(raw)) or builder.parse(str(raw))
+        if spec is None:
+            return {"spec": None, "error": "Model returned output that could not be parsed."}
+        return {"spec": spec, "error": None}
+    except Exception as exc:  # noqa: BLE001
+        return {"spec": None, "error": f"Generation failed: {exc}"}
 
 
 # A built-in sample spec showcasing many block types.
@@ -180,6 +234,17 @@ _PLAYGROUND_HTML = """<!DOCTYPE html>
 #editor {{ flex: 1; background: #0f172a; color: #e2e8f0; border: none; padding: 16px;
            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; outline: none;
            line-height: 1.5; }}
+.pg-genbar {{ display: flex; gap: 8px; padding: 10px 16px; background: #111827;
+              border-bottom: 1px solid #334155; align-items: center; }}
+.pg-genbar input {{ flex: 1; background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
+                    border-radius: 6px; padding: 7px 10px; font-size: 0.82rem; outline: none; }}
+.pg-genbar input:focus {{ border-color: #818cf8; }}
+.pg-genbar select {{ background: #0f172a; color: #e2e8f0; border: 1px solid #334155;
+                     border-radius: 6px; padding: 7px; font-size: 0.78rem; max-width: 150px; }}
+.pg-genbar button {{ background: linear-gradient(90deg,#818cf8,#a855f7); color: white; border: none;
+                     border-radius: 6px; padding: 7px 14px; font-size: 0.82rem; font-weight: 600;
+                     cursor: pointer; white-space: nowrap; }}
+.pg-genbar button:disabled {{ opacity: 0.6; cursor: wait; }}
 .pg-preview {{ overflow-y: auto; background: #f8fafc; }}
 .pg-error {{ background: #fef2f2; color: #991b1b; padding: 10px 16px; font-size: 0.82rem;
              font-family: monospace; border-bottom: 1px solid #fca5a5; }}
@@ -192,12 +257,13 @@ _PLAYGROUND_HTML = """<!DOCTYPE html>
   <div class="pg-editor">
     <div class="pg-toolbar">
       <span class="brand">Tilo Playground</span>
-      <select id="sample" onchange="loadSample()">
-        <option value="">Load a skill template…</option>
-        {skills_options}
-      </select>
       <div class="spacer"></div>
       <button onclick="render()">▶ Render</button>
+    </div>
+    <div class="pg-genbar" id="genbar" style="display:none">
+      <input id="goal" placeholder="Describe a goal — e.g. Review this contract for risks" />
+      <select id="genskill"><option value="auto">auto skill</option>{skills_options}</select>
+      <button id="genbtn" onclick="generate()">✦ Generate</button>
     </div>
     <textarea id="editor" spellcheck="false" oninput="debouncedRender()"></textarea>
   </div>
@@ -227,14 +293,41 @@ function render() {{
   catch(e) {{ errorEl.textContent = 'Render error: ' + e.message; errorEl.style.display = 'block'; }}
 }}
 
-async function loadSample() {{
-  const skill = document.getElementById('sample').value;
-  if (!skill) return;
-  // For now, just re-load the built-in sample; skill-specific templates
-  // could be fetched from /api in a future iteration.
-  editor.value = JSON.stringify(SAMPLE, null, 2);
-  render();
+async function generate() {{
+  const goal = document.getElementById('goal').value.trim();
+  if (!goal) return;
+  const btn = document.getElementById('genbtn');
+  btn.disabled = true; btn.textContent = '✦ Generating…';
+  errorEl.style.display = 'none';
+  try {{
+    const res = await fetch('/api/playground/generate', {{
+      method: 'POST', headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{ goal, skill: document.getElementById('genskill').value }}),
+    }});
+    const data = await res.json();
+    if (data.spec) {{
+      editor.value = JSON.stringify(data.spec, null, 2);
+      render();
+    }} else {{
+      errorEl.textContent = data.error || 'Generation failed.';
+      errorEl.style.display = 'block';
+    }}
+  }} catch(e) {{
+    errorEl.textContent = 'Request failed: ' + e.message;
+    errorEl.style.display = 'block';
+  }} finally {{
+    btn.disabled = false; btn.textContent = '✦ Generate';
+  }}
 }}
+
+// Show the generate bar only when the backend has an LLM configured.
+fetch('/api/playground/capabilities').then(r => r.json()).then(caps => {{
+  if (caps.llm_available) document.getElementById('genbar').style.display = 'flex';
+}}).catch(() => {{}});
+
+document.getElementById('goal').addEventListener('keydown', e => {{
+  if (e.key === 'Enter') generate();
+}});
 
 render();
 </script>
