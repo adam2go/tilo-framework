@@ -14,11 +14,11 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/tilo/"><img alt="PyPI" src="https://img.shields.io/pypi/v/tilo?color=indigo&label=pip%20install%20tilo" /></a>
+  <a href="https://www.npmjs.com/package/@adam2go/tilo-react"><img alt="npm" src="https://img.shields.io/npm/v/@adam2go/tilo-react?color=cb3837&label=npm%20tilo-react" /></a>
+  <a href="https://github.com/adam2go/tilo-framework/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/adam2go/tilo-framework/actions/workflows/ci.yml/badge.svg" /></a>
   <img alt="License" src="https://img.shields.io/github/license/adam2go/tilo-framework" />
-  <img alt="Stars" src="https://img.shields.io/github/stars/adam2go/tilo-framework?style=social" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-blue" />
-  <img alt="pip install" src="https://img.shields.io/badge/pip%20install-tilo-indigo" />
-  <img alt="npm" src="https://img.shields.io/badge/npm-@adam2go/tilo--react-cb3837" />
 </p>
 
 ---
