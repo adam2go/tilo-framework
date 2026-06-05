@@ -545,6 +545,14 @@ class TestApiKeyErrors:
     def test_openai_missing_key_actionable(self, monkeypatch):
         from tilo.generate import generate, TiloGenerationError
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        try:
+            import openai  # noqa: F401
+        except ImportError:
+            # SDK not installed → the actionable error tells you to install it.
+            with pytest.raises(ImportError) as exc:
+                generate("goal", model="gpt-4o")
+            assert "openai" in str(exc.value).lower()
+            return
         with pytest.raises(TiloGenerationError) as exc:
             generate("goal", model="gpt-4o")
         assert "OPENAI_API_KEY" in str(exc.value)
