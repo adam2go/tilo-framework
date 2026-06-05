@@ -6,7 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [0.2.0] — 2026-06-05
+
+The "one line to an interactive surface" release. `pip install tilo` is now
+lighter (psycopg is optional), and ships the full generate → view experience.
 
 ### Added — one-line LLM → interactive UI
 - **`tilo.generate(goal, model=…)`** — one line from any LLM to a full AIP spec;
@@ -32,13 +35,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added — adapters & examples
 - **OpenAI adapter** (`tilo.adapters.openai`) — `tilo_spec_from_completion()` + `TiloCompletionHandler` for streaming; auto-maps text/JSON/tool_calls to typed AIP blocks
 - **Anthropic adapter** (`tilo.adapters.anthropic_sdk`) — `tilo_spec_from_message()` + `TiloMessageHandler`; handles text, tool_use, and streaming via `on_text()` / `on_event()`
+- **A2A adapter** (`tilo.adapters.a2a`) — `a2a_task_to_spec()`: A2A Task artifacts/parts → AIP blocks
+- **ACP adapter** (`tilo.adapters.acp`) — `acp_message_to_spec()`: ACP MessageParts → AIP blocks
+- **`generate_aip_spec()`** on the OpenAI / Anthropic / LangChain adapters
 - **`tilo init` overhaul** — scaffolds a `generate()`+`view()` `hello.py`, plus `server_demo.py` for the full ROAM loop
-- **`examples/integrations/`** — copy-paste ready examples (quickstart, OpenAI, Anthropic, LangChain)
-- **5-minute quickstart tutorial** (`docs/tutorials/quickstart.md`)
+- **`examples/integrations/`** — copy-paste ready examples (quickstart, OpenAI, Anthropic, LangChain) + a Colab notebook
+- **5-minute quickstart tutorial** (`docs/tutorials/quickstart.md`) + **`docs/GENERATE.md`** reference
+- **Live playground generation** — `POST /api/playground/generate` (uses the backend's configured LLM)
 - GitHub issue templates, PR template, CI badge, comparison table vs LangGraph / CrewAI / AutoGPT
 
+### Changed
+- **Lighter install**: `psycopg` moved to an optional `[postgres]` extra (SQLite is the default). Added `[openai]`, `[anthropic]`, `[langchain]`, `[all]` extras.
+- README now leads with the one-line `generate → view` experience and a hero screenshot.
+
 ### Fixed
+- `AIPPromptBuilder.parse()` handles trailing prose after the JSON object (a common LLM pattern)
 - Skill detection: `" pr"` no longer misfires on words like "production" (word-boundary match)
+- Frontend `pnpm-lock.yaml` synced with the `recharts` dependency (CI `--frozen-lockfile`)
 
 ---
 

@@ -76,6 +76,21 @@ Guidelines:
 - Avoid large monolithic files.
 - Prefer explicit domain models over generic JSON blobs, except where flexible schema is required, such as artifact schemas, tool config, and confirmation payloads.
 
+#### Top-level package modules (`tilo/`)
+
+These power the lightweight "no server" experience (`import tilo`). Keep them
+free of heavy/server-only imports so `pip install tilo` stays minimal:
+
+- `tilo/__init__.py` — public API surface (`generate`, `view`, `to_html`, `notebook`, `AIPPromptBuilder`).
+- `tilo/prompt.py` — `AIPPromptBuilder` + built-in skills. Provider-agnostic; no LLM SDK imports.
+- `tilo/generate.py` — `generate()` + `generate_with_*()`. Imports an LLM SDK only inside the function that needs it.
+- `tilo/viewer.py` — self-contained HTML/JS renderer. No frontend build, no CDN.
+- `tilo/adapters/` — protocol/SDK adapters. The OpenAI/Anthropic/LangChain modules must not import their SDK at module load (duck-typed); MCP/A2A/ACP have no SDK dependency.
+
+**Optional dependencies are optional.** `openai`, `anthropic`, `langchain-*`,
+and `psycopg` are extras. Never import them at module top level in code that
+runs on the base install. The CI `install-surface` job enforces this.
+
 ### Frontend
 
 Use:
