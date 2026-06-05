@@ -27,6 +27,9 @@ spec = tilo.generate(
     document=contract_text,    # optional: a document to ground the surface
     memories=["prefers conservative revisions"],  # optional recalled prefs
     language="en",             # "en" / "zh" to force output language
+    temperature=0.3,           # 0.0 deterministic … 1.0 creative
+    repair=True,               # on bad JSON, ask the model once to fix it
+    strict=False,              # True → raise instead of returning a fallback
 )
 ```
 
@@ -39,6 +42,35 @@ Returns a validated `ArtifactSpecV1`. Requires the matching SDK
 | `claude-*` | Anthropic | `pip install "tilo[anthropic]"` |
 
 For other providers, use `generate_with_langchain()` or `AIPPromptBuilder`.
+
+### Reliability: repair, validation, and errors
+
+- **No API key** → `TiloGenerationError` naming the env var to set (not a
+  cryptic SDK auth error). Missing SDK → an actionable `pip install` hint.
+- **Bad JSON / invalid spec** → with `repair=True` (default), the model is
+  asked once to return corrected JSON. This only costs an extra call on
+  failure; the happy path is unchanged.
+- **`strict=True`** → raise `TiloGenerationError` (with the raw output) instead
+  of returning a minimal fallback spec. Use this when you'd rather handle the
+  failure than render a placeholder.
+
+### Multi-turn: act on a follow-up
+
+Every spec includes `follow_ups`. Generate the next surface with the previous
+one as context:
+
+```python
+spec = tilo.generate("Review this contract", model="gpt-4o")
+deeper = tilo.generate_followup(spec, spec.follow_ups[0], model="gpt-4o")
+```
+
+### Save & reload specs
+
+```python
+tilo.save_spec(spec, "contract-template.json")   # round-trippable JSON
+spec = tilo.load_spec("contract-template.json")  # validated ArtifactSpecV1
+tilo.view(spec)
+```
 
 ---
 

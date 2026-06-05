@@ -623,3 +623,23 @@ class TestSpecPersistence:
         save_spec(spec, tmp_path / "s.json")
         loaded = load_spec(tmp_path / "s.json")
         assert isinstance(loaded, ArtifactSpecV1)
+
+
+# --------------------------------------------------------------------------- #
+# Import surface / lazy schemas (perf guard)                                  #
+# --------------------------------------------------------------------------- #
+
+class TestLazySchemas:
+    def test_artifact_resolves_via_package(self):
+        from tilo.schemas import ArtifactSpecV1
+        assert ArtifactSpecV1 is not None
+
+    def test_domain_resolves_lazily_via_package(self):
+        # Server schemas still importable from the package (deferred load).
+        from tilo.schemas import AgentRead, BootstrapResponse
+        assert AgentRead is not None and BootstrapResponse is not None
+
+    def test_unknown_attr_raises(self):
+        import tilo.schemas as schemas
+        with pytest.raises(AttributeError):
+            _ = schemas.ThisDoesNotExist
