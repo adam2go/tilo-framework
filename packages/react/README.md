@@ -102,20 +102,31 @@ function MyDecision({ block, fire }: BlockProps<"decision">) {
 
 ### Artifact blocks (`renderArtifactBlock`)
 
+These match the block types produced by `tilo.generate()` and the
+zero-setup Python viewer (`tilo.view`), so React rendering looks identical.
+
 | Type | Description |
 |---|---|
+| `heading` | Section header with severity color |
+| `markdown` | Plain text / markdown |
+| `card` | Titled card with severity |
+| `metric` | Single KPI value (label + value + delta) |
+| `table` | Data table with header row |
+| `list` | Bullet list with severity |
+| `code` | Monospace code block with language label |
 | `chart` | Bar, line, pie, or radar chart via Recharts |
 | `diff` | Unified diff (color-coded) or before/after |
-| `code` | Monospace code block with language label |
 | `timeline` | Vertical dot-and-line timeline |
 | `kanban` | Horizontal column board |
+| `progress` | Progress bar |
+| `checklist` | Interactive checkboxes |
+| `rating` | Interactive star rating |
+| `button_group` | Action buttons (primary / default) |
+| `form` | Input fields + submit |
+| `confirmation` | Human-approval gate with risk badge |
 | `tool_preview` | Tool call result with status badge |
-| `memory_card` | Memory candidate with salience % |
-| `table` | Data table with header row |
-| `metric` | Single KPI value |
-| `list` | Plain list |
-| `markdown` | Plain text / markdown |
-| + more | Unknown types fall back gracefully |
+| `memory_card` | Memory candidate with confidence % |
+| + custom | Unknown types fall back gracefully |
 
 ## Tailwind CSS
 

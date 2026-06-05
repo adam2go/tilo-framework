@@ -1,6 +1,6 @@
 {
   "name": "@adam2go/tilo-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React renderer SDK for Tilo Agent Interaction Protocol (AIP) — render agent-authored surfaces, artifact blocks, and the two-way action loop.",
   "keywords": [
     "ai",
