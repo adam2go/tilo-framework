@@ -643,3 +643,71 @@ class TestLazySchemas:
         import tilo.schemas as schemas
         with pytest.raises(AttributeError):
             _ = schemas.ThisDoesNotExist
+
+
+# --------------------------------------------------------------------------- #
+# OpenAI-compatible base_url support                                          #
+# --------------------------------------------------------------------------- #
+
+class TestBaseUrl:
+    def test_base_url_implies_openai_and_passes_through(self, monkeypatch):
+        import sys
+        gen = sys.modules["tilo.generate"]
+        captured = {}
+
+        def fake_make_openai(api_key, base_url=None):
+            captured["api_key"] = api_key
+            captured["base_url"] = base_url
+            from unittest.mock import MagicMock
+            client = MagicMock()
+            msg = MagicMock(); msg.content = '{"title":"T","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}'
+            choice = MagicMock(); choice.message = msg
+            r = MagicMock(); r.choices = [choice]; r.model = "deepseek-chat"
+            client.chat.completions.create.return_value = r
+            return client
+
+        monkeypatch.setattr(gen, "_make_openai_client", fake_make_openai)
+        spec = gen.generate(
+            "summarise this", model="deepseek-chat",
+            base_url="https://api.deepseek.com/v1", api_key="sk-x",
+        )
+        assert spec.title == "T"
+        assert captured["base_url"] == "https://api.deepseek.com/v1"
+        assert captured["api_key"] == "sk-x"
+
+    def test_base_url_works_with_non_standard_model_name(self, monkeypatch):
+        # A model name like "llama-3" normally has no detectable provider,
+        # but with base_url it should route to OpenAI-compatible.
+        import sys
+        gen = sys.modules["tilo.generate"]
+
+        def fake_make_openai(api_key, base_url=None):
+            from unittest.mock import MagicMock
+            client = MagicMock()
+            msg = MagicMock(); msg.content = '{"title":"Local","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}'
+            choice = MagicMock(); choice.message = msg
+            r = MagicMock(); r.choices = [choice]; r.model = "llama-3"
+            client.chat.completions.create.return_value = r
+            return client
+
+        monkeypatch.setattr(gen, "_make_openai_client", fake_make_openai)
+        spec = gen.generate("x", model="llama-3", base_url="http://localhost:11434/v1")
+        assert spec.title == "Local"
+
+    def test_make_openai_client_uses_placeholder_key_for_local(self, monkeypatch):
+        import sys
+        gen = sys.modules["tilo.generate"]
+        created = {}
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                created.update(kwargs)
+
+        import types
+        fake_module = types.SimpleNamespace(OpenAI=FakeOpenAI)
+        monkeypatch.setitem(sys.modules, "openai", fake_module)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+        gen._make_openai_client(None, base_url="http://localhost:11434/v1")
+        assert created["base_url"] == "http://localhost:11434/v1"
+        assert created["api_key"] == "not-needed"  # local servers accept anything

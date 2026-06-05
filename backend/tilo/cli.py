@@ -47,6 +47,17 @@ def main(argv: list[str] | None = None) -> None:
     init_p = sub.add_parser("init", help="Scaffold a complete Tilo project")
     init_p.add_argument("name", nargs="?", default="my-tilo-app")
 
+    gen_p = sub.add_parser("generate", help="Generate a surface from a goal and open it")
+    gen_p.add_argument("goal", help="What the surface should address, e.g. 'Review this contract'")
+    gen_p.add_argument("--model", default=None, help="Model name (gpt-4o, claude-opus-4-8, …)")
+    gen_p.add_argument("--base-url", default=None, help="OpenAI-compatible endpoint (DeepSeek, Groq, OpenRouter, local …)")
+    gen_p.add_argument("--skill", default="auto", help="Skill hint or 'auto' (default)")
+    gen_p.add_argument("--document", default=None, help="Path to a document to ground the surface")
+    gen_p.add_argument("--temperature", type=float, default=0.3, help="0.0 deterministic … 1.0 creative")
+    gen_p.add_argument("--json", action="store_true", help="Print the spec as JSON instead of opening a browser")
+    gen_p.add_argument("--html", default=None, metavar="PATH", help="Save a standalone HTML file instead of opening a browser")
+    gen_p.add_argument("--save", default=None, metavar="PATH", help="Also save the spec as JSON to PATH")
+
     sub.add_parser("demo", help="Open a sample Tilo surface in your browser")
     sub.add_parser("version", help="Print version")
 
@@ -56,6 +67,8 @@ def main(argv: list[str] | None = None) -> None:
         _serve(args)
     elif args.command == "init":
         _init(args)
+    elif args.command == "generate":
+        _generate(args)
     elif args.command == "demo":
         _demo()
     elif args.command == "version":
@@ -90,6 +103,56 @@ def _demo() -> None:
 
     print("Opening a sample Tilo surface in your browser... (Ctrl-C to exit)")
     view(_DEMO_SPEC)
+
+
+def _generate(args: argparse.Namespace) -> None:
+    """`tilo generate "goal" [--model …]` — generate a surface from the shell."""
+    import json as _json
+
+    from tilo.generate import TiloGenerationError, generate
+
+    document = None
+    if args.document:
+        from pathlib import Path
+        doc_path = Path(args.document)
+        if not doc_path.exists():
+            print(f"Document not found: {args.document}")
+            sys.exit(1)
+        document = doc_path.read_text(encoding="utf-8")
+
+    try:
+        spec = generate(
+            args.goal,
+            model=args.model,
+            base_url=args.base_url,
+            skill=args.skill,
+            document=document,
+            temperature=args.temperature,
+        )
+    except (TiloGenerationError, ImportError, ValueError) as exc:
+        print(f"✗ {exc}")
+        sys.exit(1)
+
+    print(f"✓ {spec.title}  ({len(spec.blocks)} blocks, {len(spec.views)} views)")
+
+    if args.save:
+        from tilo.viewer import save_spec
+        path = save_spec(spec, args.save)
+        print(f"  spec saved → {path}")
+
+    if args.json:
+        print(_json.dumps(spec.model_dump(), indent=2, ensure_ascii=False))
+        return
+
+    if args.html:
+        from tilo.viewer import save_html
+        path = save_html(spec, args.html)
+        print(f"  html saved → {path}")
+        return
+
+    from tilo.viewer import view
+    print("  opening in your browser... (Ctrl-C to exit)")
+    view(spec)
 
 
 def _init(args: argparse.Namespace) -> None:

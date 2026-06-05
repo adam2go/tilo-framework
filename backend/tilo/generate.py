@@ -308,6 +308,7 @@ def generate(
     model: str | None = None,
     api_key: str | None = None,
     provider: str | None = None,
+    base_url: str | None = None,
     skill: str | None = "auto",
     document: str | None = None,
     memories: list[str] | None = None,
@@ -329,6 +330,9 @@ def generate(
                      Defaults to "gpt-4o-mini" if not set.
         api_key:     API key. Falls back to the provider's standard env var.
         provider:    Force provider: "openai" or "anthropic".
+        base_url:    OpenAI-compatible endpoint (DeepSeek, Groq, OpenRouter,
+                     Together, a local server, …). Implies the OpenAI provider,
+                     so any model name works with it.
         skill:       Skill hint or "auto" to detect from goal.
         document:    Optional document text.
         memories:    Optional recalled user preferences.
@@ -346,11 +350,21 @@ def generate(
         import tilo
         spec = tilo.generate("Review this contract", model="gpt-4o")
         spec = tilo.generate("Plan a Tokyo trip", model="claude-opus-4-8")
+
+        # Any OpenAI-compatible gateway:
+        spec = tilo.generate(
+            "Summarise this incident",
+            model="deepseek-chat",
+            base_url="https://api.deepseek.com/v1",
+            api_key="sk-...",
+        )
     """
     if model is None:
         model = "gpt-4o-mini"
 
-    resolved_provider = provider or _detect_provider(model)
+    # A base_url means an OpenAI-compatible endpoint → use the OpenAI provider
+    # regardless of model name (deepseek-*, groq models, local names, etc.).
+    resolved_provider = provider or ("openai" if base_url else _detect_provider(model))
     common: dict[str, Any] = dict(
         goal=goal, skill=skill, document=document,
         memories=memories, language=language,
@@ -358,7 +372,7 @@ def generate(
     )
 
     if resolved_provider == "openai":
-        client = _make_openai_client(api_key)
+        client = _make_openai_client(api_key, base_url)
         return generate_with_openai(client, model=model, **common)
 
     if resolved_provider == "anthropic":
@@ -367,8 +381,8 @@ def generate(
 
     raise ValueError(
         f"Cannot auto-detect a provider for model '{model}'. "
-        "Pass provider='openai' or provider='anthropic' explicitly, or use "
-        "generate_with_openai() / generate_with_anthropic() / generate_with_langchain()."
+        "Pass provider='openai' or provider='anthropic', or set base_url=... "
+        "for an OpenAI-compatible endpoint."
     )
 
 
@@ -426,15 +440,24 @@ def generate_followup(
 # Client construction with actionable errors                                   #
 # --------------------------------------------------------------------------- #
 
-def _make_openai_client(api_key: str | None) -> Any:
+def _make_openai_client(api_key: str | None, base_url: str | None = None) -> Any:
     try:
         from openai import OpenAI
     except ImportError:
         raise ImportError(
             'OpenAI SDK not installed. Run: pip install "tilo[openai]"'
         )
-    _require_key("openai", api_key)
-    return OpenAI(api_key=api_key) if api_key else OpenAI()
+    kwargs: dict[str, Any] = {}
+    if base_url:
+        kwargs["base_url"] = base_url
+        # Local / gateway servers often accept any key; supply a placeholder
+        # so the SDK doesn't raise before the request is even sent.
+        kwargs["api_key"] = api_key or os.environ.get("OPENAI_API_KEY") or "not-needed"
+    else:
+        _require_key("openai", api_key)
+        if api_key:
+            kwargs["api_key"] = api_key
+    return OpenAI(**kwargs)
 
 
 def _make_anthropic_client(api_key: str | None) -> Any:

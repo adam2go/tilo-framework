@@ -41,7 +41,35 @@ Returns a validated `ArtifactSpecV1`. Requires the matching SDK
 | `gpt-*`, `o1-*`, `o3-*` | OpenAI | `pip install "tilo[openai]"` |
 | `claude-*` | Anthropic | `pip install "tilo[anthropic]"` |
 
-For other providers, use `generate_with_langchain()` or `AIPPromptBuilder`.
+### Any OpenAI-compatible provider (`base_url`)
+
+DeepSeek, Groq, OpenRouter, Together, Mistral, or a local server (Ollama,
+vLLM, LM Studio) all speak the OpenAI API. Pass `base_url` and any model name
+works:
+
+```python
+spec = tilo.generate(
+    "Summarise this incident",
+    model="deepseek-chat",
+    base_url="https://api.deepseek.com/v1",
+    api_key="sk-...",
+)
+
+# Local model, no key needed:
+spec = tilo.generate("Plan a trip", model="llama3", base_url="http://localhost:11434/v1")
+```
+
+### From the shell (`tilo generate`)
+
+No Python needed:
+
+```bash
+export OPENAI_API_KEY=sk-...
+tilo generate "Review this contract for risks" --model gpt-4o      # opens browser
+tilo generate "Plan a Tokyo trip" --model gpt-4o --html trip.html  # saves HTML
+tilo generate "Analyse Q3" --model gpt-4o --json                   # prints spec
+tilo generate "Summarise" --base-url http://localhost:11434/v1 --model llama3
+```
 
 ### Reliability: repair, validation, and errors
 

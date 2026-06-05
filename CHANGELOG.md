@@ -6,6 +6,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added — robustness, providers, ergonomics
+- **`base_url`** on `generate()` — use any OpenAI-compatible provider (DeepSeek,
+  Groq, OpenRouter, Together, or a local Ollama/vLLM server) with one line.
+- **`tilo generate "goal"` CLI** — generate a surface straight from the shell
+  (`--model`, `--base-url`, `--skill`, `--document`, `--json`, `--html`, `--save`).
+- **`generate_followup(prev, question)`** — multi-turn surfaces that build on a
+  previous result (act on `follow_ups`).
+- **JSON repair retry** — on unparseable/invalid model output, ask the model
+  once to fix it before falling back (`repair=True` default; opt out per call).
+- **`temperature`** and **`strict`** parameters on `generate()` and providers.
+- **Actionable errors** — missing API key / SDK now raises a clear
+  `TiloGenerationError` / `ImportError` with the exact fix.
+- **`save_spec()` / `load_spec()`** — round-trip a spec to JSON.
+
+### Changed — performance
+- `tilo.schemas` is now a lazy package (PEP 562): the lightweight
+  `import tilo` → `generate` → `ArtifactSpecV1` path no longer loads the
+  54-model `domain` schema layer (+ service constants). Server code is
+  unaffected (deferred to first use).
+
+### Fixed
+- `AIPPromptBuilder.parse()` handles trailing prose after the JSON object.
+
+---
+
 ## [0.2.0] — 2026-06-05
 
 The "one line to an interactive surface" release. `pip install tilo` is now
