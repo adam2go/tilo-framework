@@ -6,16 +6,6 @@ Start with the README first. Use this page when you need deeper implementation r
 
 ---
 
-## Active Refactor
-
-The framework is mid-refactor. Read these first if you're contributing code:
-
-- [`REFACTOR_BLUEPRINT.md`](./REFACTOR_BLUEPRINT.md) — engineering blueprint with 8 ADRs and 6 phases. **All non-trivial code changes must cite a phase from this document.**
-- [`SURFACE_PROTOCOL.md`](./SURFACE_PROTOCOL.md) — `tilo.surface.v1` protocol contract. Surface-as-data, intent vocabulary, block vocabulary, validation rules.
-- [`IMPLEMENTATION_HISTORY.md`](./IMPLEMENTATION_HISTORY.md) — phase-by-phase landed work and a compact archive of older plans.
-
----
-
 ## Start Here
 
 - [`../README.md`](../README.md) — project overview, quick start, examples, roadmap.
@@ -33,6 +23,7 @@ The framework is mid-refactor. Read these first if you're contributing code:
 - [`ROAM_LOOP.md`](./ROAM_LOOP.md) — the main product loop: Render → Observe → Act → Memorize.
 - [`AI_NATIVE_FRAMEWORK_PRINCIPLES.md`](./AI_NATIVE_FRAMEWORK_PRINCIPLES.md) — positioning constraints for an AI-native product runtime framework.
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — backend and frontend runtime boundaries.
+- [`REFACTOR_BLUEPRINT.md`](./REFACTOR_BLUEPRINT.md) — architecture decision records (8 ADRs) behind the surface protocol.
 
 ---
 

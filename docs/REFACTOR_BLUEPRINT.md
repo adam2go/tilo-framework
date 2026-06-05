@@ -361,7 +361,7 @@ Changes (landed):
 Pending follow-ups (kept for a later commit, not blocking):
 - Remove deprecated `surface:` alias in policy YAML once external apps have migrated.
 - Remove the legacy `ArtifactSpecBuilder` hardcoded branches; only the rich-artifact path remains, and it should also be surface-spec-shaped end-to-end.
-- Freeze `artifact_spec.v1`; document migration to `surface_spec.v1` in `docs/IMPLEMENTATION_HISTORY.md`.
+- Freeze `artifact_spec.v1`; document migration to `surface_spec.v1` in the `CHANGELOG`.
 
 **Done When:**
 - `/demo` is the only demo route and renders entirely through `<TiloRenderer>` over the SurfaceTurn stream. ✅
@@ -409,7 +409,7 @@ To prevent scope creep:
 
 ## 8. Traceability
 
-Each phase corresponds to a top-level commit (or merge group). Commit messages MUST start with `refactor(surface-proto/phase-N): ...`. Phases-to-files index lives in `docs/IMPLEMENTATION_HISTORY.md` and is appended to as work lands.
+Each phase corresponds to a top-level commit (or merge group). Commit messages MUST start with `refactor(surface-proto/phase-N): ...`. Landed work is tracked in the `CHANGELOG`.
 
 ---
 

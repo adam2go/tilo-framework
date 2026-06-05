@@ -38,3 +38,6 @@ Thumbs.db
 *.mov
 *.webm
 *.m4v
+
+# TypeScript build cache
+*.tsbuildinfo
