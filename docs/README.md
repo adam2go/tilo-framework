@@ -20,6 +20,8 @@ The framework is mid-refactor. Read these first if you're contributing code:
 
 - [`../README.md`](../README.md) — project overview, quick start, examples, roadmap.
 - [`../README.zh-CN.md`](../README.zh-CN.md) — Chinese README.
+- [`tutorials/quickstart.md`](./tutorials/quickstart.md) — **5-minute quickstart** (pip install → rendered surface).
+- [`GENERATE.md`](./GENERATE.md) — **generate & render reference**: `tilo.generate()`, `AIPPromptBuilder`, skills, `tilo.view()`.
 - [`INTEGRATION_GUIDE.md`](./INTEGRATION_GUIDE.md) — integrate Tilo into an existing product.
 - [`USER_GUIDE.md`](./USER_GUIDE.md) — using the current demo and console.
 - [`BUILD_YOUR_FIRST_TILO_APP.md`](./BUILD_YOUR_FIRST_TILO_APP.md) — build a new declarative Tilo app.

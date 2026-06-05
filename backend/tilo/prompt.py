@@ -581,11 +581,16 @@ def _extract_json(text: str) -> str | None:
     text = re.sub(r"```(?:json)?\s*", "", text).strip()
     text = text.replace("```", "").strip()
 
-    # Try the whole string first
+    # If it parses as-is, use it directly (fast path).
     if text.startswith("{"):
-        return text
+        try:
+            json.loads(text)
+            return text
+        except json.JSONDecodeError:
+            pass  # fall through to substring extraction (e.g. trailing prose)
 
-    # Find the outermost { ... }
+    # Grab from the first "{" to the last "}" — drops surrounding prose and
+    # trailing commentary, while keeping nested braces inside the object.
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         return match.group(0)

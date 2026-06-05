@@ -407,3 +407,77 @@ class TestBuiltinSkills:
             assert "description" in skill, f"{key} missing description"
             assert "hints" in skill, f"{key} missing hints"
             assert skill["hints"].strip(), f"{key} hints is empty"
+
+
+# --------------------------------------------------------------------------- #
+# parse() robustness — LLMs produce messy output                              #
+# --------------------------------------------------------------------------- #
+
+class TestParseRobustness:
+    def _builder(self):
+        return AIPPromptBuilder("test goal")
+
+    def test_json_with_prose_before(self):
+        b = self._builder()
+        raw = 'Here is your spec:\n{"title":"T","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}'
+        result = b.parse(raw)
+        assert result is not None
+        assert result["title"] == "T"
+
+    def test_json_with_prose_after(self):
+        b = self._builder()
+        raw = '{"title":"T","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}\n\nLet me know if you need changes!'
+        result = b.parse(raw)
+        assert result is not None
+
+    def test_json_fenced_with_language(self):
+        b = self._builder()
+        raw = '```json\n{"title":"T","blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}\n```'
+        result = b.parse(raw)
+        assert result is not None
+        assert result["title"] == "T"
+
+    def test_blocks_without_ids_get_assigned(self):
+        b = self._builder()
+        raw = '{"title":"T","blocks":[{"type":"markdown","props":{"content":"a"}},{"type":"metric","props":{"label":"x","value":"1"}}],"views":[],"follow_ups":[]}'
+        result = b.parse(raw)
+        assert result is not None
+        ids = [blk["id"] for blk in result["blocks"]]
+        assert len(ids) == len(set(ids))  # unique
+        assert all(ids)  # non-empty
+
+    def test_empty_blocks_no_view(self):
+        b = self._builder()
+        raw = '{"title":"Empty","blocks":[],"follow_ups":[]}'
+        result = b.parse(raw)
+        assert result is not None
+        assert result["blocks"] == []
+        assert result["views"] == []
+
+    def test_missing_title_uses_goal(self):
+        b = AIPPromptBuilder("Review the quarterly budget report")
+        raw = '{"blocks":[{"id":"b","type":"markdown","props":{"content":"x"}}],"views":[],"follow_ups":[]}'
+        result = b.parse(raw)
+        assert result is not None
+        assert "Review" in result["title"]
+
+    def test_completely_garbage_returns_none(self):
+        b = self._builder()
+        assert b.parse("I cannot help with that.") is None
+        assert b.parse("") is None
+        assert b.parse("```\nno json here\n```") is None
+
+    def test_nested_braces_in_content(self):
+        b = self._builder()
+        raw = '{"title":"T","blocks":[{"id":"b","type":"code","props":{"content":"function() { return {x: 1}; }"}}],"views":[],"follow_ups":[]}'
+        result = b.parse(raw)
+        assert result is not None
+        assert "return" in result["blocks"][0]["props"]["content"]
+
+    def test_parsed_output_always_schema_valid(self):
+        b = self._builder()
+        raw = '{"title":"Valid","blocks":[{"type":"heading","props":{"text":"Hi","severity":"info"}},{"type":"confirmation","props":{"description":"OK?","risk_level":"low"}}],"views":[{"id":"v","label":"V","block_ids":["b0","b1"]}],"follow_ups":["next"]}'
+        result = b.parse(raw)
+        assert result is not None
+        validated = ArtifactSpecV1.model_validate(result)
+        assert len(validated.blocks) == 2
