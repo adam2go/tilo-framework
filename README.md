@@ -193,13 +193,14 @@ Each adapter offers two modes: **generate** a full surface (the LLM authors
 chart/diff/confirmation/memory blocks), or **convert** a response you already
 have (simpler text/metric/table/tool blocks).
 
-| Adapter | Status | Generate a full surface |
+| Adapter | Status | Import |
 |---|---|---|
 | **OpenAI** | ✅ | `from tilo.adapters.openai import generate_aip_spec` |
 | **Anthropic** | ✅ | `from tilo.adapters.anthropic_sdk import generate_aip_spec` |
 | **LangChain** | ✅ | `from tilo.adapters.langchain import generate_aip_spec` |
-| **MCP** | ✅ | `from tilo.adapters.mcp import mcp_content_to_blocks` (convert only) |
-| **A2A / ACP** | 🔌 | Interface stubs — contributions welcome |
+| **MCP** | ✅ | `from tilo.adapters.mcp import mcp_content_to_blocks` |
+| **A2A** | ✅ | `from tilo.adapters.a2a import a2a_task_to_spec` |
+| **ACP** | ✅ | `from tilo.adapters.acp import acp_message_to_spec` |
 
 Bring your own client with `AIPPromptBuilder` (works with any LLM), or just
 call `tilo.generate(goal, model=…)` and let Tilo pick the provider.
@@ -348,7 +349,7 @@ evals/         Runtime quality checks and baseline metrics
 - [x] Zero-setup viewer — `tilo.view()` / `tilo.notebook()` / `tilo.to_html()`
 - [x] `tilo serve` welcome page + live `/playground` spec editor
 - [x] `@adam2go/tilo-react` npm package published
-- [ ] A2A / ACP adapter implementations
+- [x] A2A + ACP adapters — `a2a_task_to_spec()` / `acp_message_to_spec()`
 - [ ] Skill marketplace + community renderer SDKs (Vue, Svelte)
 
 **Future** — Multi-agent routing, real tool execution with confirmation gates, Slack / email channel adapters.

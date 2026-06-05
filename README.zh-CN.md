@@ -188,8 +188,8 @@ make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 | **Anthropic** | ✅ 已实现 | `from tilo.adapters.anthropic_sdk import tilo_spec_from_message` |
 | **LangChain** | ✅ 已实现 | `from tilo.adapters.langchain import TiloCallbackHandler` |
 | **MCP** | ✅ 已实现 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
-| **A2A** | 🔌 接口 | A2A task result → Tilo spec |
-| **ACP** | 🔌 接口 | ACP message → Tilo spec |
+| **A2A** | ✅ 已实现 | `from tilo.adapters.a2a import a2a_task_to_spec` |
+| **ACP** | ✅ 已实现 | `from tilo.adapters.acp import acp_message_to_spec` |
 
 ### 第三层 — 渲染器 SDK
 
