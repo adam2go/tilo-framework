@@ -4,14 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tilo"
-version = "0.1.0"
-description = "Tilo — AI-native SaaS agent framework with long-term memory, structured artifacts, and human confirmation."
+version = "0.2.0"
+description = "Turn any LLM into an interactive UI. One line of Python — no React, no frontend setup."
 requires-python = ">=3.11"
 license = { text = "MIT" }
-keywords = ["ai", "agent", "framework", "memory", "artifact", "saas"]
+readme = "README.md"
+keywords = ["ai", "agent", "llm", "ui", "openai", "anthropic", "langchain", "framework"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Framework :: FastAPI",
+  "Intended Audience :: Developers",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -24,17 +26,33 @@ dependencies = [
   "alembic>=1.13",
   "pydantic>=2.6",
   "pydantic-settings>=2.2",
-  "psycopg[binary]>=3.1",
   "httpx>=0.27",
   "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
+# LLM provider SDKs — install the one you use:
+#   pip install "tilo[openai]"  /  "tilo[anthropic]"  /  "tilo[langchain]"
+openai = ["openai>=1.0"]
+anthropic = ["anthropic>=0.30"]
+langchain = ["langchain-core>=0.2", "langchain-openai>=0.1"]
+# Postgres driver (SQLite is the default — only needed for Postgres deployments):
+postgres = ["psycopg[binary]>=3.1"]
+# Everything:
+all = ["openai>=1.0", "anthropic>=0.30", "langchain-core>=0.2", "psycopg[binary]>=3.1"]
 test = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/adam2go/tilo-framework"
+Documentation = "https://github.com/adam2go/tilo-framework/tree/main/docs"
+Repository = "https://github.com/adam2go/tilo-framework"
+Changelog = "https://github.com/adam2go/tilo-framework/blob/main/CHANGELOG.md"
 
 [project.scripts]
 # `pip install tilo` gives you:
-#   tilo serve     — start the API server
+#   tilo demo      — open a sample surface in the browser
+#   tilo generate  — (via Python) one line LLM → interactive UI
+#   tilo serve     — start the API server + playground
 #   tilo init      — scaffold a new Tilo project
 tilo = "tilo.cli:main"
 
