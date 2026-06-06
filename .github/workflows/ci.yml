@@ -36,14 +36,15 @@ jobs:
               "views": [{"id": "v", "label": "V", "block_ids": ["b"]}],
           })
           assert "CI" in html
-          # Optional deps must NOT be importable here (proves they're optional):
-          for mod in ("openai", "anthropic", "psycopg"):
+          # Optional deps must NOT be importable here (proves they're optional).
+          # Includes the server stack: the lean library must not pull FastAPI/DB.
+          for mod in ("openai", "anthropic", "psycopg", "fastapi", "uvicorn", "sqlalchemy", "alembic"):
               try:
                   __import__(mod)
-                  raise SystemExit(f"{mod} should not be installed in the base surface")
+                  raise SystemExit(f"{mod} should not be installed in the lean surface")
               except ImportError:
                   pass
-          print("clean-install import surface OK")
+          print("lean-install surface OK — generate/view work with only pydantic+pyyaml")
           PY
 
   backend:

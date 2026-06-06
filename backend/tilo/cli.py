@@ -79,10 +79,16 @@ def main(argv: list[str] | None = None) -> None:
 
 def _serve(args: argparse.Namespace) -> None:
     try:
-        import uvicorn
+        import uvicorn  # noqa: F401
+        import fastapi  # noqa: F401
     except ImportError:
-        print("uvicorn is required. Install with: pip install 'tilo[standard]'")
+        print(
+            "The full backend server is an optional extra.\n"
+            '  Install it with:  pip install "tilo[server]"\n'
+            "  (the lightweight `tilo generate` / `tilo demo` / Python API work without it)"
+        )
         sys.exit(1)
+    import uvicorn
 
     print(f"▶  Tilo        →  http://{args.host}:{args.port}")
     print(f"   Playground  →  http://{args.host}:{args.port}/playground")

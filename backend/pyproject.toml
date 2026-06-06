@@ -19,14 +19,10 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
+# Lean core — `pip install tilo` only pulls these. Enough for the hero path:
+#   tilo.generate(...) → tilo.view(...)  and the AIPPromptBuilder / adapters.
 dependencies = [
-  "fastapi>=0.110",
-  "uvicorn[standard]>=0.27",
-  "sqlalchemy>=2.0",
-  "alembic>=1.13",
   "pydantic>=2.6",
-  "pydantic-settings>=2.2",
-  "httpx>=0.27",
   "PyYAML>=6.0",
 ]
 
@@ -36,11 +32,30 @@ dependencies = [
 openai = ["openai>=1.0"]
 anthropic = ["anthropic>=0.30"]
 langchain = ["langchain-core>=0.2", "langchain-openai>=0.1"]
-# Postgres driver (SQLite is the default — only needed for Postgres deployments):
+# The full backend runtime: FastAPI server, DB, migrations, /playground.
+# Only needed for `tilo serve` and the ROAM-loop runtime — not for generate/view.
+server = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "pydantic-settings>=2.2",
+  "httpx>=0.27",
+]
+# Postgres driver (SQLite is the default — only for Postgres deployments):
 postgres = ["psycopg[binary]>=3.1"]
 # Everything:
-all = ["openai>=1.0", "anthropic>=0.30", "langchain-core>=0.2", "psycopg[binary]>=3.1"]
-test = ["pytest>=8.0"]
+all = [
+  "openai>=1.0", "anthropic>=0.30", "langchain-core>=0.2", "langchain-openai>=0.1",
+  "fastapi>=0.110", "uvicorn[standard]>=0.27", "sqlalchemy>=2.0", "alembic>=1.13",
+  "pydantic-settings>=2.2", "httpx>=0.27", "psycopg[binary]>=3.1",
+]
+# Running the test suite exercises the server, so it includes the server deps.
+test = [
+  "pytest>=8.0",
+  "fastapi>=0.110", "uvicorn[standard]>=0.27", "sqlalchemy>=2.0", "alembic>=1.13",
+  "pydantic-settings>=2.2", "httpx>=0.27",
+]
 
 [project.urls]
 Homepage = "https://github.com/adam2go/tilo-framework"

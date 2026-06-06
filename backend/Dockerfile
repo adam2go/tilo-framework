@@ -3,8 +3,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY backend/pyproject.toml backend/README.md ./
-# The Docker stack uses Postgres, so install the postgres extra.
-RUN pip install --no-cache-dir ".[postgres]"
+# The Docker stack runs the full server against Postgres.
+RUN pip install --no-cache-dir ".[server,postgres]"
 
 COPY backend/tilo ./tilo
 COPY examples ./examples
