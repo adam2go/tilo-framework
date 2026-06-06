@@ -26,11 +26,14 @@ at all and are re-exported here for convenience.
 
 from tilo.adapters.a2a import a2a_task_to_spec
 from tilo.adapters.acp import acp_message_to_spec
+from tilo.adapters.agui import agui_events_to_tilo_spec, tilo_spec_to_agui_events
 from tilo.adapters.mcp import mcp_content_to_blocks, mcp_tool_result_to_spec
 
 __all__ = [
     "a2a_task_to_spec",
     "acp_message_to_spec",
+    "agui_events_to_tilo_spec",
+    "tilo_spec_to_agui_events",
     "mcp_content_to_blocks",
     "mcp_tool_result_to_spec",
 ]
