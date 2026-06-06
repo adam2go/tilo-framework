@@ -23,6 +23,7 @@ deterministic sample).
 | OpenAI SDK | [`openai_example.py`](./openai_example.py) | `pip install tilo openai` |
 | Anthropic SDK | [`anthropic_example.py`](./anthropic_example.py) | `pip install tilo anthropic` |
 | LangChain | [`langchain_example.py`](./langchain_example.py) | `pip install tilo langchain-openai langchain-core` |
+| **AG-UI / CopilotKit** | [`agui/`](./agui/) | `pip install tilo` |
 
 ## Two ways to use Tilo
 
