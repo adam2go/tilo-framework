@@ -112,34 +112,47 @@ spec = generate_aip_spec(ChatOpenAI(model="gpt-4o"), "规划一次东京之旅")
 
 ## 为什么是 Tilo
 
-AI Agent 生态已经有了很好的**工具调用**方案（MCP）、**编排框架**（LangChain、CrewAI）、
-**Agent 间通信协议**（A2A、ACP）。
+**Tilo 是一个库,不是框架。** 你已经有自己的 Agent(自研循环、LangGraph、CrewAI 都行)。
+Tilo 只做一件事:把模型输出变成一个**结构化、可交互的界面**——一份由带类型的块
+(chart、diff、table、checklist、confirmation、memory_card)组成的声明式 spec,
+一个函数就能渲染,不需要前端。
 
-仍然缺失的是 **AI 原生软件的运行时** —— 在这种软件里，Agent 不是去驱动一个为人类
-设计的 UI，而是 **自己生成 UI**，用户的每次操作都以结构化信号回流到 Agent。
-
-```
-MCP   = Agent 的手           （调用工具）
-A2A   = Agent 的嘴            （Agent 间通信）
-Tilo  = Agent 的脸 + 耳        （渲染 UI，观察用户对它做了什么）
+```python
+spec = tilo.generate("审查这份合同", model="gpt-4o")   # → 一份 spec(数据)
+tilo.view(spec)                                        # → 直接渲染,无需 React
 ```
 
-Tilo 是一套 **Agent 交互协议（AIP）**：声明式 JSON spec，闭合 Agent 与用户之间的
-回路。Agent 产出 spec；运行时把它渲染为可交互 UI；用户的每次点击、编辑、确认都被
-捕获为一条带类型的 `UIInteractionEvent`，注入到 Agent 的下一轮推理中 ——
-不需要 DOM 抓取，也不需要像素级识别。
+精简安装就是字面意义的精简:`pip install tilo` **只装 pydantic + PyYAML**。
+完整服务器运行时(会话、记忆、ROAM 闭环)是可选的 `tilo[server]`——多数人用不到。
 
-### Tilo 与 Browser Use 解决的是不同问题
+### 与生态里其它东西互补
 
-|                          | **Browser Use**                                 | **Tilo**                                              |
-|--------------------------|-------------------------------------------------|-------------------------------------------------------|
-| 服务的软件类型           | 已有的、为人类设计的 App                        | 由 Agent 自己生成 UI 的新型 App                       |
-| Agent 与 UI 的关系       | 驱动一个不是它设计的 UI                         | 在每一轮对话里，按 spec 生成 UI                       |
-| 用户 → Agent 的反馈      | 从截图和 DOM 中推断                             | 以结构化 `UIInteractionEvent` 直接回传                |
-| 适用场景                 | 自动化已有软件中的工作流                        | 从零构建 AI 原生产品                                  |
+Tilo 不替代你的工具、编排器或 agent-UI 传输层,它只补上"产出结构化界面"这一层。
 
-如果你要自动化的是已有的 App，Browser Use 是更合适的工具。Tilo 适合的场景是：
-你能决定 UI 长什么样，且希望它从第一天起就同时为人类和 Agent 设计。
+| 层 | 归属 | Tilo 的关系 |
+|---|---|---|
+| 工具调用 | MCP | `mcp_*` 适配器 → 把工具结果渲染成界面 |
+| 编排 | LangChain / CrewAI / LangGraph | 从你的 chain 调 `generate_aip_spec(llm, …)` |
+| Agent ↔ App 传输 | **AG-UI**(CopilotKit) | **互操作适配器** —— 把 Tilo 界面作为 AG-UI 事件发出 |
+| Agent 间通信 | A2A / ACP | `a2a_*` / `acp_*` 适配器 → 渲染结果 |
+
+### Tilo 和 AG-UI 是配合,不是竞争
+
+[AG-UI](https://docs.ag-ui.com) 是一个**事件流协议**,把 Agent 的实时活动带进
+chat/copilot 界面(通过 CopilotKit)。Tilo 产出的是一份**声明式 artifact**,有没有
+前端都能渲染。两者可以组合:让你的 AG-UI agent 把 Tilo 界面作为 generative UI 发出。
+
+|                  | **AG-UI**                       | **Tilo**                               |
+|------------------|---------------------------------|----------------------------------------|
+| 形态             | 事件流(过程)                   | 声明式 spec(一份 artifact)           |
+| 前端             | 需要客户端运行时(CopilotKit)   | 任意渲染——浏览器 / Jupyter / HTML / React |
+| UI 形状          | chat / copilot                  | 结构化界面(报告、评审、看板)          |
+| 集成成本         | 接入协议 + 搭前端               | `pip install tilo` + 一个函数          |
+
+```python
+from tilo.adapters.agui import tilo_spec_to_agui_events
+events = tilo_spec_to_agui_events(spec)   # 注入 CopilotKit 应用
+```
 
 ---
 
@@ -190,6 +203,7 @@ make dev       # 后端 :8000 + 前端 :4001（Ctrl-C 同时停掉）
 | **MCP** | ✅ 已实现 | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **A2A** | ✅ 已实现 | `from tilo.adapters.a2a import a2a_task_to_spec` |
 | **ACP** | ✅ 已实现 | `from tilo.adapters.acp import acp_message_to_spec` |
+| **AG-UI** | ✅ 已实现 | `from tilo.adapters.agui import tilo_spec_to_agui_events`(互操作) |
 
 ### 第三层 — 渲染器 SDK
 

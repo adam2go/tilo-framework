@@ -6,16 +6,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [0.4.0] — 2026-06-06
+
+The "lightweight library" release: positioning Tilo as a library you call
+(not a framework you adopt), complementary to AG-UI and the rest of the stack.
+
+### Changed — lean by default
+- **`pip install tilo` is now lightweight** — it pulls only `pydantic` +
+  `PyYAML`. The FastAPI server, database, migrations, and `/playground` moved
+  to an opt-in **`tilo[server]`** extra. The hero path (generate / view /
+  AIPPromptBuilder / adapters) needs nothing more. (Verified in a clean venv;
+  CI guards that the server stack is absent from the lean install.)
 
 ### Added
+- **AG-UI interop adapter** (`tilo.adapters.agui`) — `tilo_spec_to_agui_events()`
+  emits a Tilo surface into an AG-UI/CopilotKit stream as a `CUSTOM`
+  "tilo.surface" event; `agui_events_to_tilo_spec()` aggregates an AG-UI stream
+  into a Tilo surface. Tilo composes *with* AG-UI rather than competing.
 - **`generate_batch(goals, …)`** — generate many surfaces concurrently (thread
   pool; N goals finish in ~the slowest one's time). Order preserved; per-item
   failures yield a fallback instead of aborting the batch.
 
-### Changed
-- Removed internal V1.0 build-process docs from `docs/` (history is in git +
-  the CHANGELOG); dropped the stale "Active Refactor" framing in the docs index.
+### Docs
+- README (EN + zh-CN) repositioned: "a library, not a framework", explicit
+  AG-UI/MCP/A2A/ACP complementary framing, lean-vs-`[server]` install guidance.
+- Removed internal V1.0 build-process docs from `docs/`; dropped the stale
+  "Active Refactor" framing in the docs index.
 - Stopped tracking the `frontend/tsconfig.tsbuildinfo` build cache.
 
 ---

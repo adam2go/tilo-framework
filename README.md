@@ -109,6 +109,12 @@ from tilo.adapters.langchain import generate_aip_spec
 spec = generate_aip_spec(ChatOpenAI(model="gpt-4o"), "Plan a trip to Tokyo")
 ```
 
+```python
+# Already on AG-UI / CopilotKit? Emit a Tilo surface into the stream:
+from tilo.adapters.agui import tilo_spec_to_agui_events
+events = tilo_spec_to_agui_events(spec)
+```
+
 12 built-in **skills** (contract review, code review, incident response,
 meeting summary, bug report, trip planning, …) shape the output for your
 domain — or load your own `skill.yaml`. Bring your own LLM client with
@@ -118,52 +124,65 @@ domain — or load your own `skill.yaml`. Bring your own LLM client with
 
 ## Why Tilo
 
-The AI agent ecosystem has good answers for **tool calling** (MCP),
-**orchestration** (LangChain, CrewAI), and **agent-to-agent communication**
-(A2A, ACP).
+**Tilo is a library, not a framework.** You already have an agent (your own
+loop, LangGraph, CrewAI, whatever). Tilo does one thing: it turns a model's
+output into a **structured, interactive surface** — a declarative spec of
+typed blocks (chart, diff, table, checklist, confirmation, memory card) that
+renders anywhere, from one function call, with no frontend.
 
-What's still missing is the **runtime for AI-native software** — software
-where the agent doesn't drive a UI built for humans, but **authors the UI
-itself**, and every user action flows back to the agent as structured
-signal.
-
-```
-MCP   = Agent's hands         (call tools)
-A2A   = Agent's voice          (talk to other agents)
-Tilo  = Agent's face + ears    (render UI, observe what users do with it)
+```python
+spec = tilo.generate("Review this contract", model="gpt-4o")  # → a spec (data)
+tilo.view(spec)                                                # → rendered, no React
 ```
 
-Tilo is an **Agent Interaction Protocol (AIP)**: a declarative JSON spec
-that closes the loop between agent and user. The agent emits a spec; the
-runtime renders it as interactive UI; every click, edit, or confirmation
-is captured as a typed `UIInteractionEvent` and fed into the agent's next
-turn — without DOM scraping or pixel inspection.
+The lean install is just that: `pip install tilo` pulls **only pydantic +
+PyYAML**. The full server runtime (sessions, memory, the ROAM loop) is an
+opt-in `tilo[server]` extra — most people never need it.
 
-### Tilo and Browser Use solve different problems
+### Complementary to the rest of the stack
 
-|                            | **Browser Use**                                  | **Tilo**                                              |
-|----------------------------|--------------------------------------------------|-------------------------------------------------------|
-| Software it powers         | Existing apps designed for humans                | New apps where the agent generates the UI             |
-| Agent's relationship to UI | Drives a UI it didn't author                     | Authors the UI from a spec on every turn              |
-| User → agent feedback      | Inferred from screenshots and DOM                | Captured as structured `UIInteractionEvent`           |
-| Where it fits              | Automating workflows on existing software        | Building AI-native products from the ground up        |
+Tilo doesn't replace your tools, orchestrator, or agent-UI transport — it
+slots in as the layer that produces the *structured view*.
 
-If you need to automate an existing app, Browser Use is the right tool.
-Tilo is for the case where you can choose what the UI looks like, and
-you want it shaped for both humans and agents from day one.
+| Layer | Owned by | Tilo's relationship |
+|---|---|---|
+| Tool calling | MCP | `mcp_*` adapter → render tool results as a surface |
+| Orchestration | LangChain / CrewAI / LangGraph | `generate_aip_spec(llm, …)` from your chain |
+| Agent ↔ app transport | **AG-UI** (CopilotKit) | **interop adapter** — emit a Tilo surface as an AG-UI event |
+| Agent-to-agent | A2A / ACP | `a2a_*` / `acp_*` adapters → render results |
+
+### Tilo and AG-UI work together (not against)
+
+[AG-UI](https://docs.ag-ui.com) is an event-streaming **protocol** that carries
+an agent's live activity into a chat/copilot UI (via CopilotKit). Tilo produces
+a **declarative artifact** you can render with or without a frontend. They
+compose: let your AG-UI agent emit a Tilo surface as generative UI.
+
+|                       | **AG-UI**                                  | **Tilo**                                            |
+|-----------------------|--------------------------------------------|-----------------------------------------------------|
+| Shape                 | Event stream (process)                     | Declarative spec (one artifact)                     |
+| Frontend              | Needs a client runtime (CopilotKit)        | Renders anywhere — browser / Jupyter / HTML / React |
+| UI form               | Chat / copilot                             | Structured surface (report, review, dashboard)      |
+| Integration cost      | Adopt the protocol + wire a frontend       | `pip install tilo` + one function                   |
+
+```python
+from tilo.adapters.agui import tilo_spec_to_agui_events
+events = tilo_spec_to_agui_events(spec)   # stream into a CopilotKit app
+```
 
 ---
 
 ## Three ways to run
 
-| Goal | Command | What you get |
+| Goal | Install | What you get |
 |---|---|---|
-| **See a surface now** | `pip install tilo && tilo demo` | A sample surface opens in your browser |
-| **Generate from your LLM** | `tilo init myapp` → edit `.env` → `python hello.py` | Your prompt → a rendered surface |
-| **Full ROAM loop + frontend** | `git clone … && make dev` | Backend `:8000` + reference UI `:4001` |
+| **See a surface now** | `pip install tilo` → `tilo demo` | A sample surface opens in your browser (lean: pydantic + PyYAML only) |
+| **Generate from your LLM** | `pip install "tilo[openai]"` → `tilo generate "…"` | Your prompt → a rendered surface |
+| **Full ROAM loop + frontend** | `pip install "tilo[server]"` (or `git clone … && make dev`) | Backend `:8000` + reference UI `:4001` |
 
-The full stack adds sessions, runs, confirmed memory, and the reference
-React Canvas:
+The default `pip install tilo` is a lightweight library. The FastAPI server,
+database, and `/playground` only come with the `tilo[server]` extra. The full
+stack adds sessions, runs, confirmed memory, and the reference React Canvas:
 
 ```bash
 git clone https://github.com/adam2go/tilo-framework.git
@@ -201,6 +220,7 @@ have (simpler text/metric/table/tool blocks).
 | **MCP** | ✅ | `from tilo.adapters.mcp import mcp_content_to_blocks` |
 | **A2A** | ✅ | `from tilo.adapters.a2a import a2a_task_to_spec` |
 | **ACP** | ✅ | `from tilo.adapters.acp import acp_message_to_spec` |
+| **AG-UI** | ✅ | `from tilo.adapters.agui import tilo_spec_to_agui_events` (interop) |
 
 Bring your own client with `AIPPromptBuilder` (works with any LLM), or just
 call `tilo.generate(goal, model=…)` and let Tilo pick the provider.
