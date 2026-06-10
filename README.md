@@ -198,13 +198,14 @@ cd tilo-framework && make install && make dev
 
 ---
 
-## Architecture: Four Layers
+## How it fits together
 
-### Layer 1 — Core Spec + Runtime
+The library is three small layers — a **spec**, **adapters** that produce it,
+and **renderers** that draw it. Everything else (the full runtime) is optional.
 
-~20 **primitive block types** (like HTML tags: `markdown`, `table`, `chart`, `diff`, `form`, `card`, …) plus an open extension mechanism. Any string is a valid block type — unknown types render with a generic JSON fallback.
+### Layer 1 — The spec
 
-Three runtime pillars: **Memory Engine** (recall → candidate → confirm), **Confirmation Inbox** (gate high-risk actions), **Trace Recorder** (every step auditable).
+~20 **primitive block types** (like HTML tags: `markdown`, `table`, `chart`, `diff`, `form`, `card`, …) plus an open extension mechanism. Any string is a valid block type — unknown types render with a generic JSON fallback. The spec is plain JSON, so it travels and renders anywhere.
 
 ### Layer 2 — LLM Adapters
 
@@ -277,28 +278,32 @@ See [`docs/demos/`](./docs/demos/README.md) for the full goal text and reproduct
 
 ---
 
-## The Two-Way Loop, Concretely
+## Optional: the full runtime (`tilo[server]`)
 
-Most "agent UI" frameworks ship one direction: agent → UI. Tilo ships
-both directions, and the second one is where the leverage is.
+Most people use Tilo as a library: `generate → spec → render`, done. But if you
+*don't* already have an agent backend and want the whole loop, `tilo[server]`
+adds a FastAPI runtime that closes the **two-way loop** — not just agent → UI,
+but UI → agent:
 
 ```text
-1.  Agent emits AIP spec        →  blocks + views, declarative JSON
-2.  Renderer paints UI          →  React (reference) / your own SDK
+1.  Agent emits a spec          →  blocks + views, declarative JSON
+2.  Renderer paints the UI      →  @adam2go/tilo-react / your own
 3.  User clicks / edits / confirms
-4.  Frontend → POST /api/interactions
-5.  Backend writes UIInteractionEvent + ContextReflection observation
-6.  Next agent turn picks up recent events via AgentContextBuilder
-7.  Agent reasons over what the user actually did, not pixels.
+4.  Backend records the action  →  UIInteractionEvent + observation
+5.  Next agent turn reasons over what the user actually did, not pixels
 ```
 
-Two design choices keep this safe:
+Two design choices keep it safe — and these are the parts worth borrowing even
+if you don't use the server:
 
 - **Confirmed memory, not automatic memory.** The agent proposes what it
   learned (`memory_card`); the user decides what sticks.
-- **Backend-owned action semantics.** The frontend renders intent; the
-  backend (via `ArtifactActionRuntime`) decides what actually happens —
-  so high-risk actions stay gated behind a `confirmation` block.
+- **Backend-owned action semantics.** The frontend renders intent; the backend
+  decides what actually happens — high-risk actions stay gated behind a
+  `confirmation` block.
+
+This is the heavier path. If you already have your own agent, you don't need it
+— just `pip install tilo` and use `generate` / `view`.
 
 ---
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tilo"
-version = "0.4.0"
+version = "0.4.1"
 description = "Turn any LLM into an interactive UI. One line of Python — no React, no frontend setup."
 requires-python = ">=3.11"
 license = { text = "MIT" }

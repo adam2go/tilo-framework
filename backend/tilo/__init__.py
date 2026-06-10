@@ -44,7 +44,15 @@ from tilo.generate import (
 from tilo.prompt import AIPPromptBuilder, BUILTIN_SKILLS, detect_skill
 from tilo.viewer import load_spec, notebook, save_html, save_spec, to_html, view
 
+try:  # populated from package metadata when installed
+    from importlib.metadata import version as _pkg_version
+
+    __version__ = _pkg_version("tilo")
+except Exception:  # noqa: BLE001 — source checkout without an installed dist
+    __version__ = "0.0.0.dev0"
+
 __all__ = [
+    "__version__",
     # Generation
     "generate",
     "generate_batch",

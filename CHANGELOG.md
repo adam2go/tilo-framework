@@ -6,6 +6,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.4.1] — 2026-06-10
+
+### Added
+- **`py.typed` marker** — Tilo now ships its type information, so downstream
+  users get full type checking (mypy / pyright) from `tilo`.
+- **`tilo.__version__`** — read from package metadata.
+- **AG-UI × Tilo best-practice examples** (`examples/integrations/agui/`) —
+  runnable: emit a surface into an AG-UI stream, aggregate a stream into a
+  surface, an SSE endpoint, and a CopilotKit renderer.
+
+### Docs
+- README repositioned for coherence with the "library, not a framework" stance:
+  the spec/adapters/renderers are the core; the full ROAM runtime is clearly
+  marked as the optional `tilo[server]` path.
+
+---
+
 ## [0.4.0] — 2026-06-06
 
 The "lightweight library" release: positioning Tilo as a library you call
